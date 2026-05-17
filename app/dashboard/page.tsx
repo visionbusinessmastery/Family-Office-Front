@@ -690,26 +690,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-6 bg-[#3fa9f5]/10 p-5 rounded-2xl">
-            <h3 className="text-[#3fa9f5] font-bold mb-3">
-              Recommandations IA
-            </h3>
-
-            <div className="space-y-2">
-              {scoreAdvice.length > 0 ? (
-                scoreAdvice.map((advice, index) => (
-                  <p key={`${advice}-${index}`} className="text-gray-300">
-                    {advice}
-                  </p>
-                ))
-              ) : (
-                <p className="text-gray-400">Aucune recommandation.</p>
-              )}
-            </div>
-          </div>
         </section>
 
-        <AdvisorChat />
+        <AdvisorChat
+          recommendations={scoreAdvice}
+          aiCoach={gamification?.ai_coach}
+          notification={gamification?.notification}
+        />
 
         <GamificationPanel gamification={gamification || undefined} />
 

@@ -17,7 +17,6 @@ export default function GamificationPanel({
   const badges = Array.isArray(gamification.badges)
     ? gamification.badges
     : [];
-  const affiliations = gamification.ai_coach?.affiliations || [];
   const progress = xp % xpToNextLevel;
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
 
@@ -84,52 +83,6 @@ export default function GamificationPanel({
           {gamification.reward?.description && (
             <p className="text-gray-400 text-xs mt-1">
               {gamification.reward.description}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-gray-800/40 p-4 rounded-xl border border-gray-700">
-          <h3 className="text-lg font-semibold text-white mb-2">AI Coach</h3>
-
-          <p className="text-gray-300 text-sm leading-relaxed">
-            {gamification.ai_coach?.message ||
-              "Continue tes actions pour ameliorer ton score et debloquer des recompenses."}
-          </p>
-
-          {affiliations.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="text-xs uppercase text-gray-500">
-                Affiliations suggerees
-              </p>
-              {affiliations.map((item, index) => (
-                <div
-                  key={`${item.title}-${index}`}
-                  className="rounded-lg border border-white/10 bg-black/30 p-3"
-                >
-                  <p className="text-sm font-semibold text-white">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{item.reason}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">
-          <h3 className="text-lg font-semibold text-blue-400 mb-2">
-            Notification
-          </h3>
-
-          <p className="text-white text-sm">
-            {gamification.notification?.title || "Aucune notification"}
-          </p>
-
-          {gamification.notification?.message && (
-            <p className="text-gray-400 text-xs mt-1">
-              {gamification.notification.message}
             </p>
           )}
         </div>

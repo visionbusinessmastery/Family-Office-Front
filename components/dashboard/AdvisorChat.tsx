@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import type { GamificationData } from "@/lib/types";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -15,6 +16,12 @@ type AdvisorResponse = {
   };
 };
 
+type AdvisorChatProps = {
+  recommendations?: string[];
+  aiCoach?: GamificationData["ai_coach"];
+  notification?: GamificationData["notification"];
+};
+
 const initialMessages: ChatMessage[] = [
   {
     role: "assistant",
@@ -23,13 +30,18 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-export default function AdvisorChat() {
+export default function AdvisorChat({
+  recommendations = [],
+  aiCoach,
+  notification,
+}: AdvisorChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const affiliations = aiCoach?.affiliations || [];
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -81,6 +93,68 @@ export default function AdvisorChat() {
         <p className="text-sm text-gray-400">
           Discussion contextualisee avec ton profil financier
         </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4">
+          <h3 className="font-bold text-[#3fa9f5] mb-3">
+            Recommandations IA
+          </h3>
+
+          <div className="space-y-2">
+            {recommendations.length > 0 ? (
+              recommendations.map((advice, index) => (
+                <p key={`${advice}-${index}`} className="text-sm text-gray-300">
+                  {advice}
+                </p>
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">Aucune recommandation.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+          <h3 className="font-bold text-white mb-2">AI Coach</h3>
+
+          <p className="text-sm text-gray-300 leading-relaxed">
+            {aiCoach?.message ||
+              "Continue tes actions pour ameliorer ton score et debloquer des recompenses."}
+          </p>
+
+          {affiliations.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs uppercase text-gray-500">
+                Affiliations suggerees
+              </p>
+              {affiliations.map((item, index) => (
+                <div
+                  key={`${item.title}-${index}`}
+                  className="rounded-lg border border-white/10 bg-black/30 p-3"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {item.title}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4">
+          <h3 className="font-bold text-blue-400 mb-2">Notification</h3>
+
+          <p className="text-sm text-white">
+            {notification?.title || "Aucune notification"}
+          </p>
+
+          {notification?.message && (
+            <p className="text-xs text-gray-400 mt-1">
+              {notification.message}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="h-80 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3">
