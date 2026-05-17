@@ -31,7 +31,9 @@ export default function GamificationPanel({
   const recommendedPlan =
     String(userLevel || "").toUpperCase() === "LIBERTY"
       ? "liberty_legacy"
-      : gamification.upgrade?.recommended_plan || (advanced ? "liberty" : "gold");
+      : advanced
+        ? "liberty"
+        : gamification.upgrade?.recommended_plan || "gold";
   const actions =
     gamification.actions && gamification.actions.length > 0
       ? gamification.actions

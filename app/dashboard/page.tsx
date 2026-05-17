@@ -197,7 +197,14 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error(err);
-      alert("Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe.");
+      const message = err instanceof Error ? err.message : "";
+      const missingPrice = message.match(/STRIPE_PRICE_[A-Z_]+/)?.[0];
+
+      alert(
+        missingPrice
+          ? `Abonnement Stripe non configure: ajoute ${missingPrice} dans Render.`
+          : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe."
+      );
     }
   };
 
