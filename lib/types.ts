@@ -45,6 +45,7 @@ export type PortfolioHistoryPoint = {
   date?: string;
   created_at?: string;
   value?: number | string;
+  cost?: number | string;
   gain?: number | string;
 };
 

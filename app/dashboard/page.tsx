@@ -23,6 +23,12 @@ const money = new Intl.NumberFormat("fr-FR", {
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
+const getAssetCost = (asset: PortfolioAsset) =>
+  Number(
+    asset.cost ??
+      Number(asset.quantity || 0) * Number(asset.purchase_price || 0)
+  );
+
 const parsePositiveNumber = (value: string | null) => {
   if (value === null) return null;
 
@@ -59,6 +65,10 @@ export default function Dashboard() {
   const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
+    0
+  );
+  const initialInvestment = portfolio.reduce(
+    (acc, asset) => acc + getAssetCost(asset),
     0
   );
 
@@ -383,7 +393,10 @@ export default function Dashboard() {
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">Chart</h2>
-          <ChartModule history={history} />
+          <ChartModule
+            history={history}
+            initialInvestment={initialInvestment}
+          />
         </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
