@@ -16,6 +16,7 @@ import type {
   UserIntelligence,
   UserProfile,
   VentureAssetData,
+  WorkspaceData,
   YieldAssetData,
 } from "@/lib/types";
 
@@ -83,6 +84,7 @@ export function useDashboard() {
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [categoryOpportunities, setCategoryOpportunities] =
     useState<CategoryOpportunityData | null>(null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -123,6 +125,19 @@ export function useDashboard() {
   const loadGamification = useCallback(async () => {
     const data = await safeFetch<GamificationData>("/gamification");
     setGamification(data);
+  }, [safeFetch]);
+
+  const loadWorkspaces = useCallback(async () => {
+    const data = await safeFetch<WorkspaceData>("/workspaces/");
+    setWorkspaces(data || { workspaces: [] });
+
+    if (
+      typeof window !== "undefined" &&
+      data?.active_workspace_id &&
+      !localStorage.getItem("activeWorkspaceId")
+    ) {
+      localStorage.setItem("activeWorkspaceId", String(data.active_workspace_id));
+    }
   }, [safeFetch]);
 
   const loadFinance = useCallback(async () => {
@@ -222,6 +237,7 @@ export function useDashboard() {
 
     await Promise.all([
       loadPortfolio(),
+      loadWorkspaces(),
       loadHistory(),
       loadRealEstate(),
       loadYieldAssets(),
@@ -243,6 +259,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadWorkspaces,
     loadUserProfile,
   ]);
 
@@ -271,6 +288,7 @@ export function useDashboard() {
         await loadCommandCenter();
         await Promise.all([
           loadPortfolio(),
+          loadWorkspaces(),
           loadHistory(),
           loadRealEstate(),
           loadYieldAssets(),
@@ -305,6 +323,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadWorkspaces,
     loadUserProfile,
     refreshAll,
     token,
@@ -325,10 +344,12 @@ export function useDashboard() {
     onboarding,
     intelligence,
     categoryOpportunities,
+    workspaces,
     finance,
     gamification,
     loadFinance,
     loadPortfolio,
+    loadWorkspaces,
     loadHistory,
     loadRealEstate,
     loadYieldAssets,

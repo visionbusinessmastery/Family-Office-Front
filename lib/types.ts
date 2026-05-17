@@ -281,3 +281,24 @@ export type DashboardSummary = {
   plan?: string;
   level?: string;
 };
+
+export type WorkspaceMember = {
+  email?: string;
+  role?: "owner" | "admin" | "member" | "viewer" | string;
+  status?: string;
+  created_at?: string | null;
+};
+
+export type Workspace = {
+  id: number;
+  name?: string;
+  plan?: string;
+  role?: "owner" | "admin" | "member" | "viewer" | string;
+  owner_user_id?: number;
+  members?: WorkspaceMember[];
+};
+
+export type WorkspaceData = {
+  active_workspace_id?: number;
+  workspaces?: Workspace[];
+};

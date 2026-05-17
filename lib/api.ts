@@ -17,6 +17,14 @@ export async function apiRequest<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  if (typeof window !== "undefined") {
+    const workspaceId = localStorage.getItem("activeWorkspaceId");
+
+    if (workspaceId) {
+      headers.set("X-Workspace-Id", workspaceId);
+    }
+  }
+
   const res = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     headers,

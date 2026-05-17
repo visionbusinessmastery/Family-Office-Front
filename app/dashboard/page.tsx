@@ -29,6 +29,7 @@ import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
 import VentureAssetsModule from "@/components/dashboard/VentureAssetsModule";
 import YieldInvestmentsModule from "@/components/dashboard/YieldInvestmentsModule";
+import WorkspacePanel from "@/components/dashboard/WorkspacePanel";
 import FinanceBlock from "@/components/finance/FinanceBlock";
 import GamificationPanel from "@/components/gamification/GamificationPanel";
 
@@ -94,6 +95,8 @@ export default function Dashboard() {
     finance,
     gamification,
     commandCenter,
+    workspaces,
+    refreshAll,
     refreshAfterMutation,
     loading,
   } = useDashboard();
@@ -206,6 +209,63 @@ export default function Dashboard() {
           : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe."
       );
     }
+  };
+
+  const handleCreateWorkspace = async () => {
+    const name = prompt("Nom du nouvel espace ?", "Family Office");
+    if (!name) return;
+
+    try {
+      const data = await apiRequest<{ workspace_id?: number }>("/workspaces/", token, {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+
+      if (data.workspace_id && typeof window !== "undefined") {
+        localStorage.setItem("activeWorkspaceId", String(data.workspace_id));
+      }
+
+      await refreshAll();
+    } catch (err) {
+      console.error(err);
+      alert("Impossible de creer cet espace.");
+    }
+  };
+
+  const handleInviteWorkspaceMember = async (workspaceId: number) => {
+    const email = prompt("Email du membre a inviter ?");
+    if (!email) return;
+
+    const role = prompt("Role ? owner/admin/member/viewer", "member") || "member";
+
+    try {
+      const data = await apiRequest<{ invite_url?: string; token?: string }>(
+        `/workspaces/${workspaceId}/invite`,
+        token,
+        {
+          method: "POST",
+          body: JSON.stringify({ email, role }),
+        }
+      );
+
+      await refreshAll();
+      alert(
+        data.invite_url
+          ? `Invitation creee. Lien: ${data.invite_url}`
+          : "Invitation creee."
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Impossible de creer l'invitation.");
+    }
+  };
+
+  const handleSwitchWorkspace = async (workspaceId: number) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeWorkspaceId", String(workspaceId));
+    }
+
+    await refreshAll();
   };
 
   const savePortfolioAsset = async (
@@ -619,6 +679,13 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <WorkspacePanel
+          data={workspaces}
+          onCreate={handleCreateWorkspace}
+          onInvite={handleInviteWorkspaceMember}
+          onSwitch={handleSwitchWorkspace}
+        />
+
         <GamificationPanel
           gamification={gamification || undefined}
           score={globalScore}
