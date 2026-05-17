@@ -41,6 +41,31 @@ export type PortfolioPayload = {
   purchase_price: number;
 };
 
+export type Opportunity = {
+  type?: string;
+  title?: string;
+  description?: string;
+  priority?: "high" | "medium" | "low" | string;
+  score?: number;
+  premium?: boolean;
+};
+
+export type OpportunityData = {
+  count?: number;
+  opportunities?: Opportunity[];
+  analytics?: {
+    crypto_ratio?: number;
+    asset_types_count?: number;
+    portfolio_value?: number;
+  };
+};
+
+export type UserIntelligence = {
+  opportunities?: OpportunityData | Opportunity[];
+  strategic_intelligence?: Record<string, unknown>;
+  financial_features?: Record<string, unknown>;
+};
+
 export type PortfolioHistoryPoint = {
   date?: string;
   created_at?: string;

@@ -11,6 +11,7 @@ import type {
   PortfolioAsset,
   PortfolioHistoryPoint,
   ScoreDetails,
+  UserIntelligence,
   UserProfile,
 } from "@/lib/types";
 
@@ -72,6 +73,7 @@ export function useDashboard() {
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
+  const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -135,10 +137,17 @@ export function useDashboard() {
     setHistory(data?.history || []);
   }, [safeFetch]);
 
-  const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
-    const intel = await safeFetch<{ onboarding?: OnboardingData }>(
+  const loadIntelligence = useCallback(async () => {
+    const intel = await safeFetch<UserIntelligence & { onboarding?: OnboardingData }>(
       "/intelligence/user-intelligence"
     );
+
+    setIntelligence(intel);
+    return intel;
+  }, [safeFetch]);
+
+  const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
+    const intel = await loadIntelligence();
 
     setOnboarding(
       intel?.onboarding || {
@@ -146,7 +155,7 @@ export function useDashboard() {
         charges_mensuelles: fallbackUser?.charges_mensuelles || 0,
       }
     );
-  }, [safeFetch]);
+  }, [loadIntelligence]);
 
   const recalcScore = useCallback(async () => {
     if (!token) return;
@@ -264,12 +273,14 @@ export function useDashboard() {
     portfolio,
     history,
     onboarding,
+    intelligence,
     finance,
     gamification,
     loadFinance,
     loadPortfolio,
     loadHistory,
     loadOnboarding,
+    loadIntelligence,
     loadGamification,
     recalcScore,
     refreshAll,

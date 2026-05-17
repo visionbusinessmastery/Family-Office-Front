@@ -10,8 +10,11 @@ import type {
 } from "@/lib/types";
 
 import Header from "@/components/dashboard/Header";
+import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import ChartModule from "@/components/dashboard/ChartModule";
+import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
+import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import FinanceBlock from "@/components/finance/FinanceBlock";
 import GamificationPanel from "@/components/gamification/GamificationPanel";
@@ -41,6 +44,7 @@ export default function Dashboard() {
     dashboard,
     portfolio,
     history,
+    intelligence,
     onboarding,
     finance,
     gamification,
@@ -397,6 +401,13 @@ export default function Dashboard() {
             history={history}
             initialInvestment={initialInvestment}
           />
+        </section>
+
+        <ExposureBreakdown portfolio={portfolio} />
+
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <OpportunitiesModule intelligence={intelligence} />
+          <AdvisorChat />
         </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
