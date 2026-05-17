@@ -486,6 +486,11 @@ export default function Dashboard() {
           />
         </section>
 
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
+          <OpportunitiesModule intelligence={intelligence} />
+        </section>
+
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">
             Global Command Center Score
@@ -543,11 +548,6 @@ export default function Dashboard() {
         <AdvisorChat />
 
         <GamificationPanel gamification={gamification || undefined} />
-
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
-          <OpportunitiesModule intelligence={intelligence} />
-        </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between gap-4 mb-4">
