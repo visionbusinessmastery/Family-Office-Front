@@ -84,6 +84,79 @@ export type RealEstateData = {
   };
 };
 
+export type YieldAssetType = "crowdfunding" | "private_equity";
+
+export type YieldAsset = {
+  id: number;
+  asset_type: YieldAssetType;
+  name: string;
+  principal?: number | string;
+  average_rate?: number | string;
+  duration_months?: number | string;
+  projected_gain?: number | string;
+  final_value?: number | string;
+  notes?: string | null;
+};
+
+export type YieldAssetPayload = {
+  asset_type: YieldAssetType;
+  name: string;
+  principal: number;
+  average_rate: number;
+  duration_months: number;
+  notes?: string | null;
+};
+
+export type YieldAssetData = {
+  assets: YieldAsset[];
+  totals: {
+    total_principal?: number | string;
+    total_projected_gain?: number | string;
+    total_final_value?: number | string;
+    average_rate?: number | string;
+  };
+};
+
+export type VentureAssetType = "ai_business" | "business" | "startup" | "franchise";
+
+export type VentureAsset = {
+  id: number;
+  asset_type: VentureAssetType;
+  name: string;
+  revenue?: number | string;
+  charges?: number | string;
+  result?: number | string;
+  fundraising?: number | string;
+  debts?: number | string;
+  valuation?: number | string;
+  computed_value?: number | string;
+  final_value?: number | string;
+  notes?: string | null;
+};
+
+export type VentureAssetPayload = {
+  asset_type: VentureAssetType;
+  name: string;
+  revenue: number;
+  charges: number;
+  fundraising: number;
+  debts: number;
+  valuation: number;
+  notes?: string | null;
+};
+
+export type VentureAssetData = {
+  assets: VentureAsset[];
+  totals: {
+    total_revenue?: number | string;
+    total_charges?: number | string;
+    total_result?: number | string;
+    total_fundraising?: number | string;
+    total_debts?: number | string;
+    total_final_value?: number | string;
+  };
+};
+
 export type Opportunity = {
   type?: string;
   title?: string;
@@ -156,7 +229,14 @@ export type GamificationData = {
   level?: number | string;
   streak?: number;
   badges?: string[];
-  ai_coach?: { message?: string };
+  ai_coach?: {
+    message?: string;
+    affiliations?: Array<{
+      title?: string;
+      reason?: string;
+      priority?: string;
+    }>;
+  };
   reward?: { title?: string; description?: string };
   notification?: { title?: string; message?: string };
 };

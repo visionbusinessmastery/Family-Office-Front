@@ -1,10 +1,17 @@
 "use client";
 
-import type { PortfolioAsset, RealEstateData } from "@/lib/types";
+import type {
+  PortfolioAsset,
+  RealEstateData,
+  VentureAssetData,
+  YieldAssetData,
+} from "@/lib/types";
 
 type FamilyOfficeOverviewProps = {
   portfolio: PortfolioAsset[];
   realEstate?: RealEstateData | null;
+  yieldAssets?: YieldAssetData | null;
+  ventureAssets?: VentureAssetData | null;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -12,26 +19,9 @@ const money = new Intl.NumberFormat("fr-FR", {
 });
 
 export const moduleCategories = [
-  { key: "ai_business", label: "AI Business", aliases: ["AI_BUSINESS"] },
-  { key: "banking", label: "Banking", aliases: ["BANKING"] },
-  { key: "business", label: "Business", aliases: ["BUSINESS"] },
   { key: "commodities", label: "Commodities", aliases: ["COMMODITIES"] },
-  { key: "crowdfunding", label: "Crowdfunding", aliases: ["CROWDFUNDING"] },
   { key: "crypto", label: "Crypto", aliases: ["CRYPTO"] },
-  {
-    key: "entrepreneurship",
-    label: "Entrepreneurship",
-    aliases: ["ENTREPRENEURSHIP"],
-  },
   { key: "etf", label: "ETF", aliases: ["ETF"] },
-  { key: "franchise", label: "Franchise", aliases: ["FRANCHISE"] },
-  { key: "market", label: "Market", aliases: ["MARKET"] },
-  {
-    key: "private_equity",
-    label: "Private Equity",
-    aliases: ["PRIVATE_EQUITY", "PRIVATE EQUITY"],
-  },
-  { key: "startup", label: "Startup", aliases: ["STARTUP"] },
   { key: "stocks", label: "Stocks", aliases: ["STOCKS", "STOCK"] },
 ];
 
@@ -64,6 +54,8 @@ const buildMetric = (label: string, assets: PortfolioAsset[]) => {
 export default function FamilyOfficeOverview({
   portfolio,
   realEstate,
+  yieldAssets,
+  ventureAssets,
 }: FamilyOfficeOverviewProps) {
   const cards = [];
 
@@ -77,6 +69,26 @@ export default function FamilyOfficeOverview({
       gain: Number(realEstate?.totals?.total_potential_gain || 0),
       finalValue,
       count: realEstate?.assets.length || 0,
+    });
+  }
+
+  if ((yieldAssets?.assets || []).length > 0) {
+    cards.push({
+      label: "Prets & Private Equity",
+      invested: Number(yieldAssets?.totals?.total_principal || 0),
+      gain: Number(yieldAssets?.totals?.total_projected_gain || 0),
+      finalValue: Number(yieldAssets?.totals?.total_final_value || 0),
+      count: yieldAssets?.assets.length || 0,
+    });
+  }
+
+  if ((ventureAssets?.assets || []).length > 0) {
+    cards.push({
+      label: "Business & Ventures",
+      invested: Number(ventureAssets?.totals?.total_revenue || 0),
+      gain: Number(ventureAssets?.totals?.total_result || 0),
+      finalValue: Number(ventureAssets?.totals?.total_final_value || 0),
+      count: ventureAssets?.assets.length || 0,
     });
   }
 

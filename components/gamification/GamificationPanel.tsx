@@ -17,6 +17,7 @@ export default function GamificationPanel({
   const badges = Array.isArray(gamification.badges)
     ? gamification.badges
     : [];
+  const affiliations = gamification.ai_coach?.affiliations || [];
   const progress = xp % xpToNextLevel;
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
 
@@ -96,6 +97,25 @@ export default function GamificationPanel({
             {gamification.ai_coach?.message ||
               "Continue tes actions pour ameliorer ton score et debloquer des recompenses."}
           </p>
+
+          {affiliations.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-xs uppercase text-gray-500">
+                Affiliations suggerees
+              </p>
+              {affiliations.map((item, index) => (
+                <div
+                  key={`${item.title}-${index}`}
+                  className="rounded-lg border border-white/10 bg-black/30 p-3"
+                >
+                  <p className="text-sm font-semibold text-white">
+                    {item.title}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl">

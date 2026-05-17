@@ -10,6 +10,12 @@ import type {
   RealEstateAsset,
   RealEstatePayload,
   RealEstateType,
+  VentureAsset,
+  VentureAssetPayload,
+  VentureAssetType,
+  YieldAsset,
+  YieldAssetPayload,
+  YieldAssetType,
 } from "@/lib/types";
 
 import Header from "@/components/dashboard/Header";
@@ -21,6 +27,8 @@ import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
+import VentureAssetsModule from "@/components/dashboard/VentureAssetsModule";
+import YieldInvestmentsModule from "@/components/dashboard/YieldInvestmentsModule";
 import FinanceBlock from "@/components/finance/FinanceBlock";
 import GamificationPanel from "@/components/gamification/GamificationPanel";
 
@@ -52,7 +60,23 @@ const parseNonNegativeNumber = (value: string | null) => {
 };
 
 const isRealEstatePortfolioType = (value: string) =>
-  ["IMMOBILIER", "REAL_ESTATE", "REAL ESTATE", "IMMO"].includes(
+  [
+    "IMMOBILIER",
+    "REAL_ESTATE",
+    "REAL ESTATE",
+    "IMMO",
+    "CROWDFUNDING",
+    "PRIVATE_EQUITY",
+    "PRIVATE EQUITY",
+    "AI_BUSINESS",
+    "AI BUSINESS",
+    "BUSINESS",
+    "STARTUP",
+    "FRANCHISE",
+    "BANKING",
+    "ENTREPRENEURSHIP",
+    "MARKET",
+  ].includes(
     value.trim().toUpperCase()
   );
 
@@ -62,6 +86,8 @@ export default function Dashboard() {
     portfolio,
     history,
     realEstate,
+    yieldAssets,
+    ventureAssets,
     intelligence,
     onboarding,
     finance,
@@ -158,7 +184,7 @@ export default function Dashboard() {
 
     if (isRealEstatePortfolioType(assetType)) {
       alert(
-        "L'immobilier a maintenant son espace dedie. Utilise le bloc Immobilier pour ajouter ce bien."
+        "Cette categorie a maintenant son espace dedie. Utilise le module correspondant pour ajouter cet asset."
       );
       return;
     }
@@ -199,7 +225,7 @@ export default function Dashboard() {
 
     if (isRealEstatePortfolioType(assetType)) {
       alert(
-        "L'immobilier se gere dans le bloc dedie. Cree ce bien dans Immobilier puis supprime l'ancien asset si besoin."
+        "Cette categorie se gere dans un module dedie. Cree l'asset dans le bon module puis supprime l'ancien asset si besoin."
       );
       return;
     }
@@ -399,6 +425,142 @@ export default function Dashboard() {
     }
   };
 
+  const buildYieldPayload = (
+    type: YieldAssetType,
+    asset?: YieldAsset
+  ): YieldAssetPayload | null => {
+    const name = prompt("Nom ?", asset?.name || "");
+    if (!name) return null;
+
+    const principal = parseNonNegativeNumber(
+      prompt("Montant prete / investi ?", String(asset?.principal ?? 0))
+    );
+    const averageRate = parseNonNegativeNumber(
+      prompt("Taux moyen annuel (%) ?", String(asset?.average_rate ?? 0))
+    );
+    const durationMonths = parsePositiveNumber(
+      prompt("Duree en mois ?", String(asset?.duration_months ?? 12))
+    );
+
+    if (principal === null || averageRate === null || durationMonths === null) {
+      alert("Montant, taux ou duree invalide");
+      return null;
+    }
+
+    return {
+      asset_type: type,
+      name,
+      principal,
+      average_rate: averageRate,
+      duration_months: Math.round(durationMonths),
+      notes: prompt("Notes ? (optionnel)", asset?.notes || "") || null,
+    };
+  };
+
+  const handleAddYieldAsset = async (type: YieldAssetType) => {
+    const payload = buildYieldPayload(type);
+    if (!payload) return;
+
+    await apiRequest("/yield-assets/", token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    await refreshAfterMutation();
+  };
+
+  const handleUpdateYieldAsset = async (asset: YieldAsset) => {
+    const payload = buildYieldPayload(asset.asset_type, asset);
+    if (!payload) return;
+
+    await apiRequest(`/yield-assets/${asset.id}`, token, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    await refreshAfterMutation();
+  };
+
+  const handleDeleteYieldAsset = async (id: number) => {
+    if (!confirm("Supprimer cet investissement ?")) return;
+
+    await apiRequest(`/yield-assets/${id}`, token, { method: "DELETE" });
+    await refreshAfterMutation();
+  };
+
+  const buildVenturePayload = (
+    type: VentureAssetType,
+    asset?: VentureAsset
+  ): VentureAssetPayload | null => {
+    const name = prompt("Nom ?", asset?.name || "");
+    if (!name) return null;
+
+    const revenue = parseNonNegativeNumber(
+      prompt("Chiffre d'affaires ?", String(asset?.revenue ?? 0))
+    );
+    const charges = parseNonNegativeNumber(
+      prompt("Charges ?", String(asset?.charges ?? 0))
+    );
+    const fundraising = parseNonNegativeNumber(
+      prompt("Levee de fonds ?", String(asset?.fundraising ?? 0))
+    );
+    const debts = parseNonNegativeNumber(
+      prompt("Dettes ?", String(asset?.debts ?? 0))
+    );
+    const valuation = parseNonNegativeNumber(
+      prompt("Valorisation ? (0 si a calculer)", String(asset?.valuation ?? 0))
+    );
+
+    if (
+      revenue === null ||
+      charges === null ||
+      fundraising === null ||
+      debts === null ||
+      valuation === null
+    ) {
+      alert("Donnee invalide");
+      return null;
+    }
+
+    return {
+      asset_type: type,
+      name,
+      revenue,
+      charges,
+      fundraising,
+      debts,
+      valuation,
+      notes: prompt("Notes ? (optionnel)", asset?.notes || "") || null,
+    };
+  };
+
+  const handleAddVentureAsset = async (type: VentureAssetType) => {
+    const payload = buildVenturePayload(type);
+    if (!payload) return;
+
+    await apiRequest("/venture-assets/", token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    await refreshAfterMutation();
+  };
+
+  const handleUpdateVentureAsset = async (asset: VentureAsset) => {
+    const payload = buildVenturePayload(asset.asset_type, asset);
+    if (!payload) return;
+
+    await apiRequest(`/venture-assets/${asset.id}`, token, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    await refreshAfterMutation();
+  };
+
+  const handleDeleteVentureAsset = async (id: number) => {
+    if (!confirm("Supprimer ce business ?")) return;
+
+    await apiRequest(`/venture-assets/${id}`, token, { method: "DELETE" });
+    await refreshAfterMutation();
+  };
+
   return (
     <main className="min-h-screen bg-black text-white pb-24">
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-black/80 border-b border-white/10">
@@ -483,6 +645,8 @@ export default function Dashboard() {
           <FamilyOfficeOverview
             portfolio={portfolio}
             realEstate={realEstate}
+            yieldAssets={yieldAssets}
+            ventureAssets={ventureAssets}
           />
         </section>
 
@@ -614,6 +778,20 @@ export default function Dashboard() {
           onAdd={handleAddRealEstate}
           onUpdate={handleUpdateRealEstate}
           onDelete={handleDeleteRealEstate}
+        />
+
+        <YieldInvestmentsModule
+          data={yieldAssets}
+          onAdd={handleAddYieldAsset}
+          onUpdate={handleUpdateYieldAsset}
+          onDelete={handleDeleteYieldAsset}
+        />
+
+        <VentureAssetsModule
+          data={ventureAssets}
+          onAdd={handleAddVentureAsset}
+          onUpdate={handleUpdateVentureAsset}
+          onDelete={handleDeleteVentureAsset}
         />
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">

@@ -14,6 +14,8 @@ import type {
   ScoreDetails,
   UserIntelligence,
   UserProfile,
+  VentureAssetData,
+  YieldAssetData,
 } from "@/lib/types";
 
 const emptyFinance: FinanceData = {
@@ -74,6 +76,8 @@ export function useDashboard() {
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
   const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
+  const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
+  const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
@@ -144,6 +148,16 @@ export function useDashboard() {
     setRealEstate(data || { assets: [], totals: {} });
   }, [safeFetch]);
 
+  const loadYieldAssets = useCallback(async () => {
+    const data = await safeFetch<YieldAssetData>("/yield-assets/");
+    setYieldAssets(data || { assets: [], totals: {} });
+  }, [safeFetch]);
+
+  const loadVentureAssets = useCallback(async () => {
+    const data = await safeFetch<VentureAssetData>("/venture-assets/");
+    setVentureAssets(data || { assets: [], totals: {} });
+  }, [safeFetch]);
+
   const loadIntelligence = useCallback(async () => {
     const intel = await safeFetch<UserIntelligence & { onboarding?: OnboardingData }>(
       "/intelligence/user-intelligence"
@@ -200,6 +214,8 @@ export function useDashboard() {
       loadPortfolio(),
       loadHistory(),
       loadRealEstate(),
+      loadYieldAssets(),
+      loadVentureAssets(),
       loadFinance(),
       loadOnboarding(userData),
       loadCommandCenter(),
@@ -211,6 +227,8 @@ export function useDashboard() {
     loadGamification,
     loadHistory,
     loadRealEstate,
+    loadYieldAssets,
+    loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
     loadUserProfile,
@@ -243,6 +261,8 @@ export function useDashboard() {
           loadPortfolio(),
           loadHistory(),
           loadRealEstate(),
+          loadYieldAssets(),
+          loadVentureAssets(),
           loadFinance(),
           loadOnboarding(userData),
           loadGamification(),
@@ -267,6 +287,8 @@ export function useDashboard() {
     loadGamification,
     loadHistory,
     loadRealEstate,
+    loadYieldAssets,
+    loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
     loadUserProfile,
@@ -284,6 +306,8 @@ export function useDashboard() {
     portfolio,
     history,
     realEstate,
+    yieldAssets,
+    ventureAssets,
     onboarding,
     intelligence,
     finance,
@@ -292,6 +316,8 @@ export function useDashboard() {
     loadPortfolio,
     loadHistory,
     loadRealEstate,
+    loadYieldAssets,
+    loadVentureAssets,
     loadOnboarding,
     loadIntelligence,
     loadGamification,
