@@ -18,6 +18,8 @@ import {
 type ChartModuleProps = {
   history: PortfolioHistoryPoint[];
   initialInvestment?: number;
+  currentValue?: number;
+  currentInvestment?: number;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -27,8 +29,10 @@ const money = new Intl.NumberFormat("fr-FR", {
 export default function ChartModule({
   history,
   initialInvestment = 0,
+  currentValue,
+  currentInvestment,
 }: ChartModuleProps) {
-  if (history.length === 0) {
+  if (history.length === 0 && currentValue === undefined) {
     return (
       <div className="bg-white/10 p-6 rounded-xl">
         <h2 className="mb-4">Evolution du Portfolio</h2>
@@ -39,14 +43,26 @@ export default function ChartModule({
     );
   }
 
-  const cleanData = history.map((item) => ({
-    date: item.date || item.created_at || "N/A",
-    value: Number(item.value || 0),
-    invested: Number(item.cost ?? initialInvestment ?? 0),
-  })).map((item) => ({
-    ...item,
-    gain: item.value - item.invested,
-  }));
+  const cleanData = history
+    .map((item) => ({
+      date: item.date || item.created_at || "N/A",
+      value: Number(item.value || 0),
+      invested: Number(item.cost ?? initialInvestment ?? 0),
+    }))
+    .map((item) => ({
+      ...item,
+      gain: item.value - item.invested,
+    }));
+
+  if (currentValue !== undefined) {
+    const invested = Number(currentInvestment ?? initialInvestment ?? 0);
+    cleanData.push({
+      date: "Actuel",
+      value: currentValue,
+      invested,
+      gain: currentValue - invested,
+    });
+  }
 
   const latest = cleanData[cleanData.length - 1];
   const latestGain = latest?.gain || 0;
@@ -56,7 +72,7 @@ export default function ChartModule({
     <div className="bg-white/10 p-6 rounded-xl">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2>Evolution du Portfolio</h2>
+          <h2>Evolution du portefeuille global</h2>
           <p className="text-sm text-white/50">
             Valeur actuelle vs investissement initial
           </p>

@@ -1,6 +1,11 @@
 "use client";
 
-import type { PortfolioAsset, RealEstateData } from "@/lib/types";
+import type {
+  PortfolioAsset,
+  RealEstateData,
+  VentureAssetData,
+  YieldAssetData,
+} from "@/lib/types";
 import {
   Cell,
   Legend,
@@ -13,6 +18,8 @@ import {
 type ExposureBreakdownProps = {
   portfolio: PortfolioAsset[];
   realEstate?: RealEstateData | null;
+  yieldAssets?: YieldAssetData | null;
+  ventureAssets?: VentureAssetData | null;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -30,6 +37,8 @@ const normalizeType = (type: string) =>
 export default function ExposureBreakdown({
   portfolio,
   realEstate,
+  yieldAssets,
+  ventureAssets,
 }: ExposureBreakdownProps) {
   const exposure = portfolio.reduce<Record<string, number>>((acc, asset) => {
     const key = normalizeType(asset.asset_type || asset.type || "Autre");
@@ -46,6 +55,35 @@ export default function ExposureBreakdown({
   if (realEstateValue > 0) {
     exposure.IMMOBILIER = (exposure.IMMOBILIER || 0) + realEstateValue;
   }
+
+  const yieldExposure = (yieldAssets?.assets || []).reduce<Record<string, number>>(
+    (acc, asset) => {
+      const key =
+        asset.asset_type === "private_equity"
+          ? "PRIVATE EQUITY"
+          : "CROWDFUNDING";
+      acc[key] = (acc[key] || 0) + Number(asset.final_value || 0);
+      return acc;
+    },
+    {}
+  );
+
+  Object.entries(yieldExposure).forEach(([key, value]) => {
+    if (value > 0) exposure[key] = (exposure[key] || 0) + value;
+  });
+
+  const ventureExposure = (ventureAssets?.assets || []).reduce<Record<string, number>>(
+    (acc, asset) => {
+      const key = normalizeType(asset.asset_type);
+      acc[key] = (acc[key] || 0) + Number(asset.final_value || 0);
+      return acc;
+    },
+    {}
+  );
+
+  Object.entries(ventureExposure).forEach(([key, value]) => {
+    if (value > 0) exposure[key] = (exposure[key] || 0) + value;
+  });
 
   const data = Object.entries(exposure)
     .map(([name, value]) => ({ name, value }))

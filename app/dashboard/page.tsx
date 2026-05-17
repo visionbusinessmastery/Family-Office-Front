@@ -131,6 +131,7 @@ export default function Dashboard() {
     totalValue + realEstateFinal + yieldFinal + ventureFinal;
   const globalPortfolioGain =
     portfolioGain + realEstateGain + yieldGain + ventureGain;
+  const globalPortfolioInvested = globalPortfolioValue - globalPortfolioGain;
   const globalPortfolioGainClass =
     globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
   const categoryCounts = [
@@ -650,11 +651,6 @@ export default function Dashboard() {
           />
         </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
-          <OpportunitiesModule intelligence={intelligence} />
-        </section>
-
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">
             Global Command Center Score
@@ -691,6 +687,14 @@ export default function Dashboard() {
           </div>
 
         </section>
+
+        <OpportunitiesModule
+          intelligence={intelligence}
+          portfolio={portfolio}
+          realEstate={realEstate}
+          yieldAssets={yieldAssets}
+          ventureAssets={ventureAssets}
+        />
 
         <AdvisorChat
           recommendations={scoreAdvice}
@@ -779,12 +783,23 @@ export default function Dashboard() {
           onDelete={handleDeleteVentureAsset}
         />
 
-        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-          <h2 className="text-2xl font-bold mb-4">Chart Portfolio</h2>
-          <ChartModule
-            history={history}
-            initialInvestment={initialInvestment}
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <ExposureBreakdown
+            portfolio={portfolio}
+            realEstate={realEstate}
+            yieldAssets={yieldAssets}
+            ventureAssets={ventureAssets}
           />
+
+          <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
+            <h2 className="text-2xl font-bold mb-4">Chart Portfolio</h2>
+            <ChartModule
+              history={history}
+              initialInvestment={initialInvestment}
+              currentValue={globalPortfolioValue}
+              currentInvestment={globalPortfolioInvested}
+            />
+          </section>
         </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
