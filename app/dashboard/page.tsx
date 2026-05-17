@@ -145,6 +145,13 @@ export default function Dashboard() {
     { label: "Franchise", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "franchise").length },
     { label: "AI Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "ai_business").length },
   ].filter((item) => item.value > 0);
+  const categoryOpportunityItems = categoryOpportunities?.categories || [];
+  const findOpportunity = (key: string) =>
+    categoryOpportunityItems.find((item) => item.key === key);
+  const financialOpportunityKeys = ["stock", "stocks", "etf", "crypto", "commodities"];
+  const financialOpportunities = categoryOpportunityItems.filter((item) =>
+    financialOpportunityKeys.includes(item.key || "")
+  );
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -691,11 +698,6 @@ export default function Dashboard() {
 
         <OpportunitiesModule
           intelligence={intelligence}
-          portfolio={portfolio}
-          realEstate={realEstate}
-          yieldAssets={yieldAssets}
-          ventureAssets={ventureAssets}
-          categoryOpportunities={categoryOpportunities}
         />
 
         <AdvisorChat
@@ -769,6 +771,7 @@ export default function Dashboard() {
           onAdd={handleAddRealEstate}
           onUpdate={handleUpdateRealEstate}
           onDelete={handleDeleteRealEstate}
+          opportunity={findOpportunity("real_estate")}
         />
 
         <YieldInvestmentsModule
@@ -776,6 +779,9 @@ export default function Dashboard() {
           onAdd={handleAddYieldAsset}
           onUpdate={handleUpdateYieldAsset}
           onDelete={handleDeleteYieldAsset}
+          opportunities={categoryOpportunityItems.filter((item) =>
+            ["crowdfunding", "private_equity"].includes(item.key || "")
+          )}
         />
 
         <VentureAssetsModule
@@ -783,6 +789,11 @@ export default function Dashboard() {
           onAdd={handleAddVentureAsset}
           onUpdate={handleUpdateVentureAsset}
           onDelete={handleDeleteVentureAsset}
+          opportunities={categoryOpportunityItems.filter((item) =>
+            ["ai_business", "business", "startup", "franchise"].includes(
+              item.key || ""
+            )
+          )}
         />
 
         <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -811,6 +822,7 @@ export default function Dashboard() {
             onAdd={handleAddPortfolioAsset}
             onUpdate={handleUpdatePortfolioAsset}
             onDelete={handleDeletePortfolioAsset}
+            opportunities={financialOpportunities}
           />
         </section>
       </div>

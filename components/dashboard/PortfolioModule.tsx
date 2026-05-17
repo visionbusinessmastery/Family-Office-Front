@@ -1,13 +1,15 @@
 "use client";
 
-import type { PortfolioAsset } from "@/lib/types";
+import type { CategoryOpportunity, PortfolioAsset } from "@/lib/types";
 import { moduleCategories } from "./FamilyOfficeOverview";
+import OpportunityInsightCard from "./OpportunityInsightCard";
 
 type PortfolioProps = {
   portfolio: PortfolioAsset[];
   onDelete?: (id: number) => void;
   onUpdate?: (asset: PortfolioAsset) => void;
   onAdd?: (assetType?: string) => void;
+  opportunities?: CategoryOpportunity[];
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -51,6 +53,7 @@ export default function PortfolioModule({
   onDelete,
   onUpdate,
   onAdd,
+  opportunities = [],
 }: PortfolioProps) {
   if (portfolio.length === 0) {
     return (
@@ -141,6 +144,17 @@ export default function PortfolioModule({
       </div>
 
       <CategoryButtons onAdd={onAdd} />
+
+      {opportunities.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {opportunities.map((opportunity) => (
+            <OpportunityInsightCard
+              key={opportunity.key || opportunity.title}
+              opportunity={opportunity}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {portfolio.map((asset) => {

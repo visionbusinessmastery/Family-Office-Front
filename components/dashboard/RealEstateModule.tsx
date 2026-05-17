@@ -2,15 +2,18 @@
 
 import type {
   RealEstateAsset,
+  CategoryOpportunity,
   RealEstateData,
   RealEstateType,
 } from "@/lib/types";
+import OpportunityInsightCard from "./OpportunityInsightCard";
 
 type RealEstateModuleProps = {
   data?: RealEstateData | null;
   onAdd?: (type: RealEstateType) => void;
   onUpdate?: (asset: RealEstateAsset) => void;
   onDelete?: (id: number) => void;
+  opportunity?: CategoryOpportunity;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -52,6 +55,7 @@ export default function RealEstateModule({
   onAdd,
   onUpdate,
   onDelete,
+  opportunity,
 }: RealEstateModuleProps) {
   const assets = data?.assets || [];
   const totals = data?.totals || {};
@@ -102,6 +106,10 @@ export default function RealEstateModule({
             {formatPercent(totals.average_rental_yield)}
           </h3>
         </div>
+      </div>
+
+      <div className="mb-5">
+        <OpportunityInsightCard opportunity={opportunity} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -243,4 +251,3 @@ export default function RealEstateModule({
     </section>
   );
 }
-

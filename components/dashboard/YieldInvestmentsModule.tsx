@@ -1,12 +1,19 @@
 "use client";
 
-import type { YieldAsset, YieldAssetData, YieldAssetType } from "@/lib/types";
+import type {
+  CategoryOpportunity,
+  YieldAsset,
+  YieldAssetData,
+  YieldAssetType,
+} from "@/lib/types";
+import OpportunityInsightCard from "./OpportunityInsightCard";
 
 type Props = {
   data?: YieldAssetData | null;
   onAdd?: (type: YieldAssetType) => void;
   onUpdate?: (asset: YieldAsset) => void;
   onDelete?: (id: number) => void;
+  opportunities?: CategoryOpportunity[];
 };
 
 const money = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
@@ -22,6 +29,7 @@ export default function YieldInvestmentsModule({
   onAdd,
   onUpdate,
   onDelete,
+  opportunities = [],
 }: Props) {
   const assets = data?.assets || [];
   const totals = data?.totals || {};
@@ -63,6 +71,9 @@ export default function YieldInvestmentsModule({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {types.map((type) => {
           const rows = assets.filter((asset) => asset.asset_type === type.key);
+          const opportunity = opportunities.find(
+            (item) => item.key === type.key
+          );
 
           return (
             <div key={type.key} className="bg-white/5 border border-white/10 rounded-2xl p-4">
@@ -79,6 +90,8 @@ export default function YieldInvestmentsModule({
               </div>
 
               <div className="space-y-3">
+                <OpportunityInsightCard opportunity={opportunity} />
+
                 {rows.length === 0 ? (
                   <p className="text-sm text-gray-500">Aucun asset.</p>
                 ) : (
@@ -126,4 +139,3 @@ export default function YieldInvestmentsModule({
     </section>
   );
 }
-

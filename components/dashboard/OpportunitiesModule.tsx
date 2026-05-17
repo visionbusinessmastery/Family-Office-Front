@@ -3,21 +3,11 @@
 import type {
   Opportunity,
   OpportunityData,
-  PortfolioAsset,
-  RealEstateData,
   UserIntelligence,
-  VentureAssetData,
-  YieldAssetData,
-  CategoryOpportunityData,
 } from "@/lib/types";
 
 type OpportunitiesModuleProps = {
   intelligence: UserIntelligence | null;
-  portfolio?: PortfolioAsset[];
-  realEstate?: RealEstateData | null;
-  yieldAssets?: YieldAssetData | null;
-  ventureAssets?: VentureAssetData | null;
-  categoryOpportunities?: CategoryOpportunityData | null;
 };
 
 const priorityClasses: Record<string, string> = {
@@ -34,126 +24,10 @@ const normalizeOpportunities = (
   return (opportunities as OpportunityData | undefined)?.opportunities || [];
 };
 
-const getAssetValue = (asset: PortfolioAsset) =>
-  Number(asset.value ?? asset.current_value ?? 0);
-
-const normalizeType = (type?: string) =>
-  (type || "Autre").replace(/_/g, " ").toUpperCase();
-
-const buildPortfolioGroups = (portfolio: PortfolioAsset[] = []) => {
-  const groups = portfolio.reduce<Record<string, number>>((acc, asset) => {
-    const key = normalizeType(asset.asset_type || asset.type);
-    acc[key] = (acc[key] || 0) + getAssetValue(asset);
-    return acc;
-  }, {});
-
-  return Object.entries(groups).map(([title, value]) => ({
-    title,
-    count: portfolio.filter(
-      (asset) => normalizeType(asset.asset_type || asset.type) === title
-    ).length,
-    opportunities: [
-      `Verifier la concentration et la liquidite de ${title.toLowerCase()}.`,
-      `Comparer la performance avec une alternative plus diversifiee.`,
-    ],
-    score: value > 0 ? 70 : 50,
-  }));
-};
-
-const buildSpecializedGroups = (
-  realEstate?: RealEstateData | null,
-  yieldAssets?: YieldAssetData | null,
-  ventureAssets?: VentureAssetData | null
-) => {
-  const groups = [];
-
-  if ((realEstate?.assets || []).length > 0) {
-    const rentalCount = realEstate?.assets.filter(
-      (asset) => asset.property_type === "rental"
-    ).length;
-
-    groups.push({
-      title: "Immobilier",
-      count: realEstate?.assets.length || 0,
-      score: Number(realEstate?.totals?.average_rental_yield || 0) > 5 ? 78 : 62,
-      opportunities: [
-        rentalCount
-          ? "Optimiser le rendement locatif net et les charges recurrentes."
-          : "Evaluer le potentiel de rendement ou d'arbitrage du patrimoine immobilier.",
-        "Comparer la valeur estimee avec les prix reels du marche local.",
-      ],
-    });
-  }
-
-  const crowdfunding = (yieldAssets?.assets || []).filter(
-    (asset) => asset.asset_type === "crowdfunding"
-  );
-  if (crowdfunding.length > 0) {
-    groups.push({
-      title: "Crowdfunding",
-      count: crowdfunding.length,
-      score: Number(yieldAssets?.totals?.average_rate || 0) > 8 ? 74 : 60,
-      opportunities: [
-        "Diversifier les projets pour reduire le risque de defaut.",
-        "Comparer le taux moyen avec la duree et la qualite des garanties.",
-      ],
-    });
-  }
-
-  const privateEquity = (yieldAssets?.assets || []).filter(
-    (asset) => asset.asset_type === "private_equity"
-  );
-  if (privateEquity.length > 0) {
-    groups.push({
-      title: "Private Equity",
-      count: privateEquity.length,
-      score: 68,
-      opportunities: [
-        "Suivre la liquidite, la duree de blocage et le multiple vise.",
-        "Limiter la concentration sur un seul dossier non cote.",
-      ],
-    });
-  }
-
-  ["ai_business", "business", "startup", "franchise"].forEach((type) => {
-    const rows = (ventureAssets?.assets || []).filter(
-      (asset) => asset.asset_type === type
-    );
-
-    if (rows.length > 0) {
-      const label = normalizeType(type);
-      groups.push({
-        title: label,
-        count: rows.length,
-        score: rows.some((asset) => Number(asset.result || 0) > 0) ? 76 : 58,
-        opportunities: [
-          "Prioriser l'amelioration du resultat avant nouvelle allocation.",
-          "Comparer valorisation, dettes et levees pour mesurer le vrai potentiel.",
-        ],
-      });
-    }
-  });
-
-  return groups;
-};
-
 export default function OpportunitiesModule({
   intelligence,
-  portfolio = [],
-  realEstate,
-  yieldAssets,
-  ventureAssets,
-  categoryOpportunities,
 }: OpportunitiesModuleProps) {
   const opportunities = normalizeOpportunities(intelligence?.opportunities);
-  const backendGroups = categoryOpportunities?.categories || [];
-  const categoryGroups =
-    backendGroups.length > 0
-      ? []
-      : [
-          ...buildSpecializedGroups(realEstate, yieldAssets, ventureAssets),
-          ...buildPortfolioGroups(portfolio),
-        ];
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -169,112 +43,6 @@ export default function OpportunitiesModule({
           {opportunities.length} detectee{opportunities.length > 1 ? "s" : ""}
         </span>
       </div>
-
-      {backendGroups.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-5">
-          {backendGroups.map((group) => (
-            <article
-              key={group.key || group.title}
-              className="border border-white/10 bg-white/5 rounded-2xl p-4"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <h3 className="font-bold text-white">
-                    {group.title || "Rubrique"}
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    {group.count || 0} asset{Number(group.count || 0) > 1 ? "s" : ""}
-                  </p>
-                </div>
-                <span className="rounded-full border border-[#3fa9f5]/30 bg-[#3fa9f5]/10 px-3 py-1 text-xs text-[#3fa9f5]">
-                  IA
-                </span>
-              </div>
-
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-xs uppercase text-gray-500">Analyse IA</p>
-                  <p className="text-gray-300">{group.analysis}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase text-gray-500">
-                    Conseil rapide
-                  </p>
-                  <p className="text-gray-300">{group.quick_action}</p>
-                </div>
-
-                {group.detected_opportunity && (
-                  <div>
-                    <p className="text-xs uppercase text-gray-500">
-                      Opportunite detectee
-                    </p>
-                    <p className="font-semibold text-white">
-                      {group.detected_opportunity.title}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {[
-                        group.detected_opportunity.platform,
-                        group.detected_opportunity.risk &&
-                          `risque ${group.detected_opportunity.risk}`,
-                        group.detected_opportunity.potential &&
-                          `potentiel ${group.detected_opportunity.potential}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" - ")}
-                    </p>
-                  </div>
-                )}
-
-                {group.market_signal?.headline && (
-                  <div>
-                    <p className="text-xs uppercase text-gray-500">
-                      Signal marche
-                    </p>
-                    <p className="text-gray-300">
-                      {group.market_signal.headline}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {group.market_signal.source || group.market_signal.query}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {categoryGroups.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-5">
-          {categoryGroups.map((group) => (
-            <article
-              key={group.title}
-              className="border border-white/10 bg-white/5 rounded-2xl p-4"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <h3 className="font-bold text-white">{group.title}</h3>
-                  <p className="text-xs text-gray-400">
-                    {group.count} asset{group.count > 1 ? "s" : ""}
-                  </p>
-                </div>
-                <span className="font-black text-[#3fa9f5]">
-                  {group.score}/100
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {group.opportunities.map((item) => (
-                  <p key={item} className="text-sm text-gray-300">
-                    {item}
-                  </p>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
 
       {opportunities.length === 0 ? (
         <p className="text-sm text-gray-400">
