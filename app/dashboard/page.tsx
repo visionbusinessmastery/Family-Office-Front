@@ -342,7 +342,7 @@ export default function Dashboard() {
     if (!payload) return;
 
     try {
-      await apiRequest("/real-estate", token, {
+      await apiRequest("/real-estate/", token, {
         method: "POST",
         body: JSON.stringify(payload),
       });

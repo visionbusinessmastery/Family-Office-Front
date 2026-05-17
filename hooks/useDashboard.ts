@@ -140,7 +140,7 @@ export function useDashboard() {
   }, [safeFetch]);
 
   const loadRealEstate = useCallback(async () => {
-    const data = await safeFetch<RealEstateData>("/real-estate");
+    const data = await safeFetch<RealEstateData>("/real-estate/");
     setRealEstate(data || { assets: [], totals: {} });
   }, [safeFetch]);
 
