@@ -279,8 +279,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <GamificationPanel gamification={gamification || undefined} />
-
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">
             Global Command Center Score
@@ -334,6 +332,8 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
+
+        <GamificationPanel gamification={gamification || undefined} />
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between gap-4 mb-4">

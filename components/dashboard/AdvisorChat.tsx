@@ -45,7 +45,7 @@ export default function AdvisorChat() {
     setLoading(true);
 
     try {
-      const data = await apiRequest<AdvisorResponse>("/advisor", token, {
+      const data = await apiRequest<AdvisorResponse>("/advisor/advisor", token, {
         method: "POST",
         body: JSON.stringify({ message: question }),
       });
