@@ -182,6 +182,32 @@ export type UserIntelligence = {
   financial_features?: Record<string, unknown>;
 };
 
+export type CategoryOpportunity = {
+  key?: string;
+  title?: string;
+  count?: number;
+  analysis?: string;
+  quick_action?: string;
+  detected_opportunity?: {
+    title?: string;
+    type?: string;
+    risk?: string;
+    potential?: string;
+    platform?: string;
+  } | null;
+  market_signal?: {
+    query?: string;
+    sentiment?: string;
+    sentiment_score?: number;
+    headline?: string | null;
+    source?: string | null;
+  };
+};
+
+export type CategoryOpportunityData = {
+  categories?: CategoryOpportunity[];
+};
+
 export type PortfolioHistoryPoint = {
   date?: string;
   created_at?: string;

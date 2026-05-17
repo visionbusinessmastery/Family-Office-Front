@@ -89,6 +89,7 @@ export default function Dashboard() {
     yieldAssets,
     ventureAssets,
     intelligence,
+    categoryOpportunities,
     onboarding,
     finance,
     gamification,
@@ -694,6 +695,7 @@ export default function Dashboard() {
           realEstate={realEstate}
           yieldAssets={yieldAssets}
           ventureAssets={ventureAssets}
+          categoryOpportunities={categoryOpportunities}
         />
 
         <AdvisorChat

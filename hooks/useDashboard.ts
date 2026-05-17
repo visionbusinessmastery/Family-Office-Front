@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import type {
   CommandCenter,
+  CategoryOpportunityData,
   DashboardSummary,
   FinanceData,
   GamificationData,
@@ -80,6 +81,8 @@ export function useDashboard() {
   const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
+  const [categoryOpportunities, setCategoryOpportunities] =
+    useState<CategoryOpportunityData | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -167,6 +170,13 @@ export function useDashboard() {
     return intel;
   }, [safeFetch]);
 
+  const loadCategoryOpportunities = useCallback(async () => {
+    const data = await safeFetch<CategoryOpportunityData>(
+      "/intelligence/category-opportunities"
+    );
+    setCategoryOpportunities(data || { categories: [] });
+  }, [safeFetch]);
+
   const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
     const intel = await loadIntelligence();
 
@@ -217,6 +227,7 @@ export function useDashboard() {
       loadYieldAssets(),
       loadVentureAssets(),
       loadFinance(),
+      loadCategoryOpportunities(),
       loadOnboarding(userData),
       loadCommandCenter(),
       loadGamification(),
@@ -224,6 +235,7 @@ export function useDashboard() {
   }, [
     loadCommandCenter,
     loadFinance,
+    loadCategoryOpportunities,
     loadGamification,
     loadHistory,
     loadRealEstate,
@@ -264,6 +276,7 @@ export function useDashboard() {
           loadYieldAssets(),
           loadVentureAssets(),
           loadFinance(),
+          loadCategoryOpportunities(),
           loadOnboarding(userData),
           loadGamification(),
         ]);
@@ -284,6 +297,7 @@ export function useDashboard() {
   }, [
     loadCommandCenter,
     loadFinance,
+    loadCategoryOpportunities,
     loadGamification,
     loadHistory,
     loadRealEstate,
@@ -310,6 +324,7 @@ export function useDashboard() {
     ventureAssets,
     onboarding,
     intelligence,
+    categoryOpportunities,
     finance,
     gamification,
     loadFinance,
@@ -320,6 +335,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadIntelligence,
+    loadCategoryOpportunities,
     loadGamification,
     recalcScore,
     refreshAll,
