@@ -124,16 +124,16 @@ export default function ExposureBreakdown({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-5 items-center">
-        <div className="h-72">
+      <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-4 items-center">
+        <div className="h-56 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 dataKey="value"
                 nameKey="name"
-                innerRadius={64}
-                outerRadius={108}
+                innerRadius={46}
+                outerRadius={82}
                 paddingAngle={2}
               >
                 {data.map((entry, index) => (
@@ -146,7 +146,7 @@ export default function ExposureBreakdown({
               <Tooltip
                 formatter={(value) => `${money.format(Number(value))} EUR`}
               />
-              <Legend />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
         </div>

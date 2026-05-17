@@ -87,16 +87,17 @@ export default function ChartModule({
         </div>
       </div>
 
-      <div className="h-72">
+      <div className="h-56 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={cleanData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis dataKey="date" tick={{ fill: "#aaa", fontSize: 12 }} />
-            <YAxis yAxisId="value" tick={{ fill: "#aaa" }} />
+            <XAxis dataKey="date" tick={{ fill: "#aaa", fontSize: 11 }} />
+            <YAxis yAxisId="value" tick={{ fill: "#aaa", fontSize: 11 }} width={42} />
             <YAxis
               yAxisId="gain"
               orientation="right"
-              tick={{ fill: "#aaa" }}
+              tick={{ fill: "#aaa", fontSize: 11 }}
+              width={42}
             />
             <Tooltip
               formatter={(value, name) => [
@@ -108,7 +109,7 @@ export default function ChartModule({
                     : "Valeur totale",
               ]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
             <ReferenceLine yAxisId="gain" y={0} stroke="#666" />
             <Bar
               yAxisId="gain"
