@@ -183,6 +183,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpgradePlan = async (plan: string) => {
+    try {
+      const data = await apiRequest<{ url?: string }>("/billing/create-checkout-session", token, {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      });
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Checkout Stripe indisponible pour le moment.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe.");
+    }
+  };
+
   const savePortfolioAsset = async (
     url: string,
     method: "POST" | "PUT",
@@ -594,7 +612,13 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <GamificationPanel gamification={gamification || undefined} />
+        <GamificationPanel
+          gamification={gamification || undefined}
+          score={globalScore}
+          userLevel={commandCenter?.level || dashboard?.level}
+          plan={dashboard?.plan}
+          onUpgrade={handleUpgradePlan}
+        />
 
         <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
           <div className="flex flex-col lg:flex-row justify-between gap-6">

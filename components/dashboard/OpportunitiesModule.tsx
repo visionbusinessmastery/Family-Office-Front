@@ -28,6 +28,27 @@ export default function OpportunitiesModule({
   intelligence,
 }: OpportunitiesModuleProps) {
   const opportunities = normalizeOpportunities(intelligence?.opportunities);
+  const enrichedOpportunities =
+    opportunities.length > 0
+      ? opportunities
+      : [
+          {
+            title: "Audit d'acceleration Advanced",
+            description:
+              "Transformer ton score actuel en plan d'action: proteger le cashflow, arbitrer les expositions et choisir une opportunite prioritaire cette semaine.",
+            priority: "high",
+            type: "strategic",
+            score: 73,
+          },
+          {
+            title: "Upgrade Liberty",
+            description:
+              "Activer les analyses avancees, les affiliations pertinentes et un suivi plus regulier pour passer de croissance a liberte financiere pilotee.",
+            priority: "medium",
+            type: "subscription",
+            score: 80,
+          },
+        ];
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -40,17 +61,13 @@ export default function OpportunitiesModule({
         </div>
 
         <span className="text-sm text-[#3fa9f5]">
-          {opportunities.length} detectee{opportunities.length > 1 ? "s" : ""}
+          {enrichedOpportunities.length} detectee
+          {enrichedOpportunities.length > 1 ? "s" : ""}
         </span>
       </div>
 
-      {opportunities.length === 0 ? (
-        <p className="text-sm text-gray-400">
-          Aucune opportunite globale prioritaire pour le moment.
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {opportunities.slice(0, 6).map((opportunity, index) => {
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {enrichedOpportunities.slice(0, 6).map((opportunity, index) => {
             const priority = opportunity.priority || "medium";
             const badgeClass =
               priorityClasses[priority] || priorityClasses.medium;
@@ -95,7 +112,6 @@ export default function OpportunitiesModule({
             );
           })}
         </div>
-      )}
     </section>
   );
 }

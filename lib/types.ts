@@ -265,6 +265,16 @@ export type GamificationData = {
   };
   reward?: { title?: string; description?: string };
   notification?: { title?: string; message?: string };
+  actions?: Array<{
+    title?: string;
+    description?: string;
+    xp?: number;
+  }>;
+  upgrade?: {
+    recommended_plan?: string;
+    title?: string;
+    description?: string;
+  };
 };
 
 export type DashboardSummary = {

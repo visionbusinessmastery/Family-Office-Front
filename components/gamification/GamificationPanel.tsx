@@ -2,10 +2,18 @@ import type { GamificationData } from "@/lib/types";
 
 type GamificationProps = {
   gamification?: GamificationData;
+  score?: number;
+  userLevel?: string;
+  plan?: string;
+  onUpgrade?: (plan: string) => void;
 };
 
 export default function GamificationPanel({
   gamification,
+  score = 0,
+  userLevel,
+  plan,
+  onUpgrade,
 }: GamificationProps) {
   if (!gamification) return null;
 
@@ -19,6 +27,30 @@ export default function GamificationPanel({
     : [];
   const progress = xp % xpToNextLevel;
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
+  const advanced = score >= 70 || String(userLevel || "").toUpperCase() === "ADVANCED";
+  const recommendedPlan =
+    String(userLevel || "").toUpperCase() === "LIBERTY"
+      ? "liberty_legacy"
+      : gamification.upgrade?.recommended_plan || (advanced ? "liberty" : "gold");
+  const actions =
+    gamification.actions && gamification.actions.length > 0
+      ? gamification.actions
+      : advanced
+        ? [
+            {
+              title: "Mission Advanced",
+              description:
+                "Choisir une opportunite prioritaire et definir une action executable en 7 jours.",
+              xp: 150,
+            },
+            {
+              title: "Optimisation portefeuille",
+              description:
+                "Verifier la plus forte exposition et reduire le risque si elle depasse ton seuil.",
+              xp: 120,
+            },
+          ]
+        : [];
 
   return (
     <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-gray-800 shadow-xl">
@@ -87,6 +119,72 @@ export default function GamificationPanel({
           )}
         </div>
       </div>
+
+      {(actions.length > 0 || onUpgrade) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
+            <h3 className="text-lg font-semibold text-emerald-300 mb-3">
+              Actions gamifiees
+            </h3>
+
+            <div className="space-y-3">
+              {actions.map((action, index) => (
+                <div
+                  key={`${action.title}-${index}`}
+                  className="rounded-lg border border-white/10 bg-black/30 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-white">{action.title}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {action.description}
+                      </p>
+                    </div>
+                    {action.xp && (
+                      <span className="text-xs font-bold text-emerald-300">
+                        +{action.xp} XP
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/30 p-4 rounded-xl">
+            <h3 className="text-lg font-semibold text-[#3fa9f5] mb-2">
+              Upgrade recommande
+            </h3>
+
+            <p className="text-white text-sm font-semibold">
+              {gamification.upgrade?.title ||
+                (recommendedPlan === "liberty_legacy"
+                  ? "Liberty Legacy"
+                  : "Passer au plan Liberty")}
+            </p>
+
+            <p className="text-gray-400 text-xs mt-2">
+              {gamification.upgrade?.description ||
+                "Ton niveau actuel justifie un accompagnement plus avance pour accelerer, proteger et transmettre ton capital."}
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <span className="text-xs text-gray-500">
+                Plan actuel: {plan || "FREE"}
+              </span>
+
+              {onUpgrade && (
+                <button
+                  onClick={() => onUpgrade(recommendedPlan)}
+                  className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Voir l&apos;abonnement
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
