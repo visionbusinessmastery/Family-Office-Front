@@ -120,14 +120,29 @@ export default function Dashboard() {
     0
   );
   const portfolioGain = totalValue - initialInvestment;
-  const portfolioGainClass =
-    portfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
   const realEstateAssets = realEstate?.assets || [];
-  const realEstateInvested = Number(realEstate?.totals?.total_purchase || 0);
   const realEstateFinal = Number(realEstate?.totals?.total_estimated_value || 0);
   const realEstateGain = Number(realEstate?.totals?.total_potential_gain || 0);
-  const realEstateGainClass =
-    realEstateGain >= 0 ? "text-emerald-400" : "text-red-400";
+  const yieldFinal = Number(yieldAssets?.totals?.total_final_value || 0);
+  const yieldGain = Number(yieldAssets?.totals?.total_projected_gain || 0);
+  const ventureFinal = Number(ventureAssets?.totals?.total_final_value || 0);
+  const ventureGain = Number(ventureAssets?.totals?.total_result || 0);
+  const globalPortfolioValue =
+    totalValue + realEstateFinal + yieldFinal + ventureFinal;
+  const globalPortfolioGain =
+    portfolioGain + realEstateGain + yieldGain + ventureGain;
+  const globalPortfolioGainClass =
+    globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
+  const categoryCounts = [
+    { label: "Assets financiers", value: portfolio.length },
+    { label: "Immobilier", value: realEstateAssets.length },
+    { label: "Crowdfunding", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "crowdfunding").length },
+    { label: "Private Equity", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "private_equity").length },
+    { label: "Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "business").length },
+    { label: "Startup", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "startup").length },
+    { label: "Franchise", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "franchise").length },
+    { label: "AI Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "ai_business").length },
+  ].filter((item) => item.value > 0);
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -592,57 +607,40 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:min-w-[620px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:min-w-[520px]">
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Portfolio valeur</p>
+                <p className="text-gray-400 text-xs">Portefeuille global</p>
                 <h3 className="text-2xl font-bold">
-                  {money.format(totalValue)} EUR
+                  {money.format(globalPortfolioValue)} EUR
                 </h3>
               </div>
 
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Portfolio +/- value</p>
-                <h3 className={`text-2xl font-bold ${portfolioGainClass}`}>
-                  {portfolioGain >= 0 ? "+" : ""}
-                  {money.format(portfolioGain)} EUR
+                <p className="text-gray-400 text-xs">Portefeuille +/- value</p>
+                <h3 className={`text-2xl font-bold ${globalPortfolioGainClass}`}>
+                  {globalPortfolioGain >= 0 ? "+" : ""}
+                  {money.format(globalPortfolioGain)} EUR
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Final {money.format(totalValue)} EUR
+                  Final {money.format(globalPortfolioValue)} EUR
                 </p>
-              </div>
-
-              {realEstateAssets.length > 0 && (
-                <>
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <p className="text-gray-400 text-xs">Immobilier valeur</p>
-                    <h3 className="text-2xl font-bold">
-                      {money.format(realEstateInvested)} EUR
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      {realEstateAssets.length} asset
-                      {realEstateAssets.length > 1 ? "s" : ""}
-                    </p>
-                  </div>
-
-                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                    <p className="text-gray-400 text-xs">Immobilier +/- value</p>
-                    <h3 className={`text-2xl font-bold ${realEstateGainClass}`}>
-                      {realEstateGain >= 0 ? "+" : ""}
-                      {money.format(realEstateGain)} EUR
-                    </h3>
-                    <p className="text-xs text-gray-500">
-                      Final {money.format(realEstateFinal)} EUR
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Assets financiers</p>
-                <h3 className="text-2xl font-bold">{portfolio.length}</h3>
               </div>
             </div>
           </div>
+
+          {categoryCounts.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {categoryCounts.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                >
+                  <span className="text-gray-400">{item.label}</span>{" "}
+                  <span className="font-bold text-white">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           <FamilyOfficeOverview
             portfolio={portfolio}
