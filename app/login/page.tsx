@@ -31,14 +31,10 @@ export default function LoginPage() {
 
       const data = await res.json().catch(() => null);
 
-      console.log("LOGIN RESPONSE:", data);
-
       // =========================
       // ERROR HANDLING BACKEND
       // =========================
       if (!res.ok) {
-        console.log("LOGIN ERROR BODY:", data);
-
         // CAS : mot de passe non défini
         if (data?.action === "set_password_required") {
           localStorage.setItem("verified_email", email);
@@ -62,8 +58,6 @@ export default function LoginPage() {
       window.location.href = "/dashboard";
 
     } catch (err: unknown) {
-      console.log("LOGIN ERROR:", err);
-
       setMessage(
         err instanceof Error ? err.message : JSON.stringify(err)
       );

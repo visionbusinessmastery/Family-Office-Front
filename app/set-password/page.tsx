@@ -72,8 +72,6 @@ export default function SetPasswordPage() {
 
       const data = await res.json().catch(() => null);
 
-      console.log("SET PASSWORD RESPONSE:", data);
-
       if (!res.ok) {
         throw new Error(data?.detail || "Erreur serveur");
       }

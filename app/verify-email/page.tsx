@@ -45,8 +45,6 @@ function VerifyEmailContent() {
 
         const data = await res.json().catch(() => null);
 
-        console.log("VERIFY RESPONSE:", data);
-
         if (!res.ok) {
           throw new Error(data?.detail || "Erreur de verification");
         }
@@ -98,8 +96,6 @@ function VerifyEmailContent() {
       });
 
       const data = await res.json().catch(() => null);
-
-      console.log("RESEND RESPONSE:", data);
 
       if (!res.ok) {
         throw new Error(data?.message || "Erreur resend");
