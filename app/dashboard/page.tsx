@@ -7,6 +7,9 @@ import type {
   FinancePayload,
   PortfolioAsset,
   PortfolioPayload,
+  RealEstateAsset,
+  RealEstatePayload,
+  RealEstateType,
 } from "@/lib/types";
 
 import Header from "@/components/dashboard/Header";
@@ -16,6 +19,7 @@ import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
+import RealEstateModule from "@/components/dashboard/RealEstateModule";
 import FinanceBlock from "@/components/finance/FinanceBlock";
 import GamificationPanel from "@/components/gamification/GamificationPanel";
 
@@ -39,11 +43,24 @@ const parsePositiveNumber = (value: string | null) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
+const parseNonNegativeNumber = (value: string | null) => {
+  if (value === null) return null;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const isRealEstatePortfolioType = (value: string) =>
+  ["IMMOBILIER", "REAL_ESTATE", "REAL ESTATE", "IMMO"].includes(
+    value.trim().toUpperCase()
+  );
+
 export default function Dashboard() {
   const {
     dashboard,
     portfolio,
     history,
+    realEstate,
     intelligence,
     onboarding,
     finance,
@@ -126,6 +143,13 @@ export default function Dashboard() {
     const assetType = prompt("Type d'actif ? (ex: STOCK, CRYPTO, REAL_ESTATE)");
     if (!assetType) return;
 
+    if (isRealEstatePortfolioType(assetType)) {
+      alert(
+        "L'immobilier a maintenant son espace dedie. Utilise le bloc Immobilier pour ajouter ce bien."
+      );
+      return;
+    }
+
     const quantity = parsePositiveNumber(prompt("Quantite ?", "1"));
     const purchasePrice = parsePositiveNumber(prompt("Prix d'achat unitaire ?", "0"));
 
@@ -159,6 +183,13 @@ export default function Dashboard() {
       asset.asset_type || asset.type || ""
     );
     if (!assetType) return;
+
+    if (isRealEstatePortfolioType(assetType)) {
+      alert(
+        "L'immobilier se gere dans le bloc dedie. Cree ce bien dans Immobilier puis supprime l'ancien asset si besoin."
+      );
+      return;
+    }
 
     const quantity = parsePositiveNumber(
       prompt("Quantite ?", String(asset.quantity ?? 1))
@@ -232,6 +263,127 @@ export default function Dashboard() {
     });
 
     await refreshAfterMutation();
+  };
+
+  const buildRealEstatePayload = (
+    type: RealEstateType,
+    asset?: RealEstateAsset
+  ): RealEstatePayload | null => {
+    const name = prompt("Nom du bien ?", asset?.name || "");
+    if (!name) return null;
+
+    const purchasePrice = parseNonNegativeNumber(
+      prompt("Prix d'achat ?", String(asset?.purchase_price ?? 0))
+    );
+    if (purchasePrice === null) {
+      alert("Prix d'achat invalide");
+      return null;
+    }
+
+    const estimatedValue = parseNonNegativeNumber(
+      prompt(
+        type === "flip" ? "Valeur estimee actuelle ?" : "Valeur estimee ?",
+        String(asset?.estimated_value ?? asset?.target_value ?? purchasePrice)
+      )
+    );
+    if (estimatedValue === null) {
+      alert("Valeur estimee invalide");
+      return null;
+    }
+
+    let resalePrice = Number(asset?.resale_price || 0);
+    let monthlyRent = Number(asset?.monthly_rent || 0);
+    let monthlyCharges = Number(asset?.monthly_charges || 0);
+
+    if (type === "flip") {
+      const nextResalePrice = parseNonNegativeNumber(
+        prompt("Prix de revente cible ?", String(resalePrice || estimatedValue))
+      );
+      if (nextResalePrice === null) {
+        alert("Prix de revente invalide");
+        return null;
+      }
+      resalePrice = nextResalePrice;
+    }
+
+    if (type === "rental") {
+      const nextMonthlyRent = parseNonNegativeNumber(
+        prompt("Loyer mensuel ?", String(monthlyRent))
+      );
+      const nextMonthlyCharges = parseNonNegativeNumber(
+        prompt("Charges mensuelles liees au bien ?", String(monthlyCharges))
+      );
+
+      if (nextMonthlyRent === null || nextMonthlyCharges === null) {
+        alert("Loyer ou charges invalides");
+        return null;
+      }
+
+      monthlyRent = nextMonthlyRent;
+      monthlyCharges = nextMonthlyCharges;
+    }
+
+    const notes = prompt("Notes ? (optionnel)", asset?.notes || "") || null;
+
+    return {
+      property_type: type,
+      name,
+      purchase_price: purchasePrice,
+      estimated_value: estimatedValue,
+      resale_price: resalePrice,
+      monthly_rent: monthlyRent,
+      monthly_charges: monthlyCharges,
+      notes,
+    };
+  };
+
+  const handleAddRealEstate = async (type: RealEstateType) => {
+    const payload = buildRealEstatePayload(type);
+    if (!payload) return;
+
+    try {
+      await apiRequest("/real-estate", token, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      await refreshAfterMutation();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur ajout immobilier");
+    }
+  };
+
+  const handleUpdateRealEstate = async (asset: RealEstateAsset) => {
+    const payload = buildRealEstatePayload(asset.property_type, asset);
+    if (!payload) return;
+
+    try {
+      await apiRequest(`/real-estate/${asset.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+
+      await refreshAfterMutation();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur modification immobilier");
+    }
+  };
+
+  const handleDeleteRealEstate = async (id: number) => {
+    if (!confirm("Supprimer ce bien immobilier ?")) return;
+
+    try {
+      await apiRequest(`/real-estate/${id}`, token, {
+        method: "DELETE",
+      });
+
+      await refreshAfterMutation();
+    } catch (err) {
+      console.error(err);
+      alert("Erreur suppression immobilier");
+    }
   };
 
   return (
@@ -403,9 +555,15 @@ export default function Dashboard() {
           />
         </section>
 
-        <ExposureBreakdown portfolio={portfolio} />
+        <RealEstateModule
+          data={realEstate}
+          onAdd={handleAddRealEstate}
+          onUpdate={handleUpdateRealEstate}
+          onDelete={handleDeleteRealEstate}
+        />
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
           <OpportunitiesModule intelligence={intelligence} />
           <AdvisorChat />
         </section>

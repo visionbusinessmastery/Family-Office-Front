@@ -10,6 +10,7 @@ import type {
   OnboardingData,
   PortfolioAsset,
   PortfolioHistoryPoint,
+  RealEstateData,
   ScoreDetails,
   UserIntelligence,
   UserProfile,
@@ -72,6 +73,7 @@ export function useDashboard() {
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
+  const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
@@ -137,6 +139,11 @@ export function useDashboard() {
     setHistory(data?.history || []);
   }, [safeFetch]);
 
+  const loadRealEstate = useCallback(async () => {
+    const data = await safeFetch<RealEstateData>("/real-estate");
+    setRealEstate(data || { assets: [], totals: {} });
+  }, [safeFetch]);
+
   const loadIntelligence = useCallback(async () => {
     const intel = await safeFetch<UserIntelligence & { onboarding?: OnboardingData }>(
       "/intelligence/user-intelligence"
@@ -192,6 +199,7 @@ export function useDashboard() {
     await Promise.all([
       loadPortfolio(),
       loadHistory(),
+      loadRealEstate(),
       loadFinance(),
       loadOnboarding(userData),
       loadCommandCenter(),
@@ -202,6 +210,7 @@ export function useDashboard() {
     loadFinance,
     loadGamification,
     loadHistory,
+    loadRealEstate,
     loadOnboarding,
     loadPortfolio,
     loadUserProfile,
@@ -233,6 +242,7 @@ export function useDashboard() {
         await Promise.all([
           loadPortfolio(),
           loadHistory(),
+          loadRealEstate(),
           loadFinance(),
           loadOnboarding(userData),
           loadGamification(),
@@ -256,6 +266,7 @@ export function useDashboard() {
     loadFinance,
     loadGamification,
     loadHistory,
+    loadRealEstate,
     loadOnboarding,
     loadPortfolio,
     loadUserProfile,
@@ -272,6 +283,7 @@ export function useDashboard() {
     commandCenter,
     portfolio,
     history,
+    realEstate,
     onboarding,
     intelligence,
     finance,
@@ -279,6 +291,7 @@ export function useDashboard() {
     loadFinance,
     loadPortfolio,
     loadHistory,
+    loadRealEstate,
     loadOnboarding,
     loadIntelligence,
     loadGamification,

@@ -1,6 +1,6 @@
 "use client";
 
-import type { PortfolioAsset } from "@/lib/types";
+import type { PortfolioAsset, RealEstateData } from "@/lib/types";
 import {
   Cell,
   Legend,
@@ -12,6 +12,7 @@ import {
 
 type ExposureBreakdownProps = {
   portfolio: PortfolioAsset[];
+  realEstate?: RealEstateData | null;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -26,12 +27,25 @@ const getAssetValue = (asset: PortfolioAsset) =>
 const normalizeType = (type: string) =>
   (type || "Autre").replace(/_/g, " ").toUpperCase();
 
-export default function ExposureBreakdown({ portfolio }: ExposureBreakdownProps) {
+export default function ExposureBreakdown({
+  portfolio,
+  realEstate,
+}: ExposureBreakdownProps) {
   const exposure = portfolio.reduce<Record<string, number>>((acc, asset) => {
     const key = normalizeType(asset.asset_type || asset.type || "Autre");
     acc[key] = (acc[key] || 0) + getAssetValue(asset);
     return acc;
   }, {});
+
+  const realEstateValue = Number(
+    realEstate?.totals?.total_estimated_value ||
+      realEstate?.totals?.total_purchase ||
+      0
+  );
+
+  if (realEstateValue > 0) {
+    exposure.IMMOBILIER = (exposure.IMMOBILIER || 0) + realEstateValue;
+  }
 
   const data = Object.entries(exposure)
     .map(([name, value]) => ({ name, value }))

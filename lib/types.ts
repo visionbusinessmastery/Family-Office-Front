@@ -41,6 +41,49 @@ export type PortfolioPayload = {
   purchase_price: number;
 };
 
+export type RealEstateType = "primary_residence" | "flip" | "rental";
+
+export type RealEstateAsset = {
+  id: number;
+  property_type: RealEstateType;
+  name: string;
+  purchase_price?: number | string;
+  estimated_value?: number | string;
+  resale_price?: number | string;
+  monthly_rent?: number | string;
+  monthly_charges?: number | string;
+  target_value?: number | string;
+  potential_gain?: number | string;
+  potential_gain_percent?: number | string;
+  annual_net_rent?: number | string;
+  rental_yield?: number | string;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type RealEstatePayload = {
+  property_type: RealEstateType;
+  name: string;
+  purchase_price: number;
+  estimated_value: number;
+  resale_price: number;
+  monthly_rent: number;
+  monthly_charges: number;
+  notes?: string | null;
+};
+
+export type RealEstateData = {
+  assets: RealEstateAsset[];
+  totals: {
+    total_purchase?: number | string;
+    total_estimated_value?: number | string;
+    total_potential_gain?: number | string;
+    total_potential_gain_percent?: number | string;
+    average_rental_yield?: number | string;
+  };
+};
+
 export type Opportunity = {
   type?: string;
   title?: string;
