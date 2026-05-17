@@ -16,6 +16,7 @@ import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import ChartModule from "@/components/dashboard/ChartModule";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
+import FamilyOfficeOverview from "@/components/dashboard/FamilyOfficeOverview";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
@@ -92,6 +93,15 @@ export default function Dashboard() {
     (acc, asset) => acc + getAssetCost(asset),
     0
   );
+  const portfolioGain = totalValue - initialInvestment;
+  const portfolioGainClass =
+    portfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
+  const realEstateAssets = realEstate?.assets || [];
+  const realEstateInvested = Number(realEstate?.totals?.total_purchase || 0);
+  const realEstateFinal = Number(realEstate?.totals?.total_estimated_value || 0);
+  const realEstateGain = Number(realEstate?.totals?.total_potential_gain || 0);
+  const realEstateGainClass =
+    realEstateGain >= 0 ? "text-emerald-400" : "text-red-400";
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -136,11 +146,14 @@ export default function Dashboard() {
     await refreshAfterMutation();
   };
 
-  const handleAddPortfolioAsset = async () => {
+  const handleAddPortfolioAsset = async (assetTypePreset?: string) => {
     const assetName = prompt("Nom de l'actif ? (ex: AAPL, BTC, Appartement)");
     if (!assetName) return;
 
-    const assetType = prompt("Type d'actif ? (ex: STOCK, CRYPTO, REAL_ESTATE)");
+    const assetType = prompt(
+      "Type d'actif ? (ex: STOCK, CRYPTO, ETF, PRIVATE_EQUITY)",
+      assetTypePreset || ""
+    );
     if (!assetType) return;
 
     if (isRealEstatePortfolioType(assetType)) {
@@ -415,20 +428,62 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:min-w-[620px]">
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Portfolio</p>
+                <p className="text-gray-400 text-xs">Portfolio valeur</p>
                 <h3 className="text-2xl font-bold">
                   {money.format(totalValue)} EUR
                 </h3>
               </div>
 
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Assets</p>
+                <p className="text-gray-400 text-xs">Portfolio +/- value</p>
+                <h3 className={`text-2xl font-bold ${portfolioGainClass}`}>
+                  {portfolioGain >= 0 ? "+" : ""}
+                  {money.format(portfolioGain)} EUR
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Final {money.format(totalValue)} EUR
+                </p>
+              </div>
+
+              {realEstateAssets.length > 0 && (
+                <>
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <p className="text-gray-400 text-xs">Immobilier valeur</p>
+                    <h3 className="text-2xl font-bold">
+                      {money.format(realEstateInvested)} EUR
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {realEstateAssets.length} asset
+                      {realEstateAssets.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+
+                  <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                    <p className="text-gray-400 text-xs">Immobilier +/- value</p>
+                    <h3 className={`text-2xl font-bold ${realEstateGainClass}`}>
+                      {realEstateGain >= 0 ? "+" : ""}
+                      {money.format(realEstateGain)} EUR
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Final {money.format(realEstateFinal)} EUR
+                    </p>
+                  </div>
+                </>
+              )}
+
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p className="text-gray-400 text-xs">Assets financiers</p>
                 <h3 className="text-2xl font-bold">{portfolio.length}</h3>
               </div>
             </div>
           </div>
+
+          <FamilyOfficeOverview
+            portfolio={portfolio}
+            realEstate={realEstate}
+          />
         </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -486,6 +541,8 @@ export default function Dashboard() {
         </section>
 
         <GamificationPanel gamification={gamification || undefined} />
+
+        <AdvisorChat />
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between gap-4 mb-4">
@@ -547,14 +604,6 @@ export default function Dashboard() {
           />
         </section>
 
-        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-          <h2 className="text-2xl font-bold mb-4">Chart</h2>
-          <ChartModule
-            history={history}
-            initialInvestment={initialInvestment}
-          />
-        </section>
-
         <RealEstateModule
           data={realEstate}
           onAdd={handleAddRealEstate}
@@ -562,10 +611,17 @@ export default function Dashboard() {
           onDelete={handleDeleteRealEstate}
         />
 
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
           <OpportunitiesModule intelligence={intelligence} />
-          <AdvisorChat />
+        </section>
+
+        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
+          <h2 className="text-2xl font-bold mb-4">Chart Portfolio</h2>
+          <ChartModule
+            history={history}
+            initialInvestment={initialInvestment}
+          />
         </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">

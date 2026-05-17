@@ -1,12 +1,13 @@
 "use client";
 
 import type { PortfolioAsset } from "@/lib/types";
+import { moduleCategories } from "./FamilyOfficeOverview";
 
 type PortfolioProps = {
   portfolio: PortfolioAsset[];
   onDelete?: (id: number) => void;
   onUpdate?: (asset: PortfolioAsset) => void;
-  onAdd?: () => void;
+  onAdd?: (assetType?: string) => void;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -17,6 +18,33 @@ const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
 const getAssetGain = (asset: PortfolioAsset) => Number(asset.gain ?? 0);
+
+const getAssetCost = (asset: PortfolioAsset) =>
+  Number(
+    asset.cost ??
+      Number(asset.quantity || 0) * Number(asset.purchase_price || 0)
+  );
+
+const CategoryButtons = ({ onAdd }: { onAdd?: (assetType?: string) => void }) => {
+  if (!onAdd) return null;
+
+  return (
+    <div className="border border-white/10 bg-white/5 rounded-2xl p-4">
+      <p className="text-sm text-gray-400 mb-3">Rubriques disponibles</p>
+      <div className="flex flex-wrap gap-2">
+        {moduleCategories.map((category) => (
+          <button
+            key={category.key}
+            onClick={() => onAdd(category.aliases[0])}
+            className="px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm hover:border-[#3fa9f5]/60"
+          >
+            {category.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default function PortfolioModule({
   portfolio,
@@ -32,7 +60,7 @@ export default function PortfolioModule({
 
           {onAdd && (
             <button
-              onClick={onAdd}
+              onClick={() => onAdd()}
               className="bg-[#3fa9f5] hover:opacity-80 px-4 py-2 rounded-xl font-semibold"
             >
               + Ajouter un Asset
@@ -43,6 +71,8 @@ export default function PortfolioModule({
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <p className="text-gray-400">Aucun actif dans le portfolio</p>
         </div>
+
+        <CategoryButtons onAdd={onAdd} />
       </div>
     );
   }
@@ -51,6 +81,12 @@ export default function PortfolioModule({
     (acc, asset) => acc + getAssetValue(asset),
     0
   );
+  const totalCost = portfolio.reduce(
+    (acc, asset) => acc + getAssetCost(asset),
+    0
+  );
+  const totalGain = total - totalCost;
+  const gainClass = totalGain >= 0 ? "text-emerald-400" : "text-red-400";
 
   const getColor = (type: string) => {
     switch ((type || "").toUpperCase()) {
@@ -72,7 +108,7 @@ export default function PortfolioModule({
 
         {onAdd && (
           <button
-            onClick={onAdd}
+            onClick={() => onAdd()}
             className="bg-[#3fa9f5] hover:opacity-80 px-4 py-2 rounded-xl font-semibold"
           >
             + Ajouter un Asset
@@ -80,13 +116,31 @@ export default function PortfolioModule({
         )}
       </div>
 
-      <div className="rounded-2xl border border-[#3fa9f5]/30 bg-gradient-to-br from-[#3fa9f5]/20 to-black p-6">
-        <p className="text-gray-400 text-sm">Valeur totale</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-gray-400 text-sm">Valeur investie</p>
+          <h2 className="text-3xl font-black mt-2">
+            {money.format(totalCost)} EUR
+          </h2>
+        </div>
 
-        <h2 className="text-4xl font-black text-[#3fa9f5] mt-2">
-          {money.format(total)} EUR
-        </h2>
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p className="text-gray-400 text-sm">Plus / moins-value</p>
+          <h2 className={`text-3xl font-black mt-2 ${gainClass}`}>
+            {totalGain >= 0 ? "+" : ""}
+            {money.format(totalGain)} EUR
+          </h2>
+        </div>
+
+        <div className="rounded-2xl border border-[#3fa9f5]/30 bg-gradient-to-br from-[#3fa9f5]/20 to-black p-5">
+          <p className="text-gray-400 text-sm">Montant final enrichi</p>
+          <h2 className="text-3xl font-black text-[#3fa9f5] mt-2">
+            {money.format(total)} EUR
+          </h2>
+        </div>
       </div>
+
+      <CategoryButtons onAdd={onAdd} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {portfolio.map((asset) => {
