@@ -570,6 +570,8 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <GamificationPanel gamification={gamification || undefined} />
+
         <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
           <div className="flex flex-col lg:flex-row justify-between gap-6">
             <div>
@@ -697,8 +699,6 @@ export default function Dashboard() {
           aiCoach={gamification?.ai_coach}
           notification={gamification?.notification}
         />
-
-        <GamificationPanel gamification={gamification || undefined} />
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between gap-4 mb-4">
