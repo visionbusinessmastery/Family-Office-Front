@@ -67,10 +67,6 @@ export default function FamilyOfficeOverview({
 }: FamilyOfficeOverviewProps) {
   const cards = [];
 
-  if (portfolio.length > 0) {
-    cards.push(buildMetric("Portfolio", portfolio));
-  }
-
   if ((realEstate?.assets || []).length > 0) {
     const totalPurchase = Number(realEstate?.totals?.total_purchase || 0);
     const finalValue = Number(realEstate?.totals?.total_estimated_value || 0);
@@ -162,4 +158,3 @@ export default function FamilyOfficeOverview({
     </div>
   );
 }
-
