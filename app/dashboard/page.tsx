@@ -540,9 +540,14 @@ export default function Dashboard() {
           </div>
         </section>
 
+        <AdvisorChat />
+
         <GamificationPanel gamification={gamification || undefined} />
 
-        <AdvisorChat />
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
+          <OpportunitiesModule intelligence={intelligence} />
+        </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between gap-4 mb-4">
@@ -610,11 +615,6 @@ export default function Dashboard() {
           onUpdate={handleUpdateRealEstate}
           onDelete={handleDeleteRealEstate}
         />
-
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} />
-          <OpportunitiesModule intelligence={intelligence} />
-        </section>
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">Chart Portfolio</h2>
