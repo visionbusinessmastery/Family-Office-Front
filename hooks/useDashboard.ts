@@ -11,6 +11,7 @@ import type {
   OnboardingData,
   PortfolioAsset,
   PortfolioHistoryPoint,
+  ProductContext,
   RealEstateData,
   ScoreDetails,
   UserIntelligence,
@@ -85,6 +86,7 @@ export function useDashboard() {
   const [categoryOpportunities, setCategoryOpportunities] =
     useState<CategoryOpportunityData | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
+  const [product, setProduct] = useState<ProductContext | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -125,6 +127,11 @@ export function useDashboard() {
   const loadGamification = useCallback(async () => {
     const data = await safeFetch<GamificationData>("/gamification");
     setGamification(data);
+  }, [safeFetch]);
+
+  const loadProductContext = useCallback(async () => {
+    const data = await safeFetch<ProductContext>("/product/context");
+    setProduct(data);
   }, [safeFetch]);
 
   const loadWorkspaces = useCallback(async () => {
@@ -237,6 +244,7 @@ export function useDashboard() {
 
     await Promise.all([
       loadPortfolio(),
+      loadProductContext(),
       loadWorkspaces(),
       loadHistory(),
       loadRealEstate(),
@@ -259,6 +267,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadProductContext,
     loadWorkspaces,
     loadUserProfile,
   ]);
@@ -288,6 +297,7 @@ export function useDashboard() {
         await loadCommandCenter();
         await Promise.all([
           loadPortfolio(),
+          loadProductContext(),
           loadWorkspaces(),
           loadHistory(),
           loadRealEstate(),
@@ -323,6 +333,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadProductContext,
     loadWorkspaces,
     loadUserProfile,
     refreshAll,
@@ -345,10 +356,12 @@ export function useDashboard() {
     intelligence,
     categoryOpportunities,
     workspaces,
+    product,
     finance,
     gamification,
     loadFinance,
     loadPortfolio,
+    loadProductContext,
     loadWorkspaces,
     loadHistory,
     loadRealEstate,

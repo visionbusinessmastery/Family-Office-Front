@@ -41,6 +41,65 @@ export type PortfolioPayload = {
   purchase_price: number;
 };
 
+export type ProductModule = {
+  key: string;
+  label: string;
+  stage: number;
+  description?: string;
+  state?: "active" | "locked" | string;
+  required_plan?: string;
+  required_score?: number;
+  reason?: string;
+};
+
+export type ProductMission = {
+  key: string;
+  title: string;
+  description: string;
+  xp?: number;
+  module?: string;
+  recommended_plan?: string;
+};
+
+export type ProductContext = {
+  plan?: string;
+  score?: number;
+  entitlements?: {
+    plan?: string;
+    max_assets?: number | null;
+    ai_level?: string;
+    modules?: string[];
+    features?: string[];
+    copy?: {
+      name?: string;
+      price?: string;
+      promise?: string;
+    };
+  };
+  progression?: {
+    xp?: number;
+    streak?: number;
+    level?: string;
+    status?: string;
+    next_level_xp?: number;
+    progress_percent?: number;
+  };
+  data_profile?: {
+    finance_count?: number;
+    portfolio_count?: number;
+    real_estate_count?: number;
+    yield_count?: number;
+    venture_count?: number;
+    completed_steps?: number;
+    completion_percent?: number;
+  };
+  modules?: {
+    visible?: ProductModule[];
+    locked?: ProductModule[];
+  };
+  missions?: ProductMission[];
+};
+
 export type RealEstateType = "primary_residence" | "flip" | "rental";
 
 export type RealEstateAsset = {

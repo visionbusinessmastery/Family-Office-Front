@@ -26,6 +26,7 @@ import FamilyOfficeOverview from "@/components/dashboard/FamilyOfficeOverview";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
+import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
 import VentureAssetsModule from "@/components/dashboard/VentureAssetsModule";
 import YieldInvestmentsModule from "@/components/dashboard/YieldInvestmentsModule";
@@ -96,6 +97,7 @@ export default function Dashboard() {
     gamification,
     commandCenter,
     workspaces,
+    product,
     refreshAll,
     refreshAfterMutation,
     loading,
@@ -155,6 +157,15 @@ export default function Dashboard() {
   const financialOpportunities = categoryOpportunityItems.filter((item) =>
     financialOpportunityKeys.includes(item.key || "")
   );
+  const visibleModules = new Set(
+    product?.modules?.visible?.map((module) => module.key) || []
+  );
+  const hasModule = (key: string) => !product || visibleModules.has(key);
+  const maxAssets = product?.entitlements?.max_assets;
+  const canAddPortfolioAsset =
+    maxAssets === null ||
+    maxAssets === undefined ||
+    portfolio.length < Number(maxAssets);
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -282,6 +293,11 @@ export default function Dashboard() {
   };
 
   const handleAddPortfolioAsset = async (assetTypePreset?: string) => {
+    if (!canAddPortfolioAsset) {
+      alert("Limite du plan atteinte. Passe en Gold pour ajouter plus d'assets.");
+      return;
+    }
+
     const assetName = prompt("Nom de l'actif ? (ex: AAPL, BTC, Appartement)");
     if (!assetName) return;
 
@@ -679,18 +695,25 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-6">
-        <WorkspacePanel
-          data={workspaces}
-          onCreate={handleCreateWorkspace}
-          onInvite={handleInviteWorkspaceMember}
-          onSwitch={handleSwitchWorkspace}
-        />
+        {hasModule("multi_user") && (
+          <WorkspacePanel
+            data={workspaces}
+            onCreate={handleCreateWorkspace}
+            onInvite={handleInviteWorkspaceMember}
+            onSwitch={handleSwitchWorkspace}
+          />
+        )}
 
         <GamificationPanel
           gamification={gamification || undefined}
           score={globalScore}
-          userLevel={commandCenter?.level || dashboard?.level}
-          plan={dashboard?.plan}
+          userLevel={product?.progression?.level || commandCenter?.level || dashboard?.level}
+          plan={product?.plan || dashboard?.plan}
+          onUpgrade={handleUpgradePlan}
+        />
+
+        <ProductProgressPanel
+          product={product}
           onUpgrade={handleUpgradePlan}
         />
 
@@ -757,44 +780,47 @@ export default function Dashboard() {
           />
         </section>
 
-        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-          <h2 className="text-2xl font-bold mb-4">
-            Global Command Center Score
-          </h2>
+        {hasModule("command_center") && (
+          <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
+            <h2 className="text-2xl font-bold mb-4">
+              Global Command Center Score
+            </h2>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-[#3fa9f5]/10 p-5 rounded-2xl">
-              <p className="text-sm text-gray-400">Richesse</p>
-              <h3 className="text-3xl font-black text-[#3fa9f5]">
-                {scoreDetails.wealth || 0}/100
-              </h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#3fa9f5]/10 p-5 rounded-2xl">
+                <p className="text-sm text-gray-400">Richesse</p>
+                <h3 className="text-3xl font-black text-[#3fa9f5]">
+                  {scoreDetails.wealth || 0}/100
+                </h3>
+              </div>
+
+              <div className="bg-white/5 p-5 rounded-2xl">
+                <p className="text-sm text-gray-400">Diversification</p>
+                <h3 className="text-3xl font-black">
+                  {scoreDetails.diversification || 0}/100
+                </h3>
+              </div>
+
+              <div className="bg-white/5 p-5 rounded-2xl">
+                <p className="text-sm text-gray-400">Dette</p>
+                <h3 className="text-3xl font-black">
+                  {scoreDetails.debt ?? scoreDetails.debt_risk_score ?? 0}/100
+                </h3>
+              </div>
+
+              <div className="bg-white/5 p-5 rounded-2xl">
+                <p className="text-sm text-gray-400">Activite</p>
+                <h3 className="text-3xl font-black">
+                  {scoreDetails.activity || 0}/100
+                </h3>
+              </div>
             </div>
 
-            <div className="bg-white/5 p-5 rounded-2xl">
-              <p className="text-sm text-gray-400">Diversification</p>
-              <h3 className="text-3xl font-black">
-                {scoreDetails.diversification || 0}/100
-              </h3>
-            </div>
+          </section>
+        )}
 
-            <div className="bg-white/5 p-5 rounded-2xl">
-              <p className="text-sm text-gray-400">Dette</p>
-              <h3 className="text-3xl font-black">
-                {scoreDetails.debt ?? scoreDetails.debt_risk_score ?? 0}/100
-              </h3>
-            </div>
-
-            <div className="bg-white/5 p-5 rounded-2xl">
-              <p className="text-sm text-gray-400">Activite</p>
-              <h3 className="text-3xl font-black">
-                {scoreDetails.activity || 0}/100
-              </h3>
-            </div>
-          </div>
-
-        </section>
-
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        {hasModule("diversification") && (
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
           <ExposureBreakdown
             portfolio={portfolio}
             realEstate={realEstate}
@@ -811,11 +837,14 @@ export default function Dashboard() {
               currentInvestment={globalPortfolioInvested}
             />
           </section>
-        </section>
+          </section>
+        )}
 
-        <OpportunitiesModule
-          intelligence={intelligence}
-        />
+        {hasModule("opportunities") && (
+          <OpportunitiesModule
+            intelligence={intelligence}
+          />
+        )}
 
         <AdvisorChat
           recommendations={scoreAdvice}
@@ -883,35 +912,41 @@ export default function Dashboard() {
           />
         </section>
 
-        <RealEstateModule
-          data={realEstate}
-          onAdd={handleAddRealEstate}
-          onUpdate={handleUpdateRealEstate}
-          onDelete={handleDeleteRealEstate}
-          opportunity={findOpportunity("real_estate")}
-        />
+        {hasModule("real_estate") && (
+          <RealEstateModule
+            data={realEstate}
+            onAdd={handleAddRealEstate}
+            onUpdate={handleUpdateRealEstate}
+            onDelete={handleDeleteRealEstate}
+            opportunity={findOpportunity("real_estate")}
+          />
+        )}
 
-        <YieldInvestmentsModule
-          data={yieldAssets}
-          onAdd={handleAddYieldAsset}
-          onUpdate={handleUpdateYieldAsset}
-          onDelete={handleDeleteYieldAsset}
-          opportunities={categoryOpportunityItems.filter((item) =>
-            ["crowdfunding", "private_equity"].includes(item.key || "")
-          )}
-        />
+        {hasModule("yield_assets") && (
+          <YieldInvestmentsModule
+            data={yieldAssets}
+            onAdd={handleAddYieldAsset}
+            onUpdate={handleUpdateYieldAsset}
+            onDelete={handleDeleteYieldAsset}
+            opportunities={categoryOpportunityItems.filter((item) =>
+              ["crowdfunding", "private_equity"].includes(item.key || "")
+            )}
+          />
+        )}
 
-        <VentureAssetsModule
-          data={ventureAssets}
-          onAdd={handleAddVentureAsset}
-          onUpdate={handleUpdateVentureAsset}
-          onDelete={handleDeleteVentureAsset}
-          opportunities={categoryOpportunityItems.filter((item) =>
-            ["ai_business", "business", "startup", "franchise"].includes(
-              item.key || ""
-            )
-          )}
-        />
+        {hasModule("venture_assets") && (
+          <VentureAssetsModule
+            data={ventureAssets}
+            onAdd={handleAddVentureAsset}
+            onUpdate={handleUpdateVentureAsset}
+            onDelete={handleDeleteVentureAsset}
+            opportunities={categoryOpportunityItems.filter((item) =>
+              ["ai_business", "business", "startup", "franchise"].includes(
+                item.key || ""
+              )
+            )}
+          />
+        )}
 
         <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
           <h2 className="text-2xl font-bold mb-4">Portfolio</h2>

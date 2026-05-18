@@ -29,10 +29,10 @@ export default function GamificationPanel({
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
   const advanced = score >= 70 || String(userLevel || "").toUpperCase() === "ADVANCED";
   const recommendedPlan =
-    String(userLevel || "").toUpperCase() === "LIBERTY"
-      ? "liberty_legacy"
+    String(userLevel || "").toUpperCase() === "FAMILY OFFICE OPERATOR"
+      ? "elite"
       : advanced
-        ? "liberty"
+        ? "elite"
         : gamification.upgrade?.recommended_plan || "gold";
   const actions =
     gamification.actions && gamification.actions.length > 0
@@ -160,9 +160,9 @@ export default function GamificationPanel({
 
             <p className="text-white text-sm font-semibold">
               {gamification.upgrade?.title ||
-                (recommendedPlan === "liberty_legacy"
-                  ? "Liberty Legacy"
-                  : "Passer au plan Liberty")}
+                (recommendedPlan === "elite"
+                  ? "Passer au plan Elite - Wealth OS"
+                  : "Passer au plan Gold - Growth")}
             </p>
 
             <p className="text-gray-400 text-xs mt-2">
