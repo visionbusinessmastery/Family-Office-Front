@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
 import type {
@@ -22,7 +23,6 @@ import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import ChartModule from "@/components/dashboard/ChartModule";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
-import FamilyOfficeOverview from "@/components/dashboard/FamilyOfficeOverview";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
@@ -37,6 +37,79 @@ import GamificationPanel from "@/components/gamification/GamificationPanel";
 const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
+
+type DashboardSection =
+  | "home"
+  | "finances"
+  | "investments"
+  | "real_estate"
+  | "ventures"
+  | "ai"
+  | "progression"
+  | "settings";
+
+type NavigationItem = {
+  key: DashboardSection;
+  label: string;
+  description: string;
+  locked?: boolean;
+};
+
+function LockedSection({
+  title,
+  description,
+  onUpgrade,
+  plan = "gold",
+}: {
+  title: string;
+  description: string;
+  onUpgrade?: (plan: string) => void;
+  plan?: string;
+}) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <div className="max-w-2xl">
+        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+          Module progressif
+        </p>
+        <h2 className="mt-2 text-2xl font-black text-white">{title}</h2>
+        <p className="mt-3 text-sm leading-relaxed text-gray-400">
+          {description}
+        </p>
+        {onUpgrade && (
+          <button
+            onClick={() => onUpgrade(plan)}
+            className="mt-5 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
+          >
+            Debloquer
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-5">
+      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+        {eyebrow}
+      </p>
+      <h1 className="mt-2 text-3xl font-black text-white">{title}</h1>
+      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+        {description}
+      </p>
+    </div>
+  );
+}
 
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
@@ -105,6 +178,7 @@ export default function Dashboard() {
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const [activeSection, setActiveSection] = useState<DashboardSection>("home");
 
   if (loading) {
     return (
@@ -115,7 +189,6 @@ export default function Dashboard() {
   }
 
   const globalScore = commandCenter?.global_score || 0;
-  const scoreDetails = commandCenter?.family_office_score?.details || {};
   const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
@@ -179,6 +252,52 @@ export default function Dashboard() {
     maxAssets === null ||
     maxAssets === undefined ||
     portfolio.length < Number(maxAssets);
+  const navigation: NavigationItem[] = [
+    {
+      key: "home",
+      label: "Home",
+      description: "Vue globale",
+    },
+    {
+      key: "finances",
+      label: "Finances",
+      description: "Cashflow",
+    },
+    {
+      key: "investments",
+      label: "Investments",
+      description: "Allocation",
+    },
+    {
+      key: "real_estate",
+      label: "Immobilier",
+      description: "Biens",
+      locked: !hasModule("real_estate"),
+    },
+    {
+      key: "ventures",
+      label: "Business",
+      description: "Ventures",
+      locked: !hasModule("yield_assets") && !hasModule("venture_assets"),
+    },
+    {
+      key: "ai",
+      label: "AI",
+      description: "Opportunites",
+    },
+    {
+      key: "progression",
+      label: "Progression",
+      description: "XP & badges",
+    },
+    {
+      key: "settings",
+      label: "Family Office",
+      description: "Equipe",
+      locked: !hasModule("multi_user"),
+    },
+  ];
+  const activeNavigation = navigation.find((item) => item.key === activeSection);
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -707,270 +826,415 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-6">
-        {hasModule("multi_user") && (
-          <WorkspacePanel
-            data={workspaces}
-            onCreate={handleCreateWorkspace}
-            onInvite={handleInviteWorkspaceMember}
-            onSwitch={handleSwitchWorkspace}
-          />
-        )}
-
-        <GamificationPanel
-          gamification={gamification || undefined}
-          score={globalScore}
-          userLevel={product?.progression?.level || commandCenter?.level || dashboard?.level}
-          plan={product?.plan || dashboard?.plan}
-          onUpgrade={handleUpgradePlan}
-        />
-
-        <ProductProgressPanel
-          product={product}
-          onUpgrade={handleUpgradePlan}
-        />
-
-        <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
-          <div className="flex flex-col lg:flex-row justify-between gap-6">
-            <div>
-              <p className="text-[#3fa9f5] text-sm uppercase tracking-widest mb-3">
-                Family Office OS
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 lg:grid-cols-[260px_1fr]">
+        <aside className="lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+          <div className="rounded-2xl border border-white/10 bg-zinc-950/90 p-3">
+            <div className="mb-3 px-2">
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                Navigation
               </p>
-
-              <div className="flex items-center gap-4">
-                <span className="px-4 py-2 rounded-full bg-[#3fa9f5]/20 text-[#3fa9f5]">
-                  {commandCenter?.level || "Starter"}
-                </span>
-
-                <span className="text-5xl font-black">{globalScore}/100</span>
-              </div>
-
-              <p className="text-gray-400 mt-4">
-                Plan {dashboard?.plan || "FREE"}
+              <p className="mt-1 text-sm text-gray-400">
+                Summary first. Drill-down second.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:min-w-[520px]">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Portefeuille global</p>
-                <h3 className="text-2xl font-bold">
-                  {money.format(globalPortfolioValue)} EUR
-                </h3>
-              </div>
+            <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+              {navigation.map((item) => {
+                const active = item.key === activeSection;
 
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs">Portefeuille +/- value</p>
-                <h3 className={`text-2xl font-bold ${globalPortfolioGainClass}`}>
-                  {globalPortfolioGain >= 0 ? "+" : ""}
-                  {money.format(globalPortfolioGain)} EUR
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Final {money.format(globalPortfolioValue)} EUR
-                </p>
-              </div>
-            </div>
+                return (
+                  <button
+                    key={item.key}
+                    onClick={() => setActiveSection(item.key)}
+                    className={`min-w-[150px] rounded-xl border px-3 py-3 text-left transition lg:min-w-0 ${
+                      active
+                        ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white"
+                        : "border-white/10 bg-white/[0.03] text-gray-300 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold">{item.label}</span>
+                      {item.locked && (
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-gray-400">
+                          lock
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {item.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        <div className="min-w-0 space-y-6">
+          <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
+            <p className="text-xs uppercase tracking-widest text-gray-500">
+              Wealth OS / {activeNavigation?.label || "Home"}
+            </p>
+            <p className="mt-1 text-sm text-gray-400">
+              Modules puissants, affiches seulement quand ils aident la decision.
+            </p>
           </div>
 
-          {categoryCounts.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {categoryCounts.map((item) => (
-                <div
-                  key={item.label}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                >
-                  <span className="text-gray-400">{item.label}</span>{" "}
-                  <span className="font-bold text-white">{item.value}</span>
+          {activeSection === "home" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Home Dashboard"
+                title="Vue globale"
+                description="La synthese immediate de ta situation: patrimoine, score, progression et prochaines actions prioritaires."
+              />
+
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.4fr]">
+                  <div>
+                    <p className="text-sm uppercase tracking-widest text-[#3fa9f5]">
+                      Family Office OS
+                    </p>
+                    <div className="mt-4 flex items-center gap-4">
+                      <span className="rounded-full bg-[#3fa9f5]/20 px-4 py-2 text-[#3fa9f5]">
+                        {product?.progression?.level || commandCenter?.level || "Starter"}
+                      </span>
+                      <span className="text-5xl font-black">{globalScore}/100</span>
+                    </div>
+                    <p className="mt-4 text-gray-400">
+                      Plan {product?.plan || dashboard?.plan || "FREE"} ·{" "}
+                      {product?.progression?.status || "Foundation"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs text-gray-400">Patrimoine global</p>
+                      <h3 className="mt-2 text-2xl font-black">
+                        {money.format(globalPortfolioValue)} EUR
+                      </h3>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs text-gray-400">+/- value</p>
+                      <h3 className={`mt-2 text-2xl font-black ${globalPortfolioGainClass}`}>
+                        {globalPortfolioGain >= 0 ? "+" : ""}
+                        {money.format(globalPortfolioGain)} EUR
+                      </h3>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <p className="text-xs text-gray-400">Completion</p>
+                      <h3 className="mt-2 text-2xl font-black text-[#3fa9f5]">
+                        {product?.data_profile?.completion_percent || 0}%
+                      </h3>
+                    </div>
+                  </div>
                 </div>
-              ))}
+
+                {categoryCounts.length > 0 && (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {categoryCounts.slice(0, 6).map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                      >
+                        <span className="text-gray-400">{item.label}</span>{" "}
+                        <span className="font-bold text-white">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+                <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                  <h2 className="mb-4 text-2xl font-bold">Evolution</h2>
+                  <ChartModule
+                    history={history}
+                    initialInvestment={initialInvestment}
+                    currentValue={globalPortfolioValue}
+                    currentInvestment={globalPortfolioInvested}
+                  />
+                </section>
+
+                <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                  <h2 className="text-2xl font-bold">Prochaines actions</h2>
+                  <div className="mt-4 space-y-3">
+                    {(product?.missions || []).slice(0, 3).map((mission) => (
+                      <div
+                        key={mission.key}
+                        className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-bold text-white">{mission.title}</p>
+                            <p className="mt-1 text-sm text-gray-400">
+                              {mission.description}
+                            </p>
+                          </div>
+                          {mission.xp ? (
+                            <span className="text-xs font-bold text-emerald-300">
+                              +{mission.xp} XP
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+
+                    {(product?.missions || []).length === 0 && (
+                      <p className="text-sm text-gray-400">
+                        Aucune action urgente. Continue a enrichir ton patrimoine.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
             </div>
           )}
 
-          <FamilyOfficeOverview
-            portfolio={portfolio}
-            realEstate={realEstate}
-            yieldAssets={yieldAssets}
-            ventureAssets={ventureAssets}
-          />
-        </section>
+          {activeSection === "finances" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Finances"
+                title="Base financiere"
+                description="Revenus, charges, epargne, dettes et cashflow. Cette section sert a clarifier les fondations avant l'allocation."
+              />
 
-        {hasModule("command_center") && (
-          <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-2xl font-bold mb-4">
-              Global Command Center Score
-            </h2>
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="mb-4 flex justify-between gap-4">
+                  <h2 className="text-2xl font-bold">Situation</h2>
+                  <button
+                    onClick={handleUpdateOnboarding}
+                    className="rounded-xl bg-[#3fa9f5] px-4 py-2"
+                  >
+                    Modifier
+                  </button>
+                </div>
+                <FinanceModule
+                  revenusMensuels={
+                    onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0
+                  }
+                  chargesMensuelles={
+                    onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0
+                  }
+                />
+              </section>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#3fa9f5]/10 p-5 rounded-2xl">
-                <p className="text-sm text-gray-400">Richesse</p>
-                <h3 className="text-3xl font-black text-[#3fa9f5]">
-                  {scoreDetails.wealth || 0}/100
-                </h3>
-              </div>
-
-              <div className="bg-white/5 p-5 rounded-2xl">
-                <p className="text-sm text-gray-400">Diversification</p>
-                <h3 className="text-3xl font-black">
-                  {scoreDetails.diversification || 0}/100
-                </h3>
-              </div>
-
-              <div className="bg-white/5 p-5 rounded-2xl">
-                <p className="text-sm text-gray-400">Dette</p>
-                <h3 className="text-3xl font-black">
-                  {scoreDetails.debt ?? scoreDetails.debt_risk_score ?? 0}/100
-                </h3>
-              </div>
-
-              <div className="bg-white/5 p-5 rounded-2xl">
-                <p className="text-sm text-gray-400">Activite</p>
-                <h3 className="text-3xl font-black">
-                  {scoreDetails.activity || 0}/100
-                </h3>
-              </div>
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <FinanceBlock title="Revenus" type="revenus" data={finance.revenus} onCreate={handleAddFinance} onDelete={handleDeleteFinance} onUpdate={handleUpdateFinance} />
+                <FinanceBlock title="Charges" type="charges" data={finance.charges} onCreate={handleAddFinance} onDelete={handleDeleteFinance} onUpdate={handleUpdateFinance} />
+                <FinanceBlock title="Epargne" type="epargne" data={finance.epargne} onCreate={handleAddFinance} onDelete={handleDeleteFinance} onUpdate={handleUpdateFinance} />
+                <FinanceBlock title="Dettes" type="dettes" data={finance.dettes} onCreate={handleAddFinance} onDelete={handleDeleteFinance} onUpdate={handleUpdateFinance} />
+              </section>
             </div>
+          )}
 
-          </section>
-        )}
+          {activeSection === "investments" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Investments"
+                title="Allocation & multi-assets"
+                description="Stocks, ETF, crypto, forex, commodities, diversification et exposition. Pas de trading complexe: uniquement pilotage patrimonial."
+              />
 
-        {hasModule("diversification") && (
-          <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <ExposureBreakdown
-            portfolio={portfolio}
-            realEstate={realEstate}
-            yieldAssets={yieldAssets}
-            ventureAssets={ventureAssets}
-          />
+              {hasModule("diversification") ? (
+                <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} />
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <h2 className="mb-4 text-2xl font-bold">Chart Portfolio</h2>
+                    <ChartModule
+                      history={history}
+                      initialInvestment={initialInvestment}
+                      currentValue={globalPortfolioValue}
+                      currentInvestment={globalPortfolioInvested}
+                    />
+                  </section>
+                </section>
+              ) : (
+                <LockedSection
+                  title="Analytics d'allocation"
+                  description="L'exposition avancee et les graphiques d'allocation se debloquent progressivement avec la phase Growth."
+                  onUpgrade={handleUpgradePlan}
+                  plan="gold"
+                />
+              )}
 
-          <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-            <h2 className="text-2xl font-bold mb-4">Chart Portfolio</h2>
-            <ChartModule
-              history={history}
-              initialInvestment={initialInvestment}
-              currentValue={globalPortfolioValue}
-              currentInvestment={globalPortfolioInvested}
-            />
-          </section>
-          </section>
-        )}
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <h2 className="mb-4 text-2xl font-bold">Portfolio</h2>
+                <PortfolioModule
+                  portfolio={portfolio}
+                  onAdd={handleAddPortfolioAsset}
+                  onUpdate={handleUpdatePortfolioAsset}
+                  onDelete={handleDeletePortfolioAsset}
+                  opportunities={financialOpportunities}
+                />
+              </section>
+            </div>
+          )}
 
-        {hasModule("opportunities") && (
-          <OpportunitiesModule
-            intelligence={intelligence}
-          />
-        )}
+          {activeSection === "real_estate" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Immobilier"
+                title="Biens & rendement"
+                description="Residence principale, locatif, achat/revente, valorisation et plus-value potentielle."
+              />
+              {hasModule("real_estate") ? (
+                <RealEstateModule
+                  data={realEstate}
+                  onAdd={handleAddRealEstate}
+                  onUpdate={handleUpdateRealEstate}
+                  onDelete={handleDeleteRealEstate}
+                  opportunity={findOpportunity("real_estate")}
+                />
+              ) : (
+                <LockedSection
+                  title="Module immobilier"
+                  description="Debloque le suivi immobilier pour separer residences, locatif, achat/revente et rendement de ton portefeuille financier."
+                  onUpgrade={handleUpgradePlan}
+                  plan="gold"
+                />
+              )}
+            </div>
+          )}
 
-        <AdvisorChat
-          recommendations={scoreAdvice}
-          aiCoach={gamification?.ai_coach}
-          notification={gamification?.notification}
-        />
+          {activeSection === "ventures" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Business & Ventures"
+                title="Entreprises, startups et rendement prive"
+                description="Business, startup, AI business, franchise, crowdfunding et private equity dans une vue dediee."
+              />
 
-        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-          <div className="flex justify-between gap-4 mb-4">
-            <h2 className="text-2xl font-bold">Situation</h2>
+              {hasModule("yield_assets") ? (
+                <YieldInvestmentsModule
+                  data={yieldAssets}
+                  onAdd={handleAddYieldAsset}
+                  onUpdate={handleUpdateYieldAsset}
+                  onDelete={handleDeleteYieldAsset}
+                  opportunities={categoryOpportunityItems.filter((item) =>
+                    ["crowdfunding", "private_equity"].includes(item.key || "")
+                  )}
+                />
+              ) : (
+                <LockedSection
+                  title="Prets & Private Equity"
+                  description="Suis les montants pretes, taux moyens et valeurs finales dans un espace dedie."
+                  onUpgrade={handleUpgradePlan}
+                  plan="gold"
+                />
+              )}
 
-            <button
-              onClick={handleUpdateOnboarding}
-              className="bg-[#3fa9f5] px-4 py-2 rounded-xl"
-            >
-              Modifier
-            </button>
-          </div>
+              {hasModule("venture_assets") ? (
+                <VentureAssetsModule
+                  data={ventureAssets}
+                  onAdd={handleAddVentureAsset}
+                  onUpdate={handleUpdateVentureAsset}
+                  onDelete={handleDeleteVentureAsset}
+                  opportunities={categoryOpportunityItems.filter((item) =>
+                    ["ai_business", "business", "startup", "franchise"].includes(
+                      item.key || ""
+                    )
+                  )}
+                />
+              ) : null}
+            </div>
+          )}
 
-          <FinanceModule
-            revenusMensuels={
-              onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0
-            }
-            chargesMensuelles={
-              onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0
-            }
-          />
-        </section>
+          {activeSection === "ai" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="AI & Opportunities"
+                title="Coach, signaux et recommandations"
+                description="Un espace pour poser tes questions, lire les alertes importantes et transformer les opportunites en actions."
+              />
 
-        <section className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          <FinanceBlock
-            title="Revenus"
-            type="revenus"
-            data={finance.revenus}
-            onCreate={handleAddFinance}
-            onDelete={handleDeleteFinance}
-            onUpdate={handleUpdateFinance}
-          />
+              {hasModule("opportunities") ? (
+                <OpportunitiesModule intelligence={intelligence} />
+              ) : (
+                <LockedSection
+                  title="Opportunites avancees"
+                  description="Les signaux personnalises par categorie se debloquent avec le plan Growth."
+                  onUpgrade={handleUpgradePlan}
+                  plan="gold"
+                />
+              )}
 
-          <FinanceBlock
-            title="Charges"
-            type="charges"
-            data={finance.charges}
-            onCreate={handleAddFinance}
-            onDelete={handleDeleteFinance}
-            onUpdate={handleUpdateFinance}
-          />
+              <AdvisorChat
+                recommendations={scoreAdvice}
+                aiCoach={gamification?.ai_coach}
+                notification={gamification?.notification}
+              />
+            </div>
+          )}
 
-          <FinanceBlock
-            title="Epargne"
-            type="epargne"
-            data={finance.epargne}
-            onCreate={handleAddFinance}
-            onDelete={handleDeleteFinance}
-            onUpdate={handleUpdateFinance}
-          />
+          {activeSection === "progression" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Progression"
+                title="XP, niveaux et deblocages"
+                description="Une gamification premium pour sentir la montee en puissance sans transformer l'app en jeu."
+              />
 
-          <FinanceBlock
-            title="Dettes"
-            type="dettes"
-            data={finance.dettes}
-            onCreate={handleAddFinance}
-            onDelete={handleDeleteFinance}
-            onUpdate={handleUpdateFinance}
-          />
-        </section>
+              <GamificationPanel
+                gamification={gamification || undefined}
+                score={globalScore}
+                userLevel={product?.progression?.level || commandCenter?.level || dashboard?.level}
+                plan={product?.plan || dashboard?.plan}
+                onUpgrade={handleUpgradePlan}
+              />
 
-        {hasModule("real_estate") && (
-          <RealEstateModule
-            data={realEstate}
-            onAdd={handleAddRealEstate}
-            onUpdate={handleUpdateRealEstate}
-            onDelete={handleDeleteRealEstate}
-            opportunity={findOpportunity("real_estate")}
-          />
-        )}
+              <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
+            </div>
+          )}
 
-        {hasModule("yield_assets") && (
-          <YieldInvestmentsModule
-            data={yieldAssets}
-            onAdd={handleAddYieldAsset}
-            onUpdate={handleUpdateYieldAsset}
-            onDelete={handleDeleteYieldAsset}
-            opportunities={categoryOpportunityItems.filter((item) =>
-              ["crowdfunding", "private_equity"].includes(item.key || "")
-            )}
-          />
-        )}
+          {activeSection === "settings" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Settings / Family Office"
+                title="Equipe, gouvernance et abonnement"
+                description="L'espace de controle pour le multi-user, les roles, l'abonnement et les preferences Family Office."
+              />
 
-        {hasModule("venture_assets") && (
-          <VentureAssetsModule
-            data={ventureAssets}
-            onAdd={handleAddVentureAsset}
-            onUpdate={handleUpdateVentureAsset}
-            onDelete={handleDeleteVentureAsset}
-            opportunities={categoryOpportunityItems.filter((item) =>
-              ["ai_business", "business", "startup", "franchise"].includes(
-                item.key || ""
-              )
-            )}
-          />
-        )}
+              {hasModule("multi_user") ? (
+                <WorkspacePanel
+                  data={workspaces}
+                  onCreate={handleCreateWorkspace}
+                  onInvite={handleInviteWorkspaceMember}
+                  onSwitch={handleSwitchWorkspace}
+                />
+              ) : (
+                <LockedSection
+                  title="Multi-user Family Office"
+                  description="Invite ton equipe, ta famille ou tes partenaires lorsque ton espace passe en Wealth OS."
+                  onUpgrade={handleUpgradePlan}
+                  plan="elite"
+                />
+              )}
 
-        <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
-          <h2 className="text-2xl font-bold mb-4">Portfolio</h2>
-          <PortfolioModule
-            portfolio={portfolio}
-            onAdd={handleAddPortfolioAsset}
-            onUpdate={handleUpdatePortfolioAsset}
-            onDelete={handleDeletePortfolioAsset}
-            opportunities={financialOpportunities}
-          />
-        </section>
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <h2 className="text-2xl font-bold">Abonnement</h2>
+                <p className="mt-2 text-sm text-gray-400">
+                  Plan actuel: {product?.plan || dashboard?.plan || "FREE"}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => handleUpgradePlan("gold")}
+                    className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"
+                  >
+                    Gold - Growth
+                  </button>
+                  <button
+                    onClick={() => handleUpgradePlan("elite")}
+                    className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Elite - Wealth OS
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
