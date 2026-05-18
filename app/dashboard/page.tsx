@@ -142,6 +142,12 @@ export default function Dashboard() {
     globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
   const categoryCounts = [
     { label: "Assets financiers", value: portfolio.length },
+    {
+      label: "Forex",
+      value: portfolio.filter(
+        (asset) => String(asset.asset_type || asset.type).toUpperCase() === "FOREX"
+      ).length,
+    },
     { label: "Immobilier", value: realEstateAssets.length },
     { label: "Crowdfunding", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "crowdfunding").length },
     { label: "Private Equity", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "private_equity").length },
@@ -153,7 +159,14 @@ export default function Dashboard() {
   const categoryOpportunityItems = categoryOpportunities?.categories || [];
   const findOpportunity = (key: string) =>
     categoryOpportunityItems.find((item) => item.key === key);
-  const financialOpportunityKeys = ["stock", "stocks", "etf", "crypto", "commodities"];
+  const financialOpportunityKeys = [
+    "stock",
+    "stocks",
+    "etf",
+    "crypto",
+    "commodities",
+    "forex",
+  ];
   const financialOpportunities = categoryOpportunityItems.filter((item) =>
     financialOpportunityKeys.includes(item.key || "")
   );
@@ -298,11 +311,11 @@ export default function Dashboard() {
       return;
     }
 
-    const assetName = prompt("Nom de l'actif ? (ex: AAPL, BTC, Appartement)");
+    const assetName = prompt("Nom de l'actif ? (ex: AAPL, BTC, EUR/USD)");
     if (!assetName) return;
 
     const assetType = prompt(
-      "Type d'actif ? (ex: STOCK, CRYPTO, ETF, PRIVATE_EQUITY)",
+      "Type d'actif ? (ex: STOCK, CRYPTO, ETF, COMMODITIES, FOREX)",
       assetTypePreset || ""
     );
     if (!assetType) return;

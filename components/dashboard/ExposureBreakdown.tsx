@@ -34,6 +34,11 @@ const getAssetValue = (asset: PortfolioAsset) =>
 const normalizeType = (type: string) =>
   (type || "Autre").replace(/_/g, " ").toUpperCase();
 
+const isForex = (asset: PortfolioAsset) =>
+  ["FOREX", "FX", "CURRENCY", "CURRENCIES"].includes(
+    String(asset.asset_type || asset.type || "").toUpperCase()
+  );
+
 export default function ExposureBreakdown({
   portfolio,
   realEstate,
@@ -91,6 +96,23 @@ export default function ExposureBreakdown({
 
   const total = data.reduce((acc, item) => acc + item.value, 0);
   const topExposure = data[0];
+  const currencyExposure = portfolio.reduce<Record<string, number>>((acc, asset) => {
+    if (!isForex(asset)) return acc;
+
+    const value = getAssetValue(asset);
+    const base = asset.currency_base;
+    const quote = asset.currency_quote;
+
+    if (base) acc[base] = (acc[base] || 0) + value;
+    if (quote) acc[quote] = (acc[quote] || 0) + value;
+
+    return acc;
+  }, {});
+
+  const currencyData = Object.entries(currencyExposure)
+    .map(([currency, value]) => ({ currency, value }))
+    .sort((a, b) => b.value - a.value);
+  const currencyTotal = currencyData.reduce((acc, item) => acc + item.value, 0);
 
   if (data.length === 0) {
     return (
@@ -183,6 +205,48 @@ export default function ExposureBreakdown({
           })}
         </div>
       </div>
+
+      {currencyData.length > 0 && (
+        <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-white">Exposition devise</h3>
+              <p className="text-xs text-gray-400">
+                Vue simple des devises portees par tes positions FOREX.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {currencyData.map((item, index) => {
+              const percent =
+                currencyTotal > 0 ? (item.value / currencyTotal) * 100 : 0;
+
+              return (
+                <div key={item.currency}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-cyan-100">
+                      {item.currency}
+                    </span>
+                    <span className="text-gray-300">
+                      {Math.round(percent)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(percent, 100)}%`,
+                        backgroundColor: colors[index % colors.length],
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

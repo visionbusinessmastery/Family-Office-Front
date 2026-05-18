@@ -21,6 +21,7 @@ export type PortfolioAsset = {
   asset_name?: string;
   name?: string;
   asset_type?: string;
+  category?: string;
   type?: string;
   quantity?: number | string;
   purchase_price?: number | string;
@@ -29,7 +30,11 @@ export type PortfolioAsset = {
   current_value?: number | string;
   cost?: number | string;
   gain?: number | string;
+  pnl?: number | string;
   gain_percent?: number | string;
+  pair_name?: string;
+  currency_base?: string;
+  currency_quote?: string;
   ticker?: string;
   source?: string;
 };

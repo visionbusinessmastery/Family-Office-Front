@@ -22,6 +22,7 @@ export const moduleCategories = [
   { key: "commodities", label: "Commodities", aliases: ["COMMODITIES"] },
   { key: "crypto", label: "Crypto", aliases: ["CRYPTO"] },
   { key: "etf", label: "ETF", aliases: ["ETF"] },
+  { key: "forex", label: "Forex", aliases: ["FOREX", "FX", "CURRENCY", "CURRENCIES"] },
   { key: "stocks", label: "Stocks", aliases: ["STOCKS", "STOCK"] },
 ];
 

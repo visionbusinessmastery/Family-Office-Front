@@ -16,10 +16,15 @@ const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
+const forexPrice = new Intl.NumberFormat("fr-FR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 5,
+});
+
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
-const getAssetGain = (asset: PortfolioAsset) => Number(asset.gain ?? 0);
+const getAssetGain = (asset: PortfolioAsset) => Number(asset.gain ?? asset.pnl ?? 0);
 
 const getAssetCost = (asset: PortfolioAsset) =>
   Number(
@@ -97,6 +102,11 @@ export default function PortfolioModule({
         return "border-blue-500/30 bg-blue-500/10";
       case "CRYPTO":
         return "border-orange-500/30 bg-orange-500/10";
+      case "FOREX":
+      case "FX":
+      case "CURRENCY":
+      case "CURRENCIES":
+        return "border-cyan-500/30 bg-cyan-500/10";
       case "REAL_ESTATE":
         return "border-green-500/30 bg-green-500/10";
       default:
@@ -159,7 +169,10 @@ export default function PortfolioModule({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {portfolio.map((asset) => {
           const assetType = asset.asset_type || asset.type || "N/A";
-          const assetName = asset.asset_name || asset.name || "Actif";
+          const isForex = ["FOREX", "FX", "CURRENCY", "CURRENCIES"].includes(
+            String(assetType).toUpperCase()
+          );
+          const assetName = asset.pair_name || asset.asset_name || asset.name || "Actif";
           const assetGain = getAssetGain(asset);
           const gainClass = assetGain >= 0 ? "text-emerald-400" : "text-red-400";
 
@@ -176,15 +189,25 @@ export default function PortfolioModule({
                     {assetType}
                   </p>
 
+                  {isForex && asset.currency_base && asset.currency_quote && (
+                    <p className="mt-2 text-xs text-cyan-300">
+                      Base {asset.currency_base} / Quote {asset.currency_quote}
+                    </p>
+                  )}
+
                   <div className="mt-4 space-y-1 text-sm text-gray-300">
                     <p>Quantite : {asset.quantity ?? 0}</p>
                     <p>
-                      Prix achat :{" "}
-                      {money.format(Number(asset.purchase_price || 0))} EUR
+                      {isForex ? "Prix entree" : "Prix achat"} :{" "}
+                      {isForex
+                        ? forexPrice.format(Number(asset.purchase_price || 0))
+                        : `${money.format(Number(asset.purchase_price || 0))} EUR`}
                     </p>
                     <p>
                       Prix actuel :{" "}
-                      {money.format(Number(asset.current_price || 0))} EUR
+                      {isForex
+                        ? forexPrice.format(Number(asset.current_price || 0))
+                        : `${money.format(Number(asset.current_price || 0))} EUR`}
                     </p>
                     {asset.ticker && (
                       <p className="text-xs text-gray-500">
