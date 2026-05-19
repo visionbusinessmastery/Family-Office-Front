@@ -36,6 +36,11 @@ export default function Onboarding() {
   const [mainCurrency, setMainCurrency] = useState("EUR");
   const [revenusMensuels, setRevenusMensuels] = useState<number | "">("");
   const [chargesMensuelles, setChargesMensuelles] = useState<number | "">("");
+  const [hasChildren, setHasChildren] = useState(false);
+  const [transmissionGoal, setTransmissionGoal] = useState("");
+  const [expatriationInterest, setExpatriationInterest] = useState("pas encore");
+  const [governanceNeed, setGovernanceNeed] = useState("a clarifier");
+  const [confidentialityNeed, setConfidentialityNeed] = useState("standard");
 
   useEffect(() => {
     if (!token) {
@@ -43,7 +48,7 @@ export default function Onboarding() {
     }
   }, [token]);
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
+  const nextStep = () => setStep((s) => Math.min(s + 1, 5));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleNumericField =
@@ -101,6 +106,12 @@ export default function Onboarding() {
           risk_level: riskLevel,
           main_currency: mainCurrency,
           motivation,
+          has_children: hasChildren,
+          transmission_goal: transmissionGoal,
+          expatriation_interest: expatriationInterest,
+          governance_need: governanceNeed,
+          confidentiality_need: confidentialityNeed,
+          family_strategy: transmissionGoal,
         }),
       }).catch(() => null);
 
@@ -117,7 +128,7 @@ export default function Onboarding() {
     }
   };
 
-  const progress = Math.round((step / 4) * 100);
+  const progress = Math.round((step / 5) * 100);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black px-6 py-8 text-white">
@@ -139,7 +150,7 @@ export default function Onboarding() {
             <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
               <div className="h-full bg-[#3fa9f5]" style={{ width: `${progress}%` }} />
             </div>
-            <p className="mt-2 text-xs text-gray-500">Etape {step} / 4</p>
+            <p className="mt-2 text-xs text-gray-500">Etape {step} / 5</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -234,6 +245,56 @@ export default function Onboarding() {
               </div>
             )}
 
+            {step === 5 && (
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={hasChildren}
+                      onChange={(event) => setHasChildren(event.target.checked)}
+                    />
+                    J&apos;ai des enfants ou heritiers a preparer
+                  </label>
+                  <select
+                    className="rounded-xl border border-white/10 bg-white/5 p-3 outline-none focus:border-[#3fa9f5]"
+                    value={confidentialityNeed}
+                    onChange={(e) => setConfidentialityNeed(e.target.value)}
+                  >
+                    <option value="standard">Confidentialite standard</option>
+                    <option value="elevee">Confidentialite elevee</option>
+                    <option value="familiale">Cercle familial prive</option>
+                  </select>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <select
+                    className="rounded-xl border border-white/10 bg-white/5 p-3 outline-none focus:border-[#3fa9f5]"
+                    value={expatriationInterest}
+                    onChange={(e) => setExpatriationInterest(e.target.value)}
+                  >
+                    <option value="pas encore">Strategie internationale: pas encore</option>
+                    <option value="a explorer">A explorer</option>
+                    <option value="prioritaire">Prioritaire</option>
+                  </select>
+                  <select
+                    className="rounded-xl border border-white/10 bg-white/5 p-3 outline-none focus:border-[#3fa9f5]"
+                    value={governanceNeed}
+                    onChange={(e) => setGovernanceNeed(e.target.value)}
+                  >
+                    <option value="a clarifier">Gouvernance a clarifier</option>
+                    <option value="famille">Regles familiales</option>
+                    <option value="business">Business et famille</option>
+                  </select>
+                </div>
+                <textarea
+                  className="min-h-24 w-full rounded-xl border border-white/10 bg-white/5 p-3 outline-none focus:border-[#3fa9f5]"
+                  placeholder="Quel heritage veux-tu construire ?"
+                  value={transmissionGoal}
+                  onChange={(event) => setTransmissionGoal(event.target.value)}
+                />
+              </div>
+            )}
+
             <div className="flex gap-3 pt-3">
               {step > 1 && (
                 <button
@@ -245,7 +306,7 @@ export default function Onboarding() {
                 </button>
               )}
 
-              {step < 4 ? (
+              {step < 5 ? (
                 <button
                   type="button"
                   onClick={nextStep}

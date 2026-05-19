@@ -105,6 +105,23 @@ export type ProductContext = {
   missions?: ProductMission[];
 };
 
+export type LegacyOverview = {
+  counts?: {
+    family_vault?: number;
+    heirs?: number;
+    governance_rules?: number;
+  };
+  scores?: {
+    legacy_score?: number;
+    dynasty_stability_score?: number;
+    transmission_readiness?: number;
+    family_governance_index?: number;
+    asset_protection_index?: number;
+  };
+  insights?: string[];
+  modules?: string[];
+};
+
 export type RealEstateType = "primary_residence" | "flip" | "rental";
 
 export type RealEstateAsset = {

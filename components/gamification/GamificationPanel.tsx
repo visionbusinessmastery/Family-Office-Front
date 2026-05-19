@@ -27,21 +27,55 @@ export default function GamificationPanel({
     : [];
   const progress = xp % xpToNextLevel;
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
-  const advanced = score >= 70 || String(userLevel || "").toUpperCase() === "ADVANCED";
-  const planRank: Record<string, number> = { FREE: 0, GOLD: 1, ELITE: 2, LIBERTY: 3 };
+  const normalizedLevel = String(userLevel || "").toUpperCase();
+  const advanced = score >= 70 || normalizedLevel === "ADVANCED";
+  const legacyMode =
+    String(plan || "").toUpperCase() === "LEGACY" ||
+    normalizedLevel === "LEGACY" ||
+    normalizedLevel === "DYNASTY ARCHITECT";
+  const planRank: Record<string, number> = {
+    FREE: 0,
+    SILVER: 0,
+    GOLD: 1,
+    PLATINUM: 1,
+    ELITE: 2,
+    LIBERTY: 3,
+    LEGACY: 4,
+  };
   const currentPlan = String(plan || "FREE").toUpperCase();
   const recommendedPlan =
-    String(userLevel || "").toUpperCase() === "FAMILY OFFICE OPERATOR"
+    legacyMode
+      ? "legacy"
+      : normalizedLevel === "FAMILY OFFICE OPERATOR"
       ? "liberty"
+      : normalizedLevel === "LIBERTY" || score >= 92
+        ? "legacy"
       : advanced
         ? "elite"
         : gamification.upgrade?.recommended_plan || "gold";
-  const canUpgrade = planRank[currentPlan] < planRank[String(recommendedPlan).toUpperCase()];
+  const canUpgrade =
+    (planRank[currentPlan] ?? 0) <
+    (planRank[String(recommendedPlan).toUpperCase()] ?? 0);
   const actions =
     gamification.actions && gamification.actions.length > 0
       ? gamification.actions
       : advanced
-        ? [
+        ? legacyMode
+          ? [
+              {
+                title: "Transmission",
+                description:
+                  "Identifier un document, une regle ou une personne cle a securiser cette semaine.",
+                xp: 80,
+              },
+              {
+                title: "Protection",
+                description:
+                  "Verifier la concentration du risque et ce qui doit etre protege en priorite.",
+                xp: 70,
+              },
+            ]
+          : [
             {
               title: "Mission Advanced",
               description:
@@ -170,7 +204,9 @@ export default function GamificationPanel({
 
             <p className="text-white text-sm font-semibold">
               {gamification.upgrade?.title ||
-                (recommendedPlan === "liberty"
+                (recommendedPlan === "legacy"
+                  ? "Debloquer LEGACY - Dynasty Office"
+                  : recommendedPlan === "liberty"
                   ? "Debloquer LIBERTY - Sovereign Wealth"
                   : recommendedPlan === "elite"
                   ? "Debloquer ELITE - Wealth OS"
@@ -179,7 +215,9 @@ export default function GamificationPanel({
 
             <p className="text-gray-400 text-xs mt-2">
               {gamification.upgrade?.description ||
-                "Ton niveau actuel justifie un espace plus avance pour accelerer, proteger et transmettre ton capital."}
+                (legacyMode
+                  ? "Tu es dans une phase de preservation, de gouvernance et de transmission."
+                  : "Ton niveau actuel justifie un espace plus avance pour accelerer, proteger et transmettre ton capital.")}
             </p>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">

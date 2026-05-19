@@ -87,7 +87,7 @@ export default function Home() {
           </a>
         </header>
 
-        <div className="grid items-end gap-8 py-12 sm:py-16 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid items-end gap-8 py-10 sm:py-14 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <p className="mb-4 text-xs uppercase tracking-widest text-[#3fa9f5] sm:text-sm">
               Reprendre le controle sans subir la complexite.
@@ -153,6 +153,40 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        <section className="mb-8 rounded-2xl border border-amber-300/20 bg-black/50 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-amber-200">
+                Legacy
+              </p>
+              <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
+                Beyond Financial Freedom
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
+                Construire une fortune est une etape. Construire un heritage est
+                une responsabilite.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {[
+                "Transmission",
+                "Gouvernance",
+                "Protection",
+                "Dynastie",
+                "Famille",
+                "Stabilite",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm font-semibold text-white"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
           <span>Vision Business Mastery</span>

@@ -25,6 +25,7 @@ import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
+import LegacyOfficePanel from "@/components/dashboard/LegacyOfficePanel";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
@@ -167,6 +168,7 @@ export default function Dashboard() {
     ventureAssets,
     intelligence,
     categoryOpportunities,
+    legacyOverview,
     onboarding,
     finance,
     gamification,
@@ -271,7 +273,10 @@ export default function Dashboard() {
   const visibleModules = new Set(
     product?.modules?.visible?.map((module) => module.key) || []
   );
-  const hasModule = (key: string) => !product || visibleModules.has(key);
+  const currentPlan = String(product?.plan || dashboard?.plan || "").toUpperCase();
+  const isLegacyPlan = ["LEGACY", "HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(currentPlan);
+  const hasModule = (key: string) =>
+    isLegacyPlan || !product || visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
   const canAddPortfolioAsset =
     maxAssets === null ||
@@ -319,7 +324,7 @@ export default function Dashboard() {
       key: "settings",
       label: "Family Office",
       description: "Identite",
-      locked: !hasModule("multi_user"),
+      locked: !hasModule("multi_user") && !hasModule("family_vault"),
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
@@ -1281,6 +1286,12 @@ export default function Dashboard() {
                 />
               )}
 
+              <LegacyOfficePanel
+                data={legacyOverview}
+                locked={!hasModule("family_vault")}
+                onUpgrade={handleUpgradePlan}
+              />
+
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -1317,6 +1328,12 @@ export default function Dashboard() {
                     className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black"
                   >
                     Liberty - Sovereign Wealth
+                  </button>
+                  <button
+                    onClick={() => handleUpgradePlan("legacy")}
+                    className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200"
+                  >
+                    Legacy - Dynasty Office
                   </button>
                   <button
                     onClick={handleOpenBillingPortal}

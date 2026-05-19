@@ -13,6 +13,7 @@ const planRank: Record<string, number> = {
   PLATINUM: 3,
   ELITE: 4,
   LIBERTY: 5,
+  LEGACY: 6,
 };
 
 const normalizePlan = (plan?: string | null) => {
@@ -20,7 +21,9 @@ const normalizePlan = (plan?: string | null) => {
 
   if (value === "FOUNDATION") return "FREE";
   if (value === "GROWTH") return "GOLD";
-  if (["WEALTH_OS", "LIBERTY_LEGACY"].includes(value)) return "ELITE";
+  if (value === "WEALTH_OS") return "ELITE";
+  if (value === "LIBERTY_LEGACY") return "LIBERTY";
+  if (["HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(value)) return "LEGACY";
 
   return value in planRank ? value : "";
 };
@@ -29,6 +32,7 @@ const getNextPlan = (plan: string) => {
   if (!plan || planRank[plan] < planRank.GOLD) return "gold";
   if (planRank[plan] < planRank.ELITE) return "elite";
   if (planRank[plan] < planRank.LIBERTY) return "liberty";
+  if (planRank[plan] < planRank.LEGACY) return "legacy";
   return null;
 };
 
@@ -39,6 +43,8 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
   const ctaLabel =
     nextPlan === "liberty"
       ? "Debloquer Liberty"
+      : nextPlan === "legacy"
+        ? "Debloquer Legacy"
       : nextPlan === "elite"
         ? "Passer en Wealth OS"
         : "Debloquer Gold";
@@ -53,6 +59,8 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
         return "bg-black text-yellow-400";
       case "LIBERTY":
         return "bg-[#f4c95d] text-black";
+      case "LEGACY":
+        return "bg-gradient-to-r from-black to-[#261b0b] text-amber-200 border border-amber-300/40";
       case "FREE":
       default:
         return "bg-blue-500 text-white";
@@ -69,6 +77,9 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
         return "bg-yellow-500 text-black";
       case "ELITE":
         return "bg-black text-yellow-400";
+      case "LEGACY":
+      case "DYNASTY ARCHITECT":
+        return "bg-amber-300 text-black";
       default:
         return "bg-gray-500 text-white";
     }

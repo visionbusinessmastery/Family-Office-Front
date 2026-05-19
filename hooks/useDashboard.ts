@@ -8,6 +8,7 @@ import type {
   DashboardSummary,
   FinanceData,
   GamificationData,
+  LegacyOverview,
   OnboardingData,
   PortfolioAsset,
   PortfolioHistoryPoint,
@@ -81,6 +82,45 @@ const cacheDashboard = (dashboardData: DashboardSummary) => {
   localStorage.setItem("whiteRockDashboard", JSON.stringify(dashboardData));
 };
 
+const planRank: Record<string, number> = {
+  FREE: 0,
+  SILVER: 0,
+  GOLD: 1,
+  PLATINUM: 1,
+  ELITE: 2,
+  LIBERTY: 3,
+  LEGACY: 4,
+};
+
+const normalizePlan = (plan?: string | null) => {
+  const value = String(plan || "").toUpperCase();
+
+  if (value === "FOUNDATION") return "FREE";
+  if (value === "GROWTH") return "GOLD";
+  if (value === "WEALTH_OS") return "ELITE";
+  if (value === "LIBERTY_LEGACY") return "LIBERTY";
+  if (["HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(value)) return "LEGACY";
+
+  return value in planRank ? value : undefined;
+};
+
+const preserveHighestDashboard = (
+  current: DashboardSummary | null,
+  next: DashboardSummary
+) => {
+  const currentPlan = normalizePlan(current?.plan);
+  const nextPlan = normalizePlan(next.plan);
+  const stablePlan =
+    currentPlan && nextPlan && planRank[currentPlan] > planRank[nextPlan]
+      ? currentPlan
+      : nextPlan || currentPlan;
+
+  return {
+    plan: stablePlan,
+    level: next.level || current?.level,
+  };
+};
+
 export function useDashboard() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -104,6 +144,7 @@ export function useDashboard() {
   const [categoryOpportunities, setCategoryOpportunities] =
     useState<CategoryOpportunityData | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
+  const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
   const [product, setProduct] = useState<ProductContext | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
@@ -119,13 +160,14 @@ export function useDashboard() {
       profile_completed: userData?.profile_completed || false,
     });
 
-    const nextDashboard = {
-      plan: userData.plan,
-      level: userData.level,
-    };
-
-    setDashboard(nextDashboard);
-    cacheDashboard(nextDashboard);
+    setDashboard((current) => {
+      const nextDashboard = preserveHighestDashboard(current, {
+        plan: userData.plan,
+        level: userData.level,
+      });
+      cacheDashboard(nextDashboard);
+      return nextDashboard;
+    });
   }, []);
 
   const safeFetch = useCallback(
@@ -158,10 +200,10 @@ export function useDashboard() {
       setProduct(data);
       if (data.plan) {
         setDashboard((current) => {
-          const nextDashboard = {
+          const nextDashboard = preserveHighestDashboard(current, {
             plan: data.plan,
             level: data.progression?.level || current?.level,
-          };
+          });
           cacheDashboard(nextDashboard);
           return nextDashboard;
         });
@@ -180,6 +222,11 @@ export function useDashboard() {
     ) {
       localStorage.setItem("activeWorkspaceId", String(data.active_workspace_id));
     }
+  }, [safeFetch]);
+
+  const loadLegacyOverview = useCallback(async () => {
+    const data = await safeFetch<LegacyOverview>("/legacy/overview");
+    setLegacyOverview(data);
   }, [safeFetch]);
 
   const loadFinance = useCallback(async () => {
@@ -281,6 +328,7 @@ export function useDashboard() {
       loadPortfolio(),
       loadProductContext(),
       loadWorkspaces(),
+      loadLegacyOverview(),
       loadHistory(),
       loadRealEstate(),
       loadYieldAssets(),
@@ -297,6 +345,7 @@ export function useDashboard() {
     loadCategoryOpportunities,
     loadGamification,
     loadHistory,
+    loadLegacyOverview,
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
@@ -334,6 +383,7 @@ export function useDashboard() {
           loadPortfolio(),
           loadProductContext(),
           loadWorkspaces(),
+          loadLegacyOverview(),
           loadHistory(),
           loadRealEstate(),
           loadYieldAssets(),
@@ -363,6 +413,7 @@ export function useDashboard() {
     loadCategoryOpportunities,
     loadGamification,
     loadHistory,
+    loadLegacyOverview,
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
@@ -391,6 +442,7 @@ export function useDashboard() {
     intelligence,
     categoryOpportunities,
     workspaces,
+    legacyOverview,
     product,
     finance,
     gamification,
@@ -398,6 +450,7 @@ export function useDashboard() {
     loadPortfolio,
     loadProductContext,
     loadWorkspaces,
+    loadLegacyOverview,
     loadHistory,
     loadRealEstate,
     loadYieldAssets,
