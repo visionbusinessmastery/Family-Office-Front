@@ -62,7 +62,9 @@ export default function LoginPage() {
       }
 
       setMessage("Connexion reussie. Ouverture de ton cockpit...");
-      window.location.href = "/dashboard";
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1400);
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : JSON.stringify(err));
       setLoading(false);

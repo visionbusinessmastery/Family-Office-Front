@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
+import AuthExperienceShell from "@/components/AuthExperienceShell";
 
 type State = "loading" | "success" | "error";
 
@@ -110,26 +110,12 @@ function VerifyEmailContent() {
   };
 
   return (
-    <main
-      className="relative min-h-screen flex flex-col items-center px-6 bg-cover bg-center"
-      style={{ backgroundImage: "url('/bg-family-office.jpg')" }}
+    <AuthExperienceShell
+      title="Verification email"
+      subtitle="On securise ton acces avant d'ouvrir ton cockpit patrimonial."
     >
-      <div className="absolute inset-0 bg-black/70" />
-
-      <div className="relative z-10 flex flex-col items-center text-center text-white">
-        <Image
-          src="/logo.png"
-          alt="Vision Business Mastery"
-          width={160}
-          height={160}
-          className="h-40 mt-6"
-        />
-
-        <h1 className="text-[#1DA2CF] text-[34px] mt-6">
-          Verification email
-        </h1>
-
-        <p className="mt-4">{message}</p>
+      <div className="text-center">
+        <p className="text-sm text-gray-300">{message}</p>
 
         {email && <p className="mt-2 text-sm text-gray-300">{email}</p>}
 
@@ -140,14 +126,14 @@ function VerifyEmailContent() {
             <button
               onClick={resendEmail}
               disabled={resending}
-              className="bg-[#1DA2CF] text-white px-6 py-2 rounded-xl"
+              className="rounded-xl bg-[#3fa9f5] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
               {resending ? "Envoi..." : "Renvoyer email"}
             </button>
 
             <button
               onClick={() => (window.location.href = "/")}
-              className="ml-3 bg-white text-black px-6 py-2 rounded-xl"
+              className="ml-3 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-black"
             >
               Accueil
             </button>
@@ -160,30 +146,14 @@ function VerifyEmailContent() {
           </div>
         )}
       </div>
-    </main>
+    </AuthExperienceShell>
   );
 }
 
 function VerifyEmailShell({ message }: { message: string }) {
   return (
-    <main
-      className="relative min-h-screen flex flex-col items-center px-6 bg-cover bg-center"
-      style={{ backgroundImage: "url('/bg-family-office.jpg')" }}
-    >
-      <div className="absolute inset-0 bg-black/70" />
-      <div className="relative z-10 flex flex-col items-center text-center text-white">
-        <Image
-          src="/logo.png"
-          alt="Vision Business Mastery"
-          width={160}
-          height={160}
-          className="h-40 mt-6"
-        />
-        <h1 className="text-[#1DA2CF] text-[34px] mt-6">
-          Verification email
-        </h1>
-        <p className="mt-4">{message}</p>
-      </div>
-    </main>
+    <AuthExperienceShell title="Verification email" subtitle={message}>
+      <div className="mx-auto h-12 w-12 rounded-full border-2 border-[#3fa9f5]/30 border-r-amber-300 border-t-[#3fa9f5] animate-spin" />
+    </AuthExperienceShell>
   );
 }

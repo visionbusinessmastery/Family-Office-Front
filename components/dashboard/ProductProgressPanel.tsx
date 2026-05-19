@@ -15,6 +15,7 @@ const stageLabels: Record<number, string> = {
   5: "Pilotage",
   6: "Wealth OS",
   7: "Live Sync",
+  8: "Liberty",
 };
 
 function ModulePill({ module }: { module: ProductModule }) {
@@ -41,9 +42,8 @@ export default function ProductProgressPanel({
   const plan = product.plan || entitlements.plan || "charge";
 
   return (
-    <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1.4fr]">
-        <div>
+    <section className="space-y-5">
+      <div className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5 transition duration-300 hover:border-[#3fa9f5]/35">
           <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
             Progression patrimoniale
           </p>
@@ -80,11 +80,10 @@ export default function ProductProgressPanel({
               {progression.xp || 0} XP / {progression.next_level_xp || 1000} XP
             </p>
           </div>
-        </div>
+      </div>
 
-        <div className="space-y-4">
-          {missions.length > 0 && (
-            <div>
+      {missions.length > 0 && (
+        <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 transition duration-300 hover:border-white/20">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-bold text-white">Prochaines actions</h3>
                 <span className="text-xs text-gray-500">Guidance douce</span>
@@ -117,20 +116,19 @@ export default function ProductProgressPanel({
                   </article>
                 ))}
               </div>
-            </div>
-          )}
+        </div>
+      )}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
+      <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 transition duration-300 hover:border-white/20">
               <h3 className="mb-2 font-bold text-white">Espaces ouverts</h3>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {visible.slice(0, 6).map((module) => (
                   <ModulePill key={module.key} module={module} />
                 ))}
               </div>
-            </div>
+      </div>
 
-            <div>
+      <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 transition duration-300 hover:border-white/20">
               <h3 className="mb-2 font-bold text-white">Prochaines etapes</h3>
               <div className="space-y-2">
                 {locked.slice(0, 3).map((module) => (
@@ -145,10 +143,12 @@ export default function ProductProgressPanel({
                     <p className="mt-1 text-xs text-gray-500">{module.reason}</p>
                   </div>
                 ))}
+                {locked.length === 0 && (
+                  <p className="text-sm text-gray-400">
+                    Tous les espaces essentiels sont ouverts. Continue a consolider ton pilotage.
+                  </p>
+                )}
               </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
+import BrandMark from "@/components/BrandMark";
 import type {
   FinanceEntry,
   FinancePayload,
@@ -183,18 +184,30 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-black p-4 text-white">
-        <div className="mx-auto max-w-7xl space-y-5">
-          <div className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+      <main className="relative min-h-screen overflow-hidden bg-black p-4 text-white">
+        <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-25" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-black/90 to-[#061827]" />
+        <div className="relative mx-auto max-w-7xl space-y-5 opacity-35 blur-[1px]">
+          <div className="h-20 rounded-2xl border border-white/10 bg-white/[0.04]" />
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
-            <div className="hidden h-96 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04] lg:block" />
+            <div className="hidden h-96 rounded-2xl border border-white/10 bg-white/[0.04] lg:block" />
             <div className="space-y-5">
-              <div className="h-56 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+              <div className="h-56 rounded-2xl border border-white/10 bg-white/[0.04]" />
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                <div className="h-72 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
-                <div className="h-72 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+                <div className="h-72 rounded-2xl border border-white/10 bg-white/[0.04]" />
+                <div className="h-72 rounded-2xl border border-white/10 bg-white/[0.04]" />
               </div>
             </div>
+          </div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/45 backdrop-blur-sm">
+          <div className="fade-in flex flex-col items-center text-center">
+            <BrandMark />
+            <p className="mt-6 max-w-md text-sm leading-relaxed text-gray-300">
+              Le cockpit se materialise progressivement. Synchronisation du plan,
+              des modules et de la progression.
+            </p>
+            <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-r-amber-300 border-t-[#3fa9f5] animate-spin" />
           </div>
         </div>
       </main>
@@ -1197,8 +1210,8 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Conseiller patrimonial"
-                title="Ton Conseiller Patrimonial"
-                description="Un conseiller patrimonial concu pour t'aider a avancer avec clarte, confiance et regularite."
+                title="ETHAN"
+                description="Ton Conseiller exclusif"
               />
 
               {hasModule("opportunities") ? (

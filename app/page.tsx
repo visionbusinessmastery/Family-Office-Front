@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import BrandMark from "@/components/BrandMark";
+import AuthExperienceShell from "@/components/AuthExperienceShell";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -75,16 +75,10 @@ export default function Home() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white">
-      <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-55" />
-      <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/72 to-[#061827]/75" />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent" />
-      <div className="pointer-events-none absolute left-[-10%] top-[18%] h-52 w-52 rounded-full bg-[#3fa9f5]/20 blur-3xl floating-glow" />
-      <div className="pointer-events-none absolute bottom-[12%] right-[-8%] h-56 w-56 rounded-full bg-amber-300/15 blur-3xl floating-glow floating-glow-delay" />
-
+    <AuthExperienceShell fullScreen>
       <section className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-between px-5 py-6 sm:px-6 sm:py-8">
         <header className="flex items-center justify-between">
-          <BrandMark compact />
+          <div />
           <a
             href="/login"
             className="rounded-xl border border-[#3fa9f5]/50 bg-[#3fa9f5] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[#3fa9f5]/20 backdrop-blur transition hover:bg-white hover:text-[#0b1725]"
@@ -169,6 +163,6 @@ export default function Home() {
           </div>
         </footer>
       </section>
-    </main>
+    </AuthExperienceShell>
   );
 }
