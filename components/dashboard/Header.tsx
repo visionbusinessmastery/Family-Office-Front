@@ -1,39 +1,10 @@
 import type { DashboardSummary } from "@/lib/types";
 import BrandMark from "@/components/BrandMark";
+import { getNextPlan, normalizePlan } from "@/lib/plans";
 
 type HeaderProps = {
   dashboard: DashboardSummary | null;
   onUpgrade?: (plan: string) => void;
-};
-
-const planRank: Record<string, number> = {
-  FREE: 0,
-  SILVER: 1,
-  GOLD: 2,
-  PLATINUM: 3,
-  ELITE: 4,
-  LIBERTY: 5,
-  LEGACY: 6,
-};
-
-const normalizePlan = (plan?: string | null) => {
-  const value = String(plan || "").toUpperCase();
-
-  if (value === "FOUNDATION") return "FREE";
-  if (value === "GROWTH") return "GOLD";
-  if (value === "WEALTH_OS") return "ELITE";
-  if (value === "LIBERTY_LEGACY") return "LIBERTY";
-  if (["HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(value)) return "LEGACY";
-
-  return value in planRank ? value : "";
-};
-
-const getNextPlan = (plan: string) => {
-  if (!plan || planRank[plan] < planRank.GOLD) return "gold";
-  if (planRank[plan] < planRank.ELITE) return "elite";
-  if (planRank[plan] < planRank.LIBERTY) return "liberty";
-  if (planRank[plan] < planRank.LEGACY) return "legacy";
-  return null;
 };
 
 export default function Header({ dashboard, onUpgrade }: HeaderProps) {
@@ -44,7 +15,7 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
     nextPlan === "liberty"
       ? "Debloquer Liberty"
       : nextPlan === "legacy"
-        ? "Debloquer Legacy"
+        ? "Passer Legacy"
       : nextPlan === "elite"
         ? "Passer en Wealth OS"
         : "Debloquer Gold";

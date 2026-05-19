@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
+import { highestPlan } from "@/lib/plans";
 import type {
   CommandCenter,
   CategoryOpportunityData,
@@ -82,41 +83,12 @@ const cacheDashboard = (dashboardData: DashboardSummary) => {
   localStorage.setItem("whiteRockDashboard", JSON.stringify(dashboardData));
 };
 
-const planRank: Record<string, number> = {
-  FREE: 0,
-  SILVER: 0,
-  GOLD: 1,
-  PLATINUM: 1,
-  ELITE: 2,
-  LIBERTY: 3,
-  LEGACY: 4,
-};
-
-const normalizePlan = (plan?: string | null) => {
-  const value = String(plan || "").toUpperCase();
-
-  if (value === "FOUNDATION") return "FREE";
-  if (value === "GROWTH") return "GOLD";
-  if (value === "WEALTH_OS") return "ELITE";
-  if (value === "LIBERTY_LEGACY") return "LIBERTY";
-  if (["HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(value)) return "LEGACY";
-
-  return value in planRank ? value : undefined;
-};
-
 const preserveHighestDashboard = (
   current: DashboardSummary | null,
   next: DashboardSummary
 ) => {
-  const currentPlan = normalizePlan(current?.plan);
-  const nextPlan = normalizePlan(next.plan);
-  const stablePlan =
-    currentPlan && nextPlan && planRank[currentPlan] > planRank[nextPlan]
-      ? currentPlan
-      : nextPlan || currentPlan;
-
   return {
-    plan: stablePlan,
+    plan: highestPlan(current?.plan, next.plan),
     level: next.level || current?.level,
   };
 };
@@ -200,10 +172,10 @@ export function useDashboard() {
       setProduct(data);
       if (data.plan) {
         setDashboard((current) => {
-          const nextDashboard = preserveHighestDashboard(current, {
+          const nextDashboard = {
             plan: data.plan,
             level: data.progression?.level || current?.level,
-          });
+          };
           cacheDashboard(nextDashboard);
           return nextDashboard;
         });
@@ -322,11 +294,11 @@ export function useDashboard() {
   }, [safeFetch]);
 
   const refreshAll = useCallback(async () => {
+    await loadProductContext();
     const userData = await loadUserProfile();
 
     await Promise.all([
       loadPortfolio(),
-      loadProductContext(),
       loadWorkspaces(),
       loadLegacyOverview(),
       loadHistory(),
@@ -376,12 +348,12 @@ export function useDashboard() {
 
     const loadAll = async () => {
       try {
+        await loadProductContext();
         const userData = await loadUserProfile();
 
         await loadCommandCenter();
         await Promise.all([
           loadPortfolio(),
-          loadProductContext(),
           loadWorkspaces(),
           loadLegacyOverview(),
           loadHistory(),

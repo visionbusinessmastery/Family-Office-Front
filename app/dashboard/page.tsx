@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiRequest } from "@/lib/api";
+import { planAllows } from "@/lib/plans";
 import { useDashboard } from "@/hooks/useDashboard";
 import BrandMark from "@/components/BrandMark";
 import type {
@@ -273,10 +274,10 @@ export default function Dashboard() {
   const visibleModules = new Set(
     product?.modules?.visible?.map((module) => module.key) || []
   );
-  const currentPlan = String(product?.plan || dashboard?.plan || "").toUpperCase();
-  const isLegacyPlan = ["LEGACY", "HERITAGE", "DYNASTY", "DYNASTY_OFFICE"].includes(currentPlan);
+  const currentPlan = product?.plan || dashboard?.plan;
+  const unlocksEveryModule = planAllows(currentPlan, "LIBERTY");
   const hasModule = (key: string) =>
-    isLegacyPlan || !product || visibleModules.has(key);
+    unlocksEveryModule || !product || visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
   const canAddPortfolioAsset =
     maxAssets === null ||

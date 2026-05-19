@@ -1,4 +1,5 @@
 import type { GamificationData } from "@/lib/types";
+import { normalizePlan, planAllows } from "@/lib/plans";
 
 type GamificationProps = {
   gamification?: GamificationData;
@@ -30,19 +31,10 @@ export default function GamificationPanel({
   const normalizedLevel = String(userLevel || "").toUpperCase();
   const advanced = score >= 70 || normalizedLevel === "ADVANCED";
   const legacyMode =
-    String(plan || "").toUpperCase() === "LEGACY" ||
+    planAllows(plan, "LEGACY") ||
     normalizedLevel === "LEGACY" ||
     normalizedLevel === "DYNASTY ARCHITECT";
-  const planRank: Record<string, number> = {
-    FREE: 0,
-    SILVER: 0,
-    GOLD: 1,
-    PLATINUM: 1,
-    ELITE: 2,
-    LIBERTY: 3,
-    LEGACY: 4,
-  };
-  const currentPlan = String(plan || "FREE").toUpperCase();
+  const currentPlan = normalizePlan(plan) || "FREE";
   const recommendedPlan =
     legacyMode
       ? "legacy"
@@ -54,8 +46,7 @@ export default function GamificationPanel({
         ? "elite"
         : gamification.upgrade?.recommended_plan || "gold";
   const canUpgrade =
-    (planRank[currentPlan] ?? 0) <
-    (planRank[String(recommendedPlan).toUpperCase()] ?? 0);
+    !planAllows(currentPlan, recommendedPlan);
   const actions =
     gamification.actions && gamification.actions.length > 0
       ? gamification.actions
@@ -205,7 +196,7 @@ export default function GamificationPanel({
             <p className="text-white text-sm font-semibold">
               {gamification.upgrade?.title ||
                 (recommendedPlan === "legacy"
-                  ? "Debloquer LEGACY - Dynasty Office"
+                  ? "Passer en LEGACY - Dynasty Office"
                   : recommendedPlan === "liberty"
                   ? "Debloquer LIBERTY - Sovereign Wealth"
                   : recommendedPlan === "elite"
