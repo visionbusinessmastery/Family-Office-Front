@@ -28,12 +28,15 @@ export default function GamificationPanel({
   const progress = xp % xpToNextLevel;
   const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
   const advanced = score >= 70 || String(userLevel || "").toUpperCase() === "ADVANCED";
+  const planRank: Record<string, number> = { FREE: 0, GOLD: 1, ELITE: 2, LIBERTY: 3 };
+  const currentPlan = String(plan || "FREE").toUpperCase();
   const recommendedPlan =
     String(userLevel || "").toUpperCase() === "FAMILY OFFICE OPERATOR"
-      ? "elite"
+      ? "liberty"
       : advanced
         ? "elite"
         : gamification.upgrade?.recommended_plan || "gold";
+  const canUpgrade = planRank[currentPlan] < planRank[String(recommendedPlan).toUpperCase()];
   const actions =
     gamification.actions && gamification.actions.length > 0
       ? gamification.actions
@@ -55,8 +58,8 @@ export default function GamificationPanel({
         : [];
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-gray-800 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 border border-gray-800 shadow-xl sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <p className="text-xs uppercase tracking-widest text-emerald-300">
             Progression
@@ -71,8 +74,8 @@ export default function GamificationPanel({
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="flex justify-between items-center">
+      <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="flex justify-between items-center gap-3">
           <h3 className="text-lg font-semibold text-white">Level {level}</h3>
 
           <span className="text-green-400 font-bold">{xp} XP</span>
@@ -90,7 +93,7 @@ export default function GamificationPanel({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 gap-4 mb-4 lg:grid-cols-2">
         <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl">
           <h3 className="text-lg font-semibold text-yellow-400 mb-3">Badges</h3>
 
@@ -129,8 +132,8 @@ export default function GamificationPanel({
         </div>
       </div>
 
-      {(actions.length > 0 || onUpgrade) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {(actions.length > 0 || (onUpgrade && canUpgrade)) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
             <h3 className="text-lg font-semibold text-emerald-300 mb-3">
               Missions du jour
@@ -167,7 +170,9 @@ export default function GamificationPanel({
 
             <p className="text-white text-sm font-semibold">
               {gamification.upgrade?.title ||
-                (recommendedPlan === "elite"
+                (recommendedPlan === "liberty"
+                  ? "Debloquer LIBERTY - Sovereign Wealth"
+                  : recommendedPlan === "elite"
                   ? "Debloquer ELITE - Wealth OS"
                   : "Debloquer GOLD - Growth")}
             </p>
@@ -182,7 +187,7 @@ export default function GamificationPanel({
                 Plan actuel: {plan || "FREE"}
               </span>
 
-              {onUpgrade && (
+              {onUpgrade && canUpgrade && (
                 <button
                   onClick={() => onUpgrade(recommendedPlan)}
                   className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"

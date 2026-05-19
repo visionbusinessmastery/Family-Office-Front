@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const welcome = useMemo(
     () => loginMessages[new Date().getDate() % loginMessages.length],
@@ -25,6 +26,8 @@ export default function LoginPage() {
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -62,8 +65,26 @@ export default function LoginPage() {
       window.location.href = "/dashboard";
     } catch (err: unknown) {
       setMessage(err instanceof Error ? err.message : JSON.stringify(err));
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-black px-6 text-white">
+        <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-45" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/82 to-[#061827]/90" />
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <BrandMark />
+          <p className="mt-6 max-w-md text-sm leading-relaxed text-gray-300">
+            Preparation de ton cockpit patrimonial. On synchronise ton profil,
+            ton plan et ta progression.
+          </p>
+          <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-t-[#3fa9f5] border-r-amber-300 animate-spin" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
@@ -85,9 +106,12 @@ export default function LoginPage() {
         />
       </svg>
 
-      <section className="relative z-10 mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-[1fr_420px]">
+      <div className="absolute left-5 top-5 z-10 sm:left-8 sm:top-8">
+        <BrandMark compact />
+      </div>
+
+      <section className="relative z-10 mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-24 lg:grid-cols-[1fr_420px]">
         <div className="hidden lg:block">
-          <BrandMark className="mb-8" />
           <h1 className="mt-4 max-w-2xl text-5xl font-black leading-tight">
             {welcome}
           </h1>
@@ -102,8 +126,11 @@ export default function LoginPage() {
           className="rounded-2xl border border-white/10 bg-black/55 p-6 shadow-2xl backdrop-blur"
         >
           <div className="mb-6">
-            <BrandMark compact />
-            <p className="mt-5 text-sm text-gray-400 lg:hidden">{welcome}</p>
+            <h1 className="text-2xl font-black text-white">Connexion</h1>
+            <p className="mt-2 text-sm text-gray-400">
+              Reprends le cap avec clarte et regularite.
+            </p>
+            <p className="mt-4 text-sm text-gray-500 lg:hidden">{welcome}</p>
           </div>
 
           <div className="space-y-3">
@@ -123,8 +150,11 @@ export default function LoginPage() {
             />
           </div>
 
-          <button className="mt-5 w-full rounded-xl bg-[#3fa9f5] p-3 font-bold">
-            Ouvrir mon cockpit
+          <button
+            disabled={loading}
+            className="mt-5 w-full rounded-xl bg-[#3fa9f5] p-3 font-bold disabled:opacity-60"
+          >
+            {loading ? "Ouverture..." : "Ouvrir mon cockpit"}
           </button>
 
           {message && (

@@ -79,13 +79,15 @@ export default function Home() {
       <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-55" />
       <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/72 to-[#061827]/75" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent" />
+      <div className="pointer-events-none absolute left-[-10%] top-[18%] h-52 w-52 rounded-full bg-[#3fa9f5]/20 blur-3xl floating-glow" />
+      <div className="pointer-events-none absolute bottom-[12%] right-[-8%] h-56 w-56 rounded-full bg-amber-300/15 blur-3xl floating-glow floating-glow-delay" />
 
       <section className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-between px-5 py-6 sm:px-6 sm:py-8">
         <header className="flex items-center justify-between">
           <BrandMark compact />
           <a
             href="/login"
-            className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white backdrop-blur"
+            className="rounded-xl border border-[#3fa9f5]/50 bg-[#3fa9f5] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[#3fa9f5]/20 backdrop-blur transition hover:bg-white hover:text-[#0b1725]"
           >
             Connexion
           </a>
@@ -93,7 +95,6 @@ export default function Home() {
 
         <div className="grid items-end gap-8 py-12 sm:py-16 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <BrandMark className="mb-8" />
             <p className="mb-4 text-xs uppercase tracking-widest text-[#3fa9f5] sm:text-sm">
               Reprendre le controle sans subir la complexite.
             </p>

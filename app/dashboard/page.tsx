@@ -21,7 +21,6 @@ import type {
 
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
-import ChartModule from "@/components/dashboard/ChartModule";
 import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
@@ -162,7 +161,6 @@ export default function Dashboard() {
   const {
     dashboard,
     portfolio,
-    history,
     realEstate,
     yieldAssets,
     ventureAssets,
@@ -225,7 +223,6 @@ export default function Dashboard() {
     totalValue + realEstateFinal + yieldFinal + ventureFinal;
   const globalPortfolioGain =
     portfolioGain + realEstateGain + yieldGain + ventureGain;
-  const globalPortfolioInvested = globalPortfolioValue - globalPortfolioGain;
   const globalPortfolioGainClass =
     globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
   const categoryCounts = [
@@ -275,7 +272,7 @@ export default function Dashboard() {
     },
     {
       key: "ai",
-      label: "Ethan",
+      label: "Conseiller",
       description: "Conseiller",
     },
     {
@@ -370,6 +367,23 @@ export default function Dashboard() {
           ? `Abonnement Stripe non configure: ajoute ${missingPrice} dans Render.`
           : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe."
       );
+    }
+  };
+
+  const handleOpenBillingPortal = async () => {
+    try {
+      const data = await apiRequest<{ url?: string }>("/billing/customer-portal", token, {
+        method: "POST",
+      });
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Portail abonnement indisponible pour le moment.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'ouvrir le portail abonnement pour le moment.");
     }
   };
 
@@ -1085,17 +1099,8 @@ export default function Dashboard() {
               />
 
               {hasModule("diversification") ? (
-                <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <section className="grid grid-cols-1 gap-5">
                   <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} />
-                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                    <h2 className="mb-4 text-2xl font-bold">Chart Portfolio</h2>
-                    <ChartModule
-                      history={history}
-                      initialInvestment={initialInvestment}
-                      currentValue={globalPortfolioValue}
-                      currentInvestment={globalPortfolioInvested}
-                    />
-                  </section>
                 </section>
               ) : (
                 <LockedSection
@@ -1192,8 +1197,8 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Conseiller patrimonial"
-                title="Ethan, signaux et recommandations"
-                description="Un espace pour poser tes questions, lire les alertes importantes et transformer les opportunites en actions."
+                title="Ton Conseiller Patrimonial"
+                description="Un conseiller patrimonial concu pour t'aider a avancer avec clarte, confiance et regularite."
               />
 
               {hasModule("opportunities") ? (
@@ -1293,6 +1298,18 @@ export default function Dashboard() {
                     className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
                   >
                     Elite - Wealth OS
+                  </button>
+                  <button
+                    onClick={() => handleUpgradePlan("liberty")}
+                    className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black"
+                  >
+                    Liberty - Sovereign Wealth
+                  </button>
+                  <button
+                    onClick={handleOpenBillingPortal}
+                    className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Gerer mon abonnement
                   </button>
                 </div>
               </section>

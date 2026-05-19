@@ -12,6 +12,7 @@ const planRank: Record<string, number> = {
   GOLD: 2,
   PLATINUM: 3,
   ELITE: 4,
+  LIBERTY: 5,
 };
 
 const normalizePlan = (plan?: string | null) => {
@@ -19,7 +20,7 @@ const normalizePlan = (plan?: string | null) => {
 
   if (value === "FOUNDATION") return "FREE";
   if (value === "GROWTH") return "GOLD";
-  if (["WEALTH_OS", "LIBERTY", "LIBERTY_LEGACY"].includes(value)) return "ELITE";
+  if (["WEALTH_OS", "LIBERTY_LEGACY"].includes(value)) return "ELITE";
 
   return value in planRank ? value : "";
 };
@@ -27,6 +28,7 @@ const normalizePlan = (plan?: string | null) => {
 const getNextPlan = (plan: string) => {
   if (!plan || planRank[plan] < planRank.GOLD) return "gold";
   if (planRank[plan] < planRank.ELITE) return "elite";
+  if (planRank[plan] < planRank.LIBERTY) return "liberty";
   return null;
 };
 
@@ -34,7 +36,12 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
   const plan = normalizePlan(dashboard?.plan);
   const level = dashboard?.level || null;
   const nextPlan = getNextPlan(plan);
-  const ctaLabel = nextPlan === "elite" ? "Passer en Wealth OS" : "Debloquer Gold";
+  const ctaLabel =
+    nextPlan === "liberty"
+      ? "Debloquer Liberty"
+      : nextPlan === "elite"
+        ? "Passer en Wealth OS"
+        : "Debloquer Gold";
 
   const getPlanStyle = (value: string) => {
     switch (value) {
@@ -44,6 +51,8 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
         return "bg-yellow-500 text-black";
       case "ELITE":
         return "bg-black text-yellow-400";
+      case "LIBERTY":
+        return "bg-[#f4c95d] text-black";
       case "FREE":
       default:
         return "bg-blue-500 text-white";

@@ -65,12 +65,30 @@ const extractPortfolio = (data: PortfolioResponse | null) => {
   return candidates.find(Array.isArray) || null;
 };
 
+const readCachedDashboard = (): DashboardSummary | null => {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const cached = localStorage.getItem("whiteRockDashboard");
+    return cached ? (JSON.parse(cached) as DashboardSummary) : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheDashboard = (dashboardData: DashboardSummary) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("whiteRockDashboard", JSON.stringify(dashboardData));
+};
+
 export function useDashboard() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(
+    readCachedDashboard
+  );
   const [score, setScore] = useState<number>(0);
   const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(null);
   const [scoreAdvice, setScoreAdvice] = useState<string[]>([]);
@@ -91,6 +109,8 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true);
 
   const applyUserProfile = useCallback((userData: UserProfile | null) => {
+    if (!userData) return;
+
     setUser(userData);
 
     setOnboarding({
@@ -99,10 +119,13 @@ export function useDashboard() {
       profile_completed: userData?.profile_completed || false,
     });
 
-    setDashboard({
-      plan: userData?.plan || "FREE",
-      level: userData?.level,
-    });
+    const nextDashboard = {
+      plan: userData.plan,
+      level: userData.level,
+    };
+
+    setDashboard(nextDashboard);
+    cacheDashboard(nextDashboard);
   }, []);
 
   const safeFetch = useCallback(
@@ -131,7 +154,19 @@ export function useDashboard() {
 
   const loadProductContext = useCallback(async () => {
     const data = await safeFetch<ProductContext>("/product/context");
-    setProduct(data);
+    if (data) {
+      setProduct(data);
+      if (data.plan) {
+        setDashboard((current) => {
+          const nextDashboard = {
+            plan: data.plan,
+            level: data.progression?.level || current?.level,
+          };
+          cacheDashboard(nextDashboard);
+          return nextDashboard;
+        });
+      }
+    }
   }, [safeFetch]);
 
   const loadWorkspaces = useCallback(async () => {

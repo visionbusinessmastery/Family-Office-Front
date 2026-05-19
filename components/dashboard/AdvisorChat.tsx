@@ -87,7 +87,7 @@ export default function AdvisorChat({
   };
 
   return (
-    <section className="bg-zinc-950 border border-white/10 rounded-2xl p-4 sm:p-5">
+    <section className="bg-zinc-950 border border-white/10 rounded-2xl p-4 shadow-2xl shadow-black/20 transition sm:p-6">
       <div className="mb-4">
         <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
           Conseiller Patrimonial
@@ -98,8 +98,8 @@ export default function AdvisorChat({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-3 lg:gap-4">
-        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4">
+      <div className="mb-5 space-y-4">
+        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4 transition hover:border-[#3fa9f5]/35">
           <h3 className="font-bold text-[#3fa9f5] mb-3">
             Conseils prioritaires
           </h3>
@@ -119,7 +119,7 @@ export default function AdvisorChat({
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 transition hover:border-white/20">
           <h3 className="font-bold text-white mb-2">Guidance du jour</h3>
 
           <p className="text-sm text-gray-300 leading-relaxed">
@@ -127,15 +127,19 @@ export default function AdvisorChat({
               "Tu construis une vraie base patrimoniale. Continue a completer ton cockpit, une donnee utile a la fois."}
           </p>
 
-          {affiliations.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <p className="text-xs uppercase text-gray-500">
-                Affiliations suggerees
-              </p>
+        </div>
+
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 transition hover:border-amber-300/35">
+          <h3 className="font-bold text-amber-200 mb-3">
+            Opportunites partenaires
+          </h3>
+
+          {affiliations.length > 0 ? (
+            <div className="space-y-2">
               {affiliations.map((item, index) => (
                 <div
                   key={`${item.title}-${index}`}
-                  className="rounded-lg border border-white/10 bg-black/30 p-3"
+                  className="rounded-xl border border-white/10 bg-black/30 p-3"
                 >
                   <p className="text-sm font-semibold text-white">
                     {item.title}
@@ -144,10 +148,14 @@ export default function AdvisorChat({
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-gray-400">
+              Ethan proposera des partenaires uniquement lorsqu&apos;ils sont coherents avec ton profil.
+            </p>
           )}
         </div>
 
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4">
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 transition hover:border-blue-400/40">
           <h3 className="font-bold text-blue-400 mb-2">Notification</h3>
 
           <p className="text-sm text-white">
