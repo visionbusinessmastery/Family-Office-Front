@@ -29,13 +29,13 @@ export default function DailyWealthCheck({
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-            Daily Wealth Check
+            Daily Insight
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">
             Tu avances vers une situation plus claire.
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-gray-400">
-            Beacon garde le cap pour toi: progression, point d&apos;attention et
+            Ethan garde le cap avec toi: progression, point d&apos;attention et
             prochaine action utile, sans bruit inutile.
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function DailyWealthCheck({
           </p>
           <p className="mt-2 font-semibold text-white">{level}</p>
           <p className="mt-1 text-xs text-gray-400">
-            Le niveau reflète ton activite et ta qualite de pilotage, pas
+            Le niveau reflete ton activite et ta qualite de pilotage, pas
             seulement ton abonnement.
           </p>
         </div>

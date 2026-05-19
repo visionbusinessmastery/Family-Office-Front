@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react";
 
 const themes = [
-  { key: "midnight", label: "Midnight" },
-  { key: "arctic", label: "Arctic" },
+  { key: "dark", label: "Dark" },
+  { key: "light", label: "Light" },
 ];
 
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useState(() =>
     typeof window !== "undefined"
-      ? localStorage.getItem("wealthTheme") || "midnight"
-      : "midnight"
+      ? localStorage.getItem("wealthTheme") || "dark"
+      : "dark"
   );
 
   useEffect(() => {

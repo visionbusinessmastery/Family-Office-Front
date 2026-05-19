@@ -20,7 +20,7 @@ const money = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 const n = (value?: number | string | null) => Number(value || 0);
 
 const types: Array<{ key: VentureAssetType; label: string }> = [
-  { key: "ai_business", label: "AI Business" },
+  { key: "ai_business", label: "Business digital" },
   { key: "business", label: "Business" },
   { key: "startup", label: "Startup" },
   { key: "franchise", label: "Franchise" },

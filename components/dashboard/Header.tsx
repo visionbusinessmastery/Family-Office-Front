@@ -1,4 +1,5 @@
 import type { DashboardSummary } from "@/lib/types";
+import BrandMark from "@/components/BrandMark";
 
 type HeaderProps = {
   dashboard: DashboardSummary | null;
@@ -33,7 +34,7 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
   const plan = normalizePlan(dashboard?.plan);
   const level = dashboard?.level || null;
   const nextPlan = getNextPlan(plan);
-  const ctaLabel = nextPlan === "elite" ? "Debloquer ELITE" : "Debloquer GOLD";
+  const ctaLabel = nextPlan === "elite" ? "Passer en Wealth OS" : "Debloquer Gold";
 
   const getPlanStyle = (value: string) => {
     switch (value) {
@@ -66,20 +67,15 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <h1 className="text-2xl font-black tracking-[0.18em] text-white sm:text-3xl">
-          WHITE ROCK
-        </h1>
-        <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[#3fa9f5] sm:text-sm">
-          Wealth Operating System
-        </p>
-      </div>
+      <BrandMark compact />
 
       <div className="flex shrink-0 items-center gap-2 text-right text-sm text-white/60">
         {plan ? (
-          <div className="hidden space-y-1 sm:block">
-            <div>
-              Plan:{" "}
+          <div className="hidden items-end gap-2 md:flex">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-widest text-gray-500">
+                Plan
+              </p>
               <span
                 className={`rounded px-2 py-1 text-xs font-semibold ${getPlanStyle(
                   plan
@@ -90,8 +86,10 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
             </div>
 
             {level && (
-              <div>
-                Statut:{" "}
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-gray-500">
+                  Statut
+                </p>
                 <span
                   className={`rounded px-2 py-1 text-xs font-semibold ${getLevelStyle(
                     level
@@ -109,7 +107,7 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
         {nextPlan && onUpgrade && (
           <button
             onClick={() => onUpgrade(nextPlan)}
-            className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#2d91d5] sm:px-4"
+            className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#2d91d5] sm:px-4 sm:text-xs"
           >
             {ctaLabel}
           </button>

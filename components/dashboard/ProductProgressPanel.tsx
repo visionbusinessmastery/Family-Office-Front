@@ -103,7 +103,7 @@ export default function ProductProgressPanel({
                           +{mission.xp} XP
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-500">Upgrade</span>
+                        <span className="text-xs text-gray-500">Niveau</span>
                       )}
                       {mission.recommended_plan && onUpgrade && (
                         <button

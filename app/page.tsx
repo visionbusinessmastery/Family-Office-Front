@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import BrandMark from "@/components/BrandMark";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -75,17 +76,13 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
-      <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-35" />
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/85 to-[#061827]/90" />
+      <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-55" />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/72 to-[#061827]/75" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black via-black/70 to-transparent" />
 
-      <section className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-between px-6 py-8">
+      <section className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-between px-5 py-6 sm:px-6 sm:py-8">
         <header className="flex items-center justify-between">
-          <div>
-            <p className="text-2xl font-black tracking-[0.18em]">WHITE ROCK</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[#3fa9f5]">
-              Wealth Operating System
-            </p>
-          </div>
+          <BrandMark compact />
           <a
             href="/login"
             className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white backdrop-blur"
@@ -94,15 +91,16 @@ export default function Home() {
           </a>
         </header>
 
-        <div className="grid items-end gap-10 py-16 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid items-end gap-8 py-12 sm:py-16 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <p className="mb-4 text-sm uppercase tracking-widest text-[#3fa9f5]">
+            <BrandMark className="mb-8" />
+            <p className="mb-4 text-xs uppercase tracking-widest text-[#3fa9f5] sm:text-sm">
               Reprendre le controle sans subir la complexite.
             </p>
-            <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-6xl">
+            <h1 className="max-w-3xl text-3xl font-black leading-tight sm:text-5xl">
               Pilote ton patrimoine avec clarte, calme et progression.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-gray-300">
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-gray-300 sm:text-lg">
               WHITE ROCK centralise ta situation, t&apos;aide a voir les priorites et
               transforme la gestion financiere en rituel simple, premium et
               motivant.
@@ -135,16 +133,21 @@ export default function Home() {
                 {message}
               </p>
             )}
+
+            <div className="mt-4 space-y-1 text-sm text-white/60">
+              <p>Construis une vision claire de ton patrimoine.</p>
+              <p>Un systeme pense pour progresser sereinement, sans surcharge.</p>
+            </div>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+          <div className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
             <p className="text-xs uppercase tracking-widest text-gray-400">
               Experience
             </p>
             <div className="mt-4 space-y-4">
               {[
                 ["Vision globale", "Un seul endroit pour comprendre ou tu en es."],
-                ["Daily Wealth Check", "Une action utile a chaque ouverture."],
+                ["Daily Insight", "Une action utile a chaque ouverture."],
                 ["Progression", "Des niveaux et missions qui donnent envie de revenir."],
               ].map(([title, description]) => (
                 <div key={title} className="rounded-xl bg-black/35 p-4">

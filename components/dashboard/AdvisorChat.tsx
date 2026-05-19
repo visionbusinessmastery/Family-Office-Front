@@ -26,7 +26,7 @@ const initialMessages: ChatMessage[] = [
   {
     role: "assistant",
     content:
-      "Je suis Beacon. Pose-moi une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.",
+      "Je suis Ethan. Pose-moi une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.",
   },
 ];
 
@@ -68,7 +68,7 @@ export default function AdvisorChat({
           role: "assistant",
           content:
             data.result?.analysis ||
-            "Je n'ai pas encore assez de contexte pour te guider clairement.",
+            "Je n'ai pas encore assez de contexte pour te guider clairement, mais on peut deja clarifier une prochaine action.",
         },
       ]);
     } catch (err) {
@@ -78,7 +78,7 @@ export default function AdvisorChat({
         {
           role: "assistant",
           content:
-            "Je n'arrive pas a joindre le moteur de guidance pour le moment. Reessaie dans quelques instants.",
+            "Je n'arrive pas a joindre le moteur de conseil pour le moment. Reessaie dans quelques instants.",
         },
       ]);
     } finally {
@@ -87,15 +87,18 @@ export default function AdvisorChat({
   };
 
   return (
-    <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
+    <section className="bg-zinc-950 border border-white/10 rounded-2xl p-4 sm:p-5">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold">Beacon</h2>
+        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+          Conseiller Patrimonial
+        </p>
+        <h2 className="mt-1 text-2xl font-black">Ethan</h2>
         <p className="text-sm text-gray-400">
-          Ton copilote patrimonial pour transformer le contexte en actions simples.
+          Un regard calme pour transformer ton contexte en decisions simples.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-3 lg:gap-4">
         <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4">
           <h3 className="font-bold text-[#3fa9f5] mb-3">
             Conseils prioritaires
@@ -117,11 +120,11 @@ export default function AdvisorChat({
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <h3 className="font-bold text-white mb-2">Mentor</h3>
+          <h3 className="font-bold text-white mb-2">Guidance du jour</h3>
 
           <p className="text-sm text-gray-300 leading-relaxed">
             {aiCoach?.message ||
-              "Continue a completer ton cockpit: chaque donnee rend les conseils plus precis."}
+              "Tu construis une vraie base patrimoniale. Continue a completer ton cockpit, une donnee utile a la fois."}
           </p>
 
           {affiliations.length > 0 && (
@@ -159,7 +162,7 @@ export default function AdvisorChat({
         </div>
       </div>
 
-      <div className="h-80 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-4 space-y-3">
+      <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -180,7 +183,7 @@ export default function AdvisorChat({
         ))}
 
         {loading && (
-          <div className="text-sm text-gray-400">Analyse en cours...</div>
+          <div className="text-sm text-gray-400">Ethan reflechit...</div>
         )}
       </div>
 

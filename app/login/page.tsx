@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import BrandMark from "@/components/BrandMark";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -66,19 +67,32 @@ export default function LoginPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
-      <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-25" />
-      <div className="absolute inset-0 bg-gradient-to-br from-black via-black/90 to-[#061827]" />
+      <div className="absolute inset-0 bg-[url('/bg-family-office.jpg')] bg-cover bg-center opacity-40" />
+      <div className="absolute inset-0 bg-gradient-to-br from-black/95 via-black/82 to-[#061827]/90" />
+      <svg
+        className="wealth-lines pointer-events-none absolute inset-0 h-full w-full opacity-60"
+        viewBox="0 0 1200 800"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M0 560 C180 480 300 500 460 420 C620 340 760 360 920 270 C1040 205 1120 190 1200 150"
+          className="wealth-line wealth-line-one"
+        />
+        <path
+          d="M0 650 C240 610 360 560 520 570 C710 585 820 470 980 430 C1080 405 1150 410 1200 380"
+          className="wealth-line wealth-line-two"
+        />
+      </svg>
 
       <section className="relative z-10 mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-[1fr_420px]">
         <div className="hidden lg:block">
-          <p className="text-sm uppercase tracking-widest text-[#3fa9f5]">
-            WHITE ROCK
-          </p>
+          <BrandMark className="mb-8" />
           <h1 className="mt-4 max-w-2xl text-5xl font-black leading-tight">
             {welcome}
           </h1>
           <p className="mt-5 max-w-xl text-gray-300">
-            Connecte-toi pour voir ton Daily Wealth Check, tes signaux utiles et
+            Connecte-toi pour voir ton Daily Insight, tes signaux utiles et
             ta progression patrimoniale.
           </p>
         </div>
@@ -88,10 +102,7 @@ export default function LoginPage() {
           className="rounded-2xl border border-white/10 bg-black/55 p-6 shadow-2xl backdrop-blur"
         >
           <div className="mb-6">
-            <p className="text-2xl font-black tracking-[0.18em]">WHITE ROCK</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.22em] text-[#3fa9f5]">
-              Wealth Operating System
-            </p>
+            <BrandMark compact />
             <p className="mt-5 text-sm text-gray-400 lg:hidden">{welcome}</p>
           </div>
 

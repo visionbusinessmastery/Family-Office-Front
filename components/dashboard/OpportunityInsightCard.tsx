@@ -24,7 +24,7 @@ export default function OpportunityInsightCard({
         </div>
 
         <span className="rounded-full border border-[#3fa9f5]/30 bg-black/30 px-3 py-1 text-xs text-[#3fa9f5]">
-          Beacon
+          Ethan
         </span>
       </div>
 

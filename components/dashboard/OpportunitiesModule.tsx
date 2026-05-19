@@ -41,7 +41,7 @@ export default function OpportunitiesModule({
             score: 73,
           },
           {
-            title: "Upgrade Liberty",
+            title: "Passer en Wealth OS",
             description:
               "Activer les analyses avancees, les affiliations pertinentes et un suivi plus regulier pour passer de croissance a liberte financiere pilotee.",
             priority: "medium",

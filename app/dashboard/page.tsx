@@ -242,7 +242,7 @@ export default function Dashboard() {
     { label: "Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "business").length },
     { label: "Startup", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "startup").length },
     { label: "Franchise", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "franchise").length },
-    { label: "AI Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "ai_business").length },
+    { label: "Business digital", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "ai_business").length },
   ].filter((item) => item.value > 0);
   const categoryOpportunityItems = categoryOpportunities?.categories || [];
   const findOpportunity = (key: string) =>
@@ -274,6 +274,16 @@ export default function Dashboard() {
       description: "Vue globale",
     },
     {
+      key: "ai",
+      label: "Ethan",
+      description: "Conseiller",
+    },
+    {
+      key: "progression",
+      label: "Progression",
+      description: "Statut",
+    },
+    {
       key: "finances",
       label: "Finances",
       description: "Cashflow",
@@ -296,19 +306,9 @@ export default function Dashboard() {
       locked: !hasModule("yield_assets") && !hasModule("venture_assets"),
     },
     {
-      key: "ai",
-      label: "Guide",
-      description: "Conseils",
-    },
-    {
-      key: "progression",
-      label: "Progression",
-      description: "XP & badges",
-    },
-    {
       key: "settings",
       label: "Family Office",
-      description: "Equipe",
+      description: "Identite",
       locked: !hasModule("multi_user"),
     },
   ];
@@ -970,57 +970,70 @@ export default function Dashboard() {
                 )}
               </section>
 
-              <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-                <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                  <h2 className="mb-4 text-2xl font-bold">Allocation</h2>
-                  {hasModule("diversification") ? (
-                    <ExposureBreakdown
-                      portfolio={portfolio}
-                      realEstate={realEstate}
-                      yieldAssets={yieldAssets}
-                      ventureAssets={ventureAssets}
-                    />
-                  ) : (
-                    <LockedSection
-                      title="Allocation avancee"
-                      description="Debloque la lecture par exposition pour visualiser les concentrations et les arbitrages prioritaires."
-                      onUpgrade={handleUpgradePlan}
-                    />
-                  )}
-                </section>
-
-                <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                  <h2 className="text-2xl font-bold">Prochaines actions</h2>
-                  <div className="mt-4 space-y-3">
-                    {(product?.missions || []).slice(0, 3).map((mission) => (
-                      <div
-                        key={mission.key}
-                        className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-bold text-white">{mission.title}</p>
-                            <p className="mt-1 text-sm text-gray-400">
-                              {mission.description}
-                            </p>
-                          </div>
-                          {mission.xp ? (
-                            <span className="text-xs font-bold text-emerald-300">
-                              +{mission.xp} XP
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-
-                    {(product?.missions || []).length === 0 && (
-                      <p className="text-sm text-gray-400">
-                        Aucun signal urgent. Continue a enrichir ton patrimoine tranquillement.
-                      </p>
-                    )}
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Action utile
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold">Prochaines actions</h2>
                   </div>
-                </section>
-              </div>
+                  <p className="text-sm text-gray-500">
+                    Un petit pas, puis le cockpit devient plus clair.
+                  </p>
+                </div>
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {(product?.missions || []).slice(0, 3).map((mission) => (
+                    <div
+                      key={mission.key}
+                      className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <div className="flex h-full flex-col justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-white">{mission.title}</p>
+                          <p className="mt-1 text-sm text-gray-400">
+                            {mission.description}
+                          </p>
+                        </div>
+                        {mission.xp ? (
+                          <span className="text-xs font-bold text-emerald-300">
+                            +{mission.xp} XP
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+
+                  {(product?.missions || []).length === 0 && (
+                    <p className="text-sm text-gray-400">
+                      Aucun signal urgent. Continue a enrichir ton patrimoine tranquillement.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
+                <div className="mb-4">
+                  <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                    Repartition
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold">Allocation patrimoniale</h2>
+                </div>
+                {hasModule("diversification") ? (
+                  <ExposureBreakdown
+                    portfolio={portfolio}
+                    realEstate={realEstate}
+                    yieldAssets={yieldAssets}
+                    ventureAssets={ventureAssets}
+                  />
+                ) : (
+                  <LockedSection
+                    title="Allocation avancee"
+                    description="Debloque la lecture par exposition pour visualiser les concentrations et les arbitrages prioritaires."
+                    onUpgrade={handleUpgradePlan}
+                  />
+                )}
+              </section>
 
               <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
             </div>
@@ -1178,8 +1191,8 @@ export default function Dashboard() {
           {activeSection === "ai" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Guidance & opportunites"
-                title="Beacon, signaux et recommandations"
+                eyebrow="Conseiller patrimonial"
+                title="Ethan, signaux et recommandations"
                 description="Un espace pour poser tes questions, lire les alertes importantes et transformer les opportunites en actions."
               />
 
@@ -1225,12 +1238,14 @@ export default function Dashboard() {
           {activeSection === "settings" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Settings / Family Office"
-                title="Equipe, gouvernance et abonnement"
-                description="L'espace de controle pour le multi-user, les roles, l'abonnement et les preferences Family Office."
+                eyebrow="Family Office"
+                title="Identite, controle et personnalisation"
+                description="Ton centre premium pour le profil, l'abonnement, les preferences et la gouvernance patrimoniale."
               />
 
-              <ProfileReferralPanel />
+              <ProfileReferralPanel
+                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
+              />
 
               {hasModule("multi_user") ? (
                 <WorkspacePanel
@@ -1286,8 +1301,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-2 shadow-2xl backdrop-blur-xl lg:hidden">
-        <div className="mx-auto flex max-w-3xl gap-2 overflow-x-auto">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-1.5 shadow-2xl backdrop-blur-xl lg:hidden">
+        <div className="mx-auto flex max-w-3xl gap-1.5 overflow-x-auto">
           {navigation.map((item) => {
             const active = item.key === activeSection;
 
@@ -1295,13 +1310,13 @@ export default function Dashboard() {
               <button
                 key={item.key}
                 onClick={() => setActiveSection(item.key)}
-                className={`min-w-[78px] rounded-xl border px-2 py-2 text-center transition ${
+                className={`min-w-[70px] rounded-xl border px-2 py-1.5 text-center transition ${
                   active
                     ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white"
                     : "border-white/10 bg-white/[0.03] text-gray-400"
                 }`}
               >
-                <span className="block text-[11px] font-bold leading-tight">
+                <span className="block text-[10px] font-bold leading-tight">
                   {item.label}
                 </span>
                 {item.locked && (

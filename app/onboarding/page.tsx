@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import BrandMark from "@/components/BrandMark";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -126,13 +127,14 @@ export default function Onboarding() {
       <section className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] max-w-4xl items-center">
         <div className="w-full rounded-2xl border border-white/10 bg-black/60 p-5 shadow-2xl backdrop-blur sm:p-8">
           <div className="mb-6">
+            <BrandMark compact className="mb-5" />
             <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
               Entree dans WHITE ROCK
             </p>
             <h1 className="mt-2 text-3xl font-black">Construisons ton point de depart.</h1>
             <p className="mt-2 text-sm text-gray-400">
               Quelques reponses suffisent pour personnaliser ton cockpit et ton
-              Daily Wealth Check.
+              Daily Insight.
             </p>
             <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
               <div className="h-full bg-[#3fa9f5]" style={{ width: `${progress}%` }} />
