@@ -24,14 +24,14 @@ export default function OpportunityInsightCard({
         </div>
 
         <span className="rounded-full border border-[#3fa9f5]/30 bg-black/30 px-3 py-1 text-xs text-[#3fa9f5]">
-          IA
+          Beacon
         </span>
       </div>
 
       <div className="mt-3 space-y-3 text-sm">
         {opportunity.analysis && (
           <div>
-            <p className="text-xs uppercase text-gray-500">Analyse IA</p>
+            <p className="text-xs uppercase text-gray-500">Lecture du contexte</p>
             <p className="text-gray-300">{opportunity.analysis}</p>
           </div>
         )}
@@ -81,4 +81,3 @@ export default function OpportunityInsightCard({
     </div>
   );
 }
-

@@ -26,7 +26,7 @@ const initialMessages: ChatMessage[] = [
   {
     role: "assistant",
     content:
-      "Pose-moi une question sur ton portefeuille, tes risques, tes opportunites ou les prochaines actions prioritaires.",
+      "Je suis Beacon. Pose-moi une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.",
   },
 ];
 
@@ -68,7 +68,7 @@ export default function AdvisorChat({
           role: "assistant",
           content:
             data.result?.analysis ||
-            "Je n'ai pas encore assez de contexte pour repondre clairement.",
+            "Je n'ai pas encore assez de contexte pour te guider clairement.",
         },
       ]);
     } catch (err) {
@@ -78,7 +78,7 @@ export default function AdvisorChat({
         {
           role: "assistant",
           content:
-            "Impossible de joindre l'IA pour le moment. Reessaie dans quelques instants.",
+            "Je n'arrive pas a joindre le moteur de guidance pour le moment. Reessaie dans quelques instants.",
         },
       ]);
     } finally {
@@ -89,16 +89,16 @@ export default function AdvisorChat({
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold">Assistant IA</h2>
+        <h2 className="text-2xl font-bold">Beacon</h2>
         <p className="text-sm text-gray-400">
-          Discussion contextualisee avec ton profil financier
+          Ton copilote patrimonial pour transformer le contexte en actions simples.
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4">
           <h3 className="font-bold text-[#3fa9f5] mb-3">
-            Recommandations IA
+            Conseils prioritaires
           </h3>
 
           <div className="space-y-2">
@@ -109,17 +109,19 @@ export default function AdvisorChat({
                 </p>
               ))
             ) : (
-              <p className="text-sm text-gray-400">Aucune recommandation.</p>
+              <p className="text-sm text-gray-400">
+                Aucun conseil prioritaire pour le moment.
+              </p>
             )}
           </div>
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <h3 className="font-bold text-white mb-2">AI Coach</h3>
+          <h3 className="font-bold text-white mb-2">Mentor</h3>
 
           <p className="text-sm text-gray-300 leading-relaxed">
             {aiCoach?.message ||
-              "Continue tes actions pour ameliorer ton score et debloquer des recompenses."}
+              "Continue a completer ton cockpit: chaque donnee rend les conseils plus precis."}
           </p>
 
           {affiliations.length > 0 && (
@@ -195,7 +197,7 @@ export default function AdvisorChat({
           disabled={loading || !input.trim()}
           className="rounded-xl bg-[#3fa9f5] px-5 py-3 font-semibold text-white disabled:opacity-50"
         >
-          Envoyer
+          Demander
         </button>
       </form>
     </section>

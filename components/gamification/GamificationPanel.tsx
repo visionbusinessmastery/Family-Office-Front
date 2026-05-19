@@ -57,7 +57,14 @@ export default function GamificationPanel({
   return (
     <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 border border-gray-800 shadow-xl">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Gamification Hub</h2>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-emerald-300">
+            Progression
+          </p>
+          <h2 className="mt-1 text-2xl font-bold text-white">
+            Trajectoire personnelle
+          </h2>
+        </div>
 
         <div className="text-orange-400 text-sm font-semibold">
           {streak} jours
@@ -126,7 +133,7 @@ export default function GamificationPanel({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 rounded-xl">
             <h3 className="text-lg font-semibold text-emerald-300 mb-3">
-              Actions gamifiees
+              Missions du jour
             </h3>
 
             <div className="space-y-3">
@@ -155,19 +162,19 @@ export default function GamificationPanel({
 
           <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/30 p-4 rounded-xl">
             <h3 className="text-lg font-semibold text-[#3fa9f5] mb-2">
-              Upgrade recommande
+              Prochain niveau
             </h3>
 
             <p className="text-white text-sm font-semibold">
               {gamification.upgrade?.title ||
                 (recommendedPlan === "elite"
-                  ? "Passer au plan Elite - Wealth OS"
-                  : "Passer au plan Gold - Growth")}
+                  ? "Debloquer ELITE - Wealth OS"
+                  : "Debloquer GOLD - Growth")}
             </p>
 
             <p className="text-gray-400 text-xs mt-2">
               {gamification.upgrade?.description ||
-                "Ton niveau actuel justifie un accompagnement plus avance pour accelerer, proteger et transmettre ton capital."}
+                "Ton niveau actuel justifie un espace plus avance pour accelerer, proteger et transmettre ton capital."}
             </p>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -180,7 +187,7 @@ export default function GamificationPanel({
                   onClick={() => onUpgrade(recommendedPlan)}
                   className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Voir l&apos;abonnement
+                  Explorer
                 </button>
               )}
             </div>

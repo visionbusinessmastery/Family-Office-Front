@@ -5,6 +5,16 @@
   --foreground: #171717;
 }
 
+:root[data-theme="midnight"] {
+  --background: #050505;
+  --foreground: #f5f7fb;
+}
+
+:root[data-theme="arctic"] {
+  --background: #f6f8fb;
+  --foreground: #111827;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

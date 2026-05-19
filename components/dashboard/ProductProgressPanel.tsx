@@ -12,7 +12,7 @@ const stageLabels: Record<number, string> = {
   2: "Diversification",
   3: "Assets",
   4: "Business",
-  5: "Command Center",
+  5: "Pilotage",
   6: "Wealth OS",
   7: "Live Sync",
 };
@@ -38,14 +38,14 @@ export default function ProductProgressPanel({
   const locked = product.modules?.locked || [];
   const missions = product.missions || [];
   const completion = product.data_profile?.completion_percent || 0;
-  const plan = product.plan || entitlements.plan || "FREE";
+  const plan = product.plan || entitlements.plan || "charge";
 
   return (
     <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1.4fr]">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-            Wealth Operating System
+            Progression patrimoniale
           </p>
           <h2 className="mt-2 text-2xl font-black text-white">
             {progression.level || "Builder"}
@@ -86,8 +86,8 @@ export default function ProductProgressPanel({
           {missions.length > 0 && (
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-bold text-white">Actions prioritaires</h3>
-                <span className="text-xs text-gray-500">Progression guidee</span>
+                <h3 className="font-bold text-white">Prochaines actions</h3>
+                <span className="text-xs text-gray-500">Guidance douce</span>
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {missions.map((mission) => (
@@ -122,7 +122,7 @@ export default function ProductProgressPanel({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <h3 className="mb-2 font-bold text-white">Modules actifs</h3>
+              <h3 className="mb-2 font-bold text-white">Espaces ouverts</h3>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {visible.slice(0, 6).map((module) => (
                   <ModulePill key={module.key} module={module} />
@@ -131,7 +131,7 @@ export default function ProductProgressPanel({
             </div>
 
             <div>
-              <h3 className="mb-2 font-bold text-white">Prochains deblocages</h3>
+              <h3 className="mb-2 font-bold text-white">Prochaines etapes</h3>
               <div className="space-y-2">
                 {locked.slice(0, 3).map((module) => (
                   <div

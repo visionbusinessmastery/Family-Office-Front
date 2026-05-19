@@ -85,7 +85,7 @@ export default function GlobalFinancialCommandCenter({
 
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
         <h3 className="text-xl font-bold text-[#3fa9f5]">
-          IA Recommendations
+          Conseils prioritaires
         </h3>
 
         <ul className="mt-3 space-y-2 text-gray-300">

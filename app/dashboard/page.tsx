@@ -22,12 +22,15 @@ import type {
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import ChartModule from "@/components/dashboard/ChartModule";
+import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
+import ProfileReferralPanel from "@/components/dashboard/ProfileReferralPanel";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
+import ThemeSwitcher from "@/components/dashboard/ThemeSwitcher";
 import VentureAssetsModule from "@/components/dashboard/VentureAssetsModule";
 import YieldInvestmentsModule from "@/components/dashboard/YieldInvestmentsModule";
 import WorkspacePanel from "@/components/dashboard/WorkspacePanel";
@@ -182,8 +185,20 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white">
-        Chargement...
+      <main className="min-h-screen bg-black p-4 text-white">
+        <div className="mx-auto max-w-7xl space-y-5">
+          <div className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[260px_1fr]">
+            <div className="hidden h-96 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04] lg:block" />
+            <div className="space-y-5">
+              <div className="h-56 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                <div className="h-72 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+                <div className="h-72 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+              </div>
+            </div>
+          </div>
+        </div>
       </main>
     );
   }
@@ -282,8 +297,8 @@ export default function Dashboard() {
     },
     {
       key: "ai",
-      label: "AI",
-      description: "Opportunites",
+      label: "Guide",
+      description: "Conseils",
     },
     {
       key: "progression",
@@ -298,6 +313,10 @@ export default function Dashboard() {
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
+  const opportunitiesCount = categoryOpportunityItems.reduce(
+    (acc, item) => acc + Number(item.count || 0),
+    0
+  );
 
   const handleUpdateOnboarding = async () => {
     const revenusMensuels = prompt(
@@ -819,15 +838,15 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white pb-24">
+    <main className="min-h-screen bg-black pb-32 text-white lg:pb-24">
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-black/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <Header dashboard={dashboard} />
+          <Header dashboard={dashboard} onUpgrade={handleUpgradePlan} />
         </div>
       </div>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 lg:grid-cols-[260px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
+        <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)]">
           <div className="rounded-2xl border border-white/10 bg-zinc-950/90 p-3">
             <div className="mb-3 px-2">
               <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
@@ -876,23 +895,30 @@ export default function Dashboard() {
               Wealth OS / {activeNavigation?.label || "Home"}
             </p>
             <p className="mt-1 text-sm text-gray-400">
-              Modules puissants, affiches seulement quand ils aident la decision.
+              Une vue simple d&apos;abord, les details seulement quand ils aident la decision.
             </p>
           </div>
 
           {activeSection === "home" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Home Dashboard"
-                title="Vue globale"
-                description="La synthese immediate de ta situation: patrimoine, score, progression et prochaines actions prioritaires."
+                eyebrow="Accueil"
+                title="Ton cockpit du jour"
+                description="La synthese immediate: patrimoine, score, progression et prochaine action utile."
+              />
+
+              <DailyWealthCheck
+                score={globalScore}
+                gain={globalPortfolioGain}
+                product={product}
+                opportunitiesCount={opportunitiesCount}
               />
 
               <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.4fr]">
                   <div>
                     <p className="text-sm uppercase tracking-widest text-[#3fa9f5]">
-                      Family Office OS
+                      Patrimoine centralise
                     </p>
                     <div className="mt-4 flex items-center gap-4">
                       <span className="rounded-full bg-[#3fa9f5]/20 px-4 py-2 text-[#3fa9f5]">
@@ -901,7 +927,7 @@ export default function Dashboard() {
                       <span className="text-5xl font-black">{globalScore}/100</span>
                     </div>
                     <p className="mt-4 text-gray-400">
-                      Plan {product?.plan || dashboard?.plan || "FREE"} ·{" "}
+                      Plan {product?.plan || dashboard?.plan || "charge"} ·{" "}
                       {product?.progression?.status || "Foundation"}
                     </p>
                   </div>
@@ -946,13 +972,21 @@ export default function Dashboard() {
 
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
                 <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                  <h2 className="mb-4 text-2xl font-bold">Evolution</h2>
-                  <ChartModule
-                    history={history}
-                    initialInvestment={initialInvestment}
-                    currentValue={globalPortfolioValue}
-                    currentInvestment={globalPortfolioInvested}
-                  />
+                  <h2 className="mb-4 text-2xl font-bold">Allocation</h2>
+                  {hasModule("diversification") ? (
+                    <ExposureBreakdown
+                      portfolio={portfolio}
+                      realEstate={realEstate}
+                      yieldAssets={yieldAssets}
+                      ventureAssets={ventureAssets}
+                    />
+                  ) : (
+                    <LockedSection
+                      title="Allocation avancee"
+                      description="Debloque la lecture par exposition pour visualiser les concentrations et les arbitrages prioritaires."
+                      onUpgrade={handleUpgradePlan}
+                    />
+                  )}
                 </section>
 
                 <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
@@ -981,7 +1015,7 @@ export default function Dashboard() {
 
                     {(product?.missions || []).length === 0 && (
                       <p className="text-sm text-gray-400">
-                        Aucune action urgente. Continue a enrichir ton patrimoine.
+                        Aucun signal urgent. Continue a enrichir ton patrimoine tranquillement.
                       </p>
                     )}
                   </div>
@@ -1103,7 +1137,7 @@ export default function Dashboard() {
               <SectionHeader
                 eyebrow="Business & Ventures"
                 title="Entreprises, startups et rendement prive"
-                description="Business, startup, AI business, franchise, crowdfunding et private equity dans une vue dediee."
+                description="Business, startup, activites digitales, franchise, crowdfunding et private equity dans une vue dediee."
               />
 
               {hasModule("yield_assets") ? (
@@ -1144,8 +1178,8 @@ export default function Dashboard() {
           {activeSection === "ai" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="AI & Opportunities"
-                title="Coach, signaux et recommandations"
+                eyebrow="Guidance & opportunites"
+                title="Beacon, signaux et recommandations"
                 description="Un espace pour poser tes questions, lire les alertes importantes et transformer les opportunites en actions."
               />
 
@@ -1196,6 +1230,8 @@ export default function Dashboard() {
                 description="L'espace de controle pour le multi-user, les roles, l'abonnement et les preferences Family Office."
               />
 
+              <ProfileReferralPanel />
+
               {hasModule("multi_user") ? (
                 <WorkspacePanel
                   data={workspaces}
@@ -1213,9 +1249,22 @@ export default function Dashboard() {
               )}
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">Preferences</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Les themes premium sont prepares pour personnaliser
+                      l&apos;experience sans alourdir l&apos;interface.
+                    </p>
+                  </div>
+                  <ThemeSwitcher />
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <h2 className="text-2xl font-bold">Abonnement</h2>
                 <p className="mt-2 text-sm text-gray-400">
-                  Plan actuel: {product?.plan || dashboard?.plan || "FREE"}
+                  Plan actuel: {product?.plan || dashboard?.plan || "charge"}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
@@ -1236,6 +1285,35 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-2 shadow-2xl backdrop-blur-xl lg:hidden">
+        <div className="mx-auto flex max-w-3xl gap-2 overflow-x-auto">
+          {navigation.map((item) => {
+            const active = item.key === activeSection;
+
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActiveSection(item.key)}
+                className={`min-w-[78px] rounded-xl border px-2 py-2 text-center transition ${
+                  active
+                    ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white"
+                    : "border-white/10 bg-white/[0.03] text-gray-400"
+                }`}
+              >
+                <span className="block text-[11px] font-bold leading-tight">
+                  {item.label}
+                </span>
+                {item.locked && (
+                  <span className="mt-1 block text-[9px] text-gray-500">
+                    lock
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </main>
   );
 }
