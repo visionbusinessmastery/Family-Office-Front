@@ -10,6 +10,7 @@ type HeaderProps = {
 export default function Header({ dashboard, onUpgrade }: HeaderProps) {
   const plan = normalizePlan(dashboard?.plan);
   const level = dashboard?.level || null;
+  const isFounder = Boolean(dashboard?.is_founder);
   const nextPlan = getNextPlan(plan);
   const ctaLabel =
     nextPlan === "liberty"
@@ -75,6 +76,17 @@ export default function Header({ dashboard, onUpgrade }: HeaderProps) {
                 {plan}
               </span>
             </div>
+
+            {isFounder && (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-gray-500">
+                  Cercle
+                </p>
+                <span className="rounded border border-amber-300/40 bg-amber-300/10 px-2 py-1 text-xs font-semibold text-amber-100">
+                  FOUNDING MEMBER
+                </span>
+              </div>
+            )}
 
             {level && (
               <div className="space-y-1">

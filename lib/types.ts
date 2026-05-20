@@ -69,6 +69,11 @@ export type ProductMission = {
 export type ProductContext = {
   plan?: string;
   score?: number;
+  founder?: {
+    is_founder?: boolean;
+    tier?: string | null;
+    discount?: number;
+  };
   entitlements?: {
     plan?: string;
     max_assets?: number | null;
@@ -374,6 +379,9 @@ export type UserProfile = OnboardingData & {
   email?: string;
   plan?: string;
   level?: string;
+  is_founder?: boolean;
+  founder_tier?: string | null;
+  founder_discount?: number;
 };
 
 export type GamificationData = {
@@ -406,6 +414,9 @@ export type GamificationData = {
 export type DashboardSummary = {
   plan?: string;
   level?: string;
+  is_founder?: boolean;
+  founder_tier?: string | null;
+  founder_discount?: number;
 };
 
 export type WorkspaceMember = {

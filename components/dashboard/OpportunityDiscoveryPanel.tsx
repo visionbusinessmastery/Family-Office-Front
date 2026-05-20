@@ -95,8 +95,17 @@ export default function OpportunityDiscoveryPanel({
   token,
 }: OpportunityDiscoveryPanelProps) {
   const copy = universeCopy[universe];
+  const storageKey = `whiteRockOpportunityFilters:${universe}`;
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(copy.defaults);
+  const [form, setForm] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return copy.defaults;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? { ...copy.defaults, ...JSON.parse(saved) } : copy.defaults;
+    } catch {
+      return copy.defaults;
+    }
+  });
   const [data, setData] = useState<OpportunityIntelligenceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +113,13 @@ export default function OpportunityDiscoveryPanel({
   const fields = useMemo(() => Object.entries(copy.defaults), [copy.defaults]);
 
   const handleChange = (key: string, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => {
+      const next = { ...current, [key]: value };
+      if (typeof window !== "undefined") {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -158,6 +173,32 @@ export default function OpportunityDiscoveryPanel({
         >
           {copy.submit}
         </button>
+      </div>
+
+      <div className="sticky top-3 z-20 mt-5 rounded-xl border border-white/10 bg-black/75 p-3 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2 text-xs text-gray-300">
+            {fields.slice(0, 4).map(([key]) => (
+              <label
+                key={key}
+                className="flex min-w-[135px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 sm:flex-none"
+              >
+                <span className="text-gray-500">{key.replaceAll("_", " ")}</span>
+                <input
+                  value={form[key] || ""}
+                  onChange={(event) => handleChange(key, event.target.value)}
+                  className="min-w-0 flex-1 bg-transparent text-white outline-none"
+                />
+              </label>
+            ))}
+          </div>
+          <button
+            onClick={() => setOpen(true)}
+            className="rounded-lg border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-3 py-2 text-xs font-bold text-[#8bd0ff] transition hover:bg-[#3fa9f5]/20"
+          >
+            Filtres avances
+          </button>
+        </div>
       </div>
 
       {data?.depth?.message && (

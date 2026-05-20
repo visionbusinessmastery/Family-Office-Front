@@ -90,6 +90,9 @@ const preserveHighestDashboard = (
   return {
     plan: highestPlan(current?.plan, next.plan),
     level: next.level || current?.level,
+    is_founder: next.is_founder ?? current?.is_founder,
+    founder_tier: next.founder_tier ?? current?.founder_tier,
+    founder_discount: next.founder_discount ?? current?.founder_discount,
   };
 };
 
@@ -136,6 +139,9 @@ export function useDashboard() {
       const nextDashboard = preserveHighestDashboard(current, {
         plan: userData.plan,
         level: userData.level,
+        is_founder: userData.is_founder,
+        founder_tier: userData.founder_tier,
+        founder_discount: userData.founder_discount,
       });
       cacheDashboard(nextDashboard);
       return nextDashboard;
@@ -175,6 +181,9 @@ export function useDashboard() {
           const nextDashboard = {
             plan: data.plan,
             level: data.progression?.level || current?.level,
+            is_founder: data.founder?.is_founder ?? current?.is_founder,
+            founder_tier: data.founder?.tier ?? current?.founder_tier,
+            founder_discount: data.founder?.discount ?? current?.founder_discount,
           };
           cacheDashboard(nextDashboard);
           return nextDashboard;
