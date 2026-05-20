@@ -1519,6 +1519,29 @@ export default function Dashboard() {
                 </div>
               </section>
 
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Confiance et donnees
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Privacy Center</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Gere tes consentements, exports, preferences emails,
+                      cookies et demandes de suppression depuis un espace dedie.
+                    </p>
+                  </div>
+                  <ActionButton
+                    variant="secondary"
+                    onClick={() => {
+                      window.location.href = "/privacy-center";
+                    }}
+                  >
+                    Ouvrir
+                  </ActionButton>
+                </div>
+              </section>
+
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <h2 className="text-2xl font-bold">Abonnement</h2>
                 <p className="mt-2 text-sm text-gray-400">

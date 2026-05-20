@@ -15,10 +15,21 @@ type SubmitState = "idle" | "loading" | "success" | "error";
 
 export default function Home() {
   const [email, setEmail] = useState("");
+  const [consents, setConsents] = useState({
+    terms_accepted: false,
+    privacy_policy_accepted: false,
+    ai_processing_accepted: true,
+    marketing_emails_accepted: false,
+    analytics_accepted: false,
+    personalized_opportunities_accepted: true,
+    weekly_reports_accepted: true,
+    third_party_data_processing_accepted: false,
+  });
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [message, setMessage] = useState("");
 
   const emailOk = useMemo(() => isValidEmail(email.trim()), [email]);
+  const legalOk = consents.terms_accepted && consents.privacy_policy_accepted;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -28,6 +39,12 @@ export default function Home() {
     if (!cleanEmail || !isValidEmail(cleanEmail)) {
       setSubmitState("error");
       setMessage("Entre un email valide pour commencer.");
+      return;
+    }
+
+    if (!legalOk) {
+      setSubmitState("error");
+      setMessage("Accepte les CGU et la politique de confidentialite pour creer ton espace.");
       return;
     }
 
@@ -41,7 +58,7 @@ export default function Home() {
           "Content-Type": "application/json",
           accept: "application/json",
         },
-        body: JSON.stringify({ email: cleanEmail }),
+        body: JSON.stringify({ email: cleanEmail, ...consents }),
       });
 
       const data = await res.json().catch(() => null);
@@ -103,20 +120,46 @@ export default function Home() {
 
             <form
               onSubmit={handleSubmit}
-              className="mt-8 flex max-w-xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/45 p-3 backdrop-blur sm:flex-row"
+              className="mt-8 max-w-xl rounded-2xl border border-white/10 bg-black/45 p-3 backdrop-blur"
             >
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ton@email.com"
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-gray-500 focus:border-[#3fa9f5]"
-              />
-              <button
-                disabled={!emailOk || submitState === "loading"}
-                className="rounded-xl bg-[#3fa9f5] px-6 py-3 font-bold text-white disabled:opacity-50"
-              >
-                {submitState === "loading" ? "Ouverture..." : "Creer mon espace"}
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ton@email.com"
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-gray-500 focus:border-[#3fa9f5]"
+                />
+                <button
+                  disabled={!emailOk || !legalOk || submitState === "loading"}
+                  className="rounded-xl bg-[#3fa9f5] px-6 py-3 font-bold text-white disabled:opacity-50"
+                >
+                  {submitState === "loading" ? "Ouverture..." : "Creer mon espace"}
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-black/25 p-3 text-xs text-gray-300">
+                {[
+                  ["terms_accepted", "J'accepte les conditions generales."],
+                  ["privacy_policy_accepted", "J'accepte la politique de confidentialite."],
+                  ["ai_processing_accepted", "J'autorise Ethan a traiter mes donnees pour personnaliser l'accompagnement."],
+                  ["weekly_reports_accepted", "Je souhaite recevoir mes rapports patrimoniaux hebdomadaires."],
+                ].map(([key, label]) => (
+                  <label key={key} className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(consents[key as keyof typeof consents])}
+                      onChange={(event) =>
+                        setConsents((current) => ({
+                          ...current,
+                          [key]: event.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 accent-[#3fa9f5]"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
             </form>
 
             {message && (
