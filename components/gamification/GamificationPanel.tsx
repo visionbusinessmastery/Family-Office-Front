@@ -1,5 +1,4 @@
 import type { GamificationData } from "@/lib/types";
-import { normalizePlan, planAllows } from "@/lib/plans";
 
 type GamificationProps = {
   gamification?: GamificationData;
@@ -31,22 +30,11 @@ export default function GamificationPanel({
   const normalizedLevel = String(userLevel || "").toUpperCase();
   const advanced = score >= 70 || normalizedLevel === "ADVANCED";
   const legacyMode =
-    planAllows(plan, "LEGACY") ||
     normalizedLevel === "LEGACY" ||
     normalizedLevel === "DYNASTY ARCHITECT";
-  const currentPlan = normalizePlan(plan) || "FREE";
   const recommendedPlan =
-    legacyMode
-      ? "legacy"
-      : normalizedLevel === "FAMILY OFFICE OPERATOR"
-      ? "liberty"
-      : normalizedLevel === "LIBERTY" || score >= 92
-        ? "legacy"
-      : advanced
-        ? "elite"
-        : gamification.upgrade?.recommended_plan || "gold";
-  const canUpgrade =
-    !planAllows(currentPlan, recommendedPlan);
+    gamification.upgrade?.recommended_plan?.toLowerCase() || null;
+  const canUpgrade = Boolean(recommendedPlan);
   const actions =
     gamification.actions && gamification.actions.length > 0
       ? gamification.actions
@@ -218,7 +206,7 @@ export default function GamificationPanel({
 
               {onUpgrade && canUpgrade && (
                 <button
-                  onClick={() => onUpgrade(recommendedPlan)}
+                  onClick={() => recommendedPlan && onUpgrade(recommendedPlan)}
                   className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
                 >
                   Explorer

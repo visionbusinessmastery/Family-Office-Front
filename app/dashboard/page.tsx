@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { apiRequest } from "@/lib/api";
-import { planAllows } from "@/lib/plans";
 import { useDashboard } from "@/hooks/useDashboard";
 import BrandMark from "@/components/BrandMark";
 import type {
@@ -276,9 +275,8 @@ export default function Dashboard() {
     product?.modules?.visible?.map((module) => module.key) || []
   );
   const currentPlan = product?.plan || dashboard?.plan;
-  const unlocksEveryModule = planAllows(currentPlan, "LIBERTY");
   const hasModule = (key: string) =>
-    unlocksEveryModule || !product || visibleModules.has(key);
+    visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
   const canAddPortfolioAsset =
     maxAssets === null ||

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import { highestPlan } from "@/lib/plans";
 import type {
   CommandCenter,
   CategoryOpportunityData,
@@ -28,6 +27,16 @@ const emptyFinance: FinanceData = {
   charges: [],
   epargne: [],
   dettes: [],
+};
+
+type BillingSubscription = {
+  plan?: string;
+  status?: string;
+  founder?: {
+    is_founder?: boolean;
+    tier?: string | null;
+    discount?: number;
+  };
 };
 
 type PortfolioResponse =
@@ -88,8 +97,9 @@ const preserveHighestDashboard = (
   next: DashboardSummary
 ) => {
   return {
-    plan: highestPlan(current?.plan, next.plan),
+    plan: next.plan || current?.plan,
     level: next.level || current?.level,
+    next_plan: next.next_plan ?? current?.next_plan,
     is_founder: next.is_founder ?? current?.is_founder,
     founder_tier: next.founder_tier ?? current?.founder_tier,
     founder_discount: next.founder_discount ?? current?.founder_discount,
@@ -181,6 +191,7 @@ export function useDashboard() {
           const nextDashboard = {
             plan: data.plan,
             level: data.progression?.level || current?.level,
+            next_plan: data.next_plan ?? current?.next_plan,
             is_founder: data.founder?.is_founder ?? current?.is_founder,
             founder_tier: data.founder?.tier ?? current?.founder_tier,
             founder_discount: data.founder?.discount ?? current?.founder_discount,
@@ -190,6 +201,23 @@ export function useDashboard() {
         });
       }
     }
+  }, [safeFetch]);
+
+  const loadBillingSubscription = useCallback(async () => {
+    const data = await safeFetch<BillingSubscription>("/billing/current-subscription");
+    if (data?.plan) {
+      setDashboard((current) => {
+        const nextDashboard = preserveHighestDashboard(current, {
+          plan: data.plan,
+          is_founder: data.founder?.is_founder,
+          founder_tier: data.founder?.tier,
+          founder_discount: data.founder?.discount,
+        });
+        cacheDashboard(nextDashboard);
+        return nextDashboard;
+      });
+    }
+    return data;
   }, [safeFetch]);
 
   const loadWorkspaces = useCallback(async () => {
@@ -303,6 +331,7 @@ export function useDashboard() {
   }, [safeFetch]);
 
   const refreshAll = useCallback(async () => {
+    await loadBillingSubscription();
     await loadProductContext();
     const userData = await loadUserProfile();
 
@@ -332,6 +361,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadBillingSubscription,
     loadProductContext,
     loadWorkspaces,
     loadUserProfile,
@@ -357,6 +387,7 @@ export function useDashboard() {
 
     const loadAll = async () => {
       try {
+        await loadBillingSubscription();
         await loadProductContext();
         const userData = await loadUserProfile();
 
@@ -400,6 +431,7 @@ export function useDashboard() {
     loadVentureAssets,
     loadOnboarding,
     loadPortfolio,
+    loadBillingSubscription,
     loadProductContext,
     loadWorkspaces,
     loadUserProfile,

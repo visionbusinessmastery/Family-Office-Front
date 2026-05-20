@@ -1,6 +1,5 @@
 import type { DashboardSummary } from "@/lib/types";
 import BrandMark from "@/components/BrandMark";
-import { getNextPlan, normalizePlan } from "@/lib/plans";
 
 type HeaderProps = {
   dashboard: DashboardSummary | null;
@@ -8,10 +7,10 @@ type HeaderProps = {
 };
 
 export default function Header({ dashboard, onUpgrade }: HeaderProps) {
-  const plan = normalizePlan(dashboard?.plan);
+  const plan = dashboard?.plan ? String(dashboard.plan).toUpperCase() : undefined;
   const level = dashboard?.level || null;
   const isFounder = Boolean(dashboard?.is_founder);
-  const nextPlan = getNextPlan(plan);
+  const nextPlan = dashboard?.next_plan || null;
   const ctaLabel =
     nextPlan === "liberty"
       ? "Debloquer Liberty"

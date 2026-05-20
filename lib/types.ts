@@ -68,6 +68,7 @@ export type ProductMission = {
 
 export type ProductContext = {
   plan?: string;
+  next_plan?: string | null;
   score?: number;
   founder?: {
     is_founder?: boolean;
@@ -414,6 +415,7 @@ export type GamificationData = {
 export type DashboardSummary = {
   plan?: string;
   level?: string;
+  next_plan?: string | null;
   is_founder?: boolean;
   founder_tier?: string | null;
   founder_discount?: number;
