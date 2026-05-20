@@ -3,6 +3,13 @@
 import { useState } from "react";
 import type { FinanceEntry, FinancePayload, FinanceType } from "@/lib/types";
 import FinanceItem from "./FinanceItem";
+import {
+  ActionButton,
+  EmptyState,
+  TextField,
+  WealthModal,
+  WealthToast,
+} from "@/components/ui/WealthUI";
 
 type FinanceBlockProps = {
   title: string;
@@ -26,36 +33,61 @@ export default function FinanceBlock({
   type,
 }: FinanceBlockProps) {
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<FinanceEntry | null>(null);
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const openCreate = () => {
+    setEditing(null);
+    setLabel("");
+    setAmount("");
+    setShowForm(true);
+  };
+
+  const openEdit = (item: FinanceEntry) => {
+    setEditing(item);
+    setLabel(item.name || item.label || "");
+    setAmount(String(item.amount || 0));
+    setShowForm(true);
+  };
 
   const handleAdd = async () => {
     if (!label || !amount) {
-      alert("Remplis tous les champs");
+      setToast({ message: "Complete tous les champs avant de valider.", type: "error" });
       return;
     }
 
     const numericAmount = Number(amount);
 
     if (Number.isNaN(numericAmount) || numericAmount <= 0) {
-      alert("Montant invalide");
+      setToast({ message: "Le montant doit etre superieur a zero.", type: "error" });
       return;
     }
 
     try {
       setLoading(true);
-      await onCreate({ type, name: label, amount: numericAmount });
+      if (editing) {
+        await onUpdate({ ...editing, name: label, amount: numericAmount });
+      } else {
+        await onCreate({ type, name: label, amount: numericAmount });
+      }
 
       setLabel("");
       setAmount("");
+      setEditing(null);
       setShowForm(false);
 
       await refresh?.();
       await onAfterChange?.();
+      setToast({
+        message: editing ? "Element modifie." : "Element ajoute.",
+        type: "success",
+      });
     } catch (err) {
       console.error(err);
-      alert("Erreur ajout");
+      setToast({ message: "Impossible d'enregistrer cet element.", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -66,62 +98,66 @@ export default function FinanceBlock({
       await onDelete(id);
       await refresh?.();
       await onAfterChange?.();
+      setToast({ message: "Element supprime.", type: "success" });
     } catch (err) {
       console.error(err);
-      alert("Erreur suppression");
+      setToast({ message: "Impossible de supprimer cet element.", type: "error" });
     }
   };
 
   const handleUpdateLocal = async (item: FinanceEntry) => {
-    try {
-      await onUpdate(item);
-      await refresh?.();
-      await onAfterChange?.();
-    } catch (err) {
-      console.error(err);
-      alert("Erreur modification");
-    }
+    openEdit(item);
   };
 
   return (
-    <div className="bg-white/10 p-4 rounded-xl">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-white font-semibold">{title}</h3>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <WealthToast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
 
-        <button
-          onClick={() => setShowForm((current) => !current)}
-          className="text-xs bg-blue-500 px-3 py-1 rounded hover:opacity-80"
-        >
-          {showForm ? "Annuler" : "+ Ajouter"}
-        </button>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="font-semibold text-white">{title}</h3>
+
+        <ActionButton onClick={openCreate} icon="+">
+          Ajouter
+        </ActionButton>
       </div>
 
-      {showForm && (
-        <div className="mb-4 space-y-2">
-          <input
+      <WealthModal
+        open={showForm}
+        title={editing ? `Modifier ${title}` : `Ajouter ${title}`}
+        description="Garde une saisie simple et claire. Les montants sont exprimes en EUR."
+        onClose={() => setShowForm(false)}
+        footer={
+          <>
+            <ActionButton variant="secondary" onClick={() => setShowForm(false)}>
+              Annuler
+            </ActionButton>
+            <ActionButton onClick={handleAdd} disabled={loading}>
+              {loading ? "Enregistrement..." : "Valider"}
+            </ActionButton>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <TextField
+            label="Nom"
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
+            onChange={setLabel}
             placeholder="Ex: Salaire / Credit / Livret A"
-            className="w-full p-2 rounded bg-zinc-900 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:border-[#3fa9f5]"
           />
 
-          <input
+          <TextField
+            label="Montant"
             type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
             placeholder="Montant"
-            className="w-full p-2 rounded bg-zinc-900 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:border-[#3fa9f5]"
           />
-
-          <button
-            onClick={handleAdd}
-            disabled={loading}
-            className="w-full bg-green-500 p-2 rounded hover:opacity-80 disabled:opacity-50"
-          >
-            {loading ? "Ajout..." : "Valider"}
-          </button>
         </div>
-      )}
+      </WealthModal>
 
       <div className="space-y-2">
         {data.length > 0 ? (
@@ -134,7 +170,11 @@ export default function FinanceBlock({
             />
           ))
         ) : (
-          <p className="text-white/50 text-sm">Aucun element pour le moment</p>
+          <EmptyState
+            title="Aucun element"
+            description="Ajoute un premier mouvement pour clarifier cette rubrique."
+            action={<ActionButton onClick={openCreate}>Ajouter</ActionButton>}
+          />
         )}
       </div>
     </div>

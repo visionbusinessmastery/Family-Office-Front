@@ -3,6 +3,7 @@
 import type { CategoryOpportunity, PortfolioAsset } from "@/lib/types";
 import { moduleCategories } from "./FamilyOfficeOverview";
 import OpportunityInsightCard from "./OpportunityInsightCard";
+import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
 
 type PortfolioProps = {
   portfolio: PortfolioAsset[];
@@ -40,13 +41,14 @@ const CategoryButtons = ({ onAdd }: { onAdd?: (assetType?: string) => void }) =>
       <p className="text-sm text-gray-400 mb-3">Rubriques disponibles</p>
       <div className="flex flex-wrap gap-2">
         {moduleCategories.map((category) => (
-          <button
+          <ActionButton
             key={category.key}
             onClick={() => onAdd(category.aliases[0])}
-            className="px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-sm hover:border-[#3fa9f5]/60"
+            variant="secondary"
+            className="px-3 py-2 text-xs"
           >
             {category.label}
-          </button>
+          </ActionButton>
         ))}
       </div>
     </div>
@@ -67,18 +69,23 @@ export default function PortfolioModule({
           <h2 className="text-2xl font-bold text-white">Portfolio Assets</h2>
 
           {onAdd && (
-            <button
-              onClick={() => onAdd()}
-              className="bg-[#3fa9f5] hover:opacity-80 px-4 py-2 rounded-xl font-semibold"
-            >
-              + Ajouter un Asset
-            </button>
+            <ActionButton onClick={() => onAdd()} icon="+">
+              Ajouter un actif
+            </ActionButton>
           )}
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-          <p className="text-gray-400">Aucun actif dans le portfolio</p>
-        </div>
+        <EmptyState
+          title="Aucun actif dans le portefeuille"
+          description="Ajoute une premiere ligne pour suivre valeur, prix actuel et plus-value."
+          action={
+            onAdd ? (
+              <ActionButton onClick={() => onAdd()} icon="+">
+                Ajouter un actif
+              </ActionButton>
+            ) : null
+          }
+        />
 
         <CategoryButtons onAdd={onAdd} />
       </div>
@@ -94,7 +101,6 @@ export default function PortfolioModule({
     0
   );
   const totalGain = total - totalCost;
-  const gainClass = totalGain >= 0 ? "text-emerald-400" : "text-red-400";
 
   const getColor = (type: string) => {
     switch ((type || "").toUpperCase()) {
@@ -120,37 +126,24 @@ export default function PortfolioModule({
         <h2 className="text-2xl font-bold text-white">Portfolio Assets</h2>
 
         {onAdd && (
-          <button
-            onClick={() => onAdd()}
-            className="bg-[#3fa9f5] hover:opacity-80 px-4 py-2 rounded-xl font-semibold"
-          >
-            + Ajouter un Asset
-          </button>
+          <ActionButton onClick={() => onAdd()} icon="+">
+            Ajouter un actif
+          </ActionButton>
         )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <p className="text-gray-400 text-sm">Valeur investie</p>
-          <h2 className="text-3xl font-black mt-2">
-            {money.format(totalCost)} EUR
-          </h2>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <p className="text-gray-400 text-sm">Plus / moins-value</p>
-          <h2 className={`text-3xl font-black mt-2 ${gainClass}`}>
-            {totalGain >= 0 ? "+" : ""}
-            {money.format(totalGain)} EUR
-          </h2>
-        </div>
-
-        <div className="rounded-2xl border border-[#3fa9f5]/30 bg-gradient-to-br from-[#3fa9f5]/20 to-black p-5">
-          <p className="text-gray-400 text-sm">Montant final enrichi</p>
-          <h2 className="text-3xl font-black text-[#3fa9f5] mt-2">
-            {money.format(total)} EUR
-          </h2>
-        </div>
+        <MetricCard label="Valeur investie" value={`${money.format(totalCost)} EUR`} />
+        <MetricCard
+          label="Plus / moins-value"
+          value={`${totalGain >= 0 ? "+" : ""}${money.format(totalGain)} EUR`}
+          tone={totalGain >= 0 ? "success" : "danger"}
+        />
+        <MetricCard
+          label="Montant final enrichi"
+          value={`${money.format(total)} EUR`}
+          tone="primary"
+        />
       </div>
 
       <CategoryButtons onAdd={onAdd} />
@@ -234,21 +227,23 @@ export default function PortfolioModule({
                   {(onUpdate || onDelete) && (
                     <div className="flex gap-2 mt-4 justify-end">
                       {onUpdate && (
-                        <button
+                        <ActionButton
                           onClick={() => onUpdate(asset)}
-                          className="px-3 py-1 rounded bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-sm"
+                          variant="secondary"
+                          className="px-3 py-1.5 text-xs"
                         >
                           Modifier
-                        </button>
+                        </ActionButton>
                       )}
 
                       {onDelete && (
-                        <button
+                        <ActionButton
                           onClick={() => onDelete(asset.id)}
-                          className="px-3 py-1 rounded bg-red-500/20 border border-red-500/30 text-red-300 text-sm"
+                          variant="danger"
+                          className="px-3 py-1.5 text-xs"
                         >
                           Supprimer
-                        </button>
+                        </ActionButton>
                       )}
                     </div>
                   )}

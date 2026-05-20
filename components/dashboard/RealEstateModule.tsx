@@ -7,6 +7,7 @@ import type {
   RealEstateType,
 } from "@/lib/types";
 import OpportunityInsightCard from "./OpportunityInsightCard";
+import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
 
 type RealEstateModuleProps = {
   data?: RealEstateData | null;
@@ -60,7 +61,6 @@ export default function RealEstateModule({
   const assets = data?.assets || [];
   const totals = data?.totals || {};
   const potentialGain = numberValue(totals.total_potential_gain);
-  const gainClass = potentialGain >= 0 ? "text-emerald-400" : "text-red-400";
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -74,38 +74,22 @@ export default function RealEstateModule({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Investissement initial</p>
-          <h3 className="text-xl font-black mt-1">
-            {formatMoney(totals.total_purchase)}
-          </h3>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Valeur estimee / cible</p>
-          <h3 className="text-xl font-black mt-1 text-[#3fa9f5]">
-            {formatMoney(totals.total_estimated_value)}
-          </h3>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Plus-value potentielle</p>
-          <h3 className={`text-xl font-black mt-1 ${gainClass}`}>
-            {potentialGain >= 0 ? "+" : ""}
-            {formatMoney(totals.total_potential_gain)}
-          </h3>
-          <p className={gainClass}>
-            {formatPercent(totals.total_potential_gain_percent)}
-          </p>
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Rentabilite locative moyenne</p>
-          <h3 className="text-xl font-black mt-1">
-            {formatPercent(totals.average_rental_yield)}
-          </h3>
-        </div>
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Achat" value={formatMoney(totals.total_purchase)} />
+        <MetricCard
+          label="Valeur cible"
+          value={formatMoney(totals.total_estimated_value)}
+          tone="primary"
+        />
+        <MetricCard
+          label="Plus-value"
+          value={`${potentialGain >= 0 ? "+" : ""}${formatMoney(totals.total_potential_gain)}`}
+          tone={potentialGain >= 0 ? "success" : "danger"}
+        />
+        <MetricCard
+          label="Performance"
+          value={formatPercent(totals.average_rental_yield)}
+        />
       </div>
 
       <div className="mb-5">
@@ -132,20 +116,29 @@ export default function RealEstateModule({
                 </div>
 
                 {onAdd && (
-                  <button
+                  <ActionButton
                     onClick={() => onAdd(type.key)}
-                    className="shrink-0 bg-[#3fa9f5] px-3 py-2 rounded-xl text-sm font-semibold"
+                    className="shrink-0"
+                    icon="+"
                   >
                     Ajouter
-                  </button>
+                  </ActionButton>
                 )}
               </div>
 
               <div className="mt-4 space-y-3">
                 {categoryAssets.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Aucun bien dans cette categorie.
-                  </p>
+                  <EmptyState
+                    title="Aucun bien"
+                    description="Ajoute un premier actif pour suivre achat, valeur cible et performance."
+                    action={
+                      onAdd ? (
+                        <ActionButton onClick={() => onAdd(type.key)} icon="+">
+                          Ajouter
+                        </ActionButton>
+                      ) : null
+                    }
+                  />
                 ) : (
                   categoryAssets.map((asset) => {
                     const assetGain = numberValue(asset.potential_gain);
@@ -221,21 +214,23 @@ export default function RealEstateModule({
                         {(onUpdate || onDelete) && (
                           <div className="flex gap-2 mt-4 justify-end">
                             {onUpdate && (
-                              <button
+                              <ActionButton
                                 onClick={() => onUpdate(asset)}
-                                className="px-3 py-1 rounded bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-sm"
+                                variant="secondary"
+                                className="px-3 py-1.5 text-xs"
                               >
                                 Modifier
-                              </button>
+                              </ActionButton>
                             )}
 
                             {onDelete && (
-                              <button
+                              <ActionButton
                                 onClick={() => onDelete(asset.id)}
-                                className="px-3 py-1 rounded bg-red-500/20 border border-red-500/30 text-red-300 text-sm"
+                                variant="danger"
+                                className="px-3 py-1.5 text-xs"
                               >
                                 Supprimer
-                              </button>
+                              </ActionButton>
                             )}
                           </div>
                         )}

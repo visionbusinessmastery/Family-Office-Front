@@ -4,6 +4,13 @@ import { useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
 import BrandMark from "@/components/BrandMark";
+import {
+  ActionButton,
+  SelectField,
+  TextField,
+  WealthModal,
+  WealthToast,
+} from "@/components/ui/WealthUI";
 import type {
   FinanceEntry,
   FinancePayload,
@@ -58,6 +65,37 @@ type NavigationItem = {
   label: string;
   description: string;
   locked?: boolean;
+};
+
+type DashboardFormKind =
+  | "onboarding"
+  | "workspace"
+  | "invite"
+  | "portfolio"
+  | "finance"
+  | "real_estate"
+  | "yield"
+  | "venture";
+
+type DashboardFormState = {
+  kind: DashboardFormKind;
+  title: string;
+  description?: string;
+  values: Record<string, string>;
+  context?: {
+    id?: number;
+    workspaceId?: number;
+    propertyType?: RealEstateType;
+    yieldType?: YieldAssetType;
+    ventureType?: VentureAssetType;
+    financeItem?: FinanceEntry;
+  };
+};
+
+type ConfirmState = {
+  title: string;
+  description: string;
+  onConfirm: () => Promise<void>;
 };
 
 function LockedSection({
@@ -184,6 +222,29 @@ export default function Dashboard() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const [activeSection, setActiveSection] = useState<DashboardSection>("home");
+  const [formModal, setFormModal] = useState<DashboardFormState | null>(null);
+  const [confirmModal, setConfirmModal] = useState<ConfirmState | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ message, type });
+  };
+
+  const updateModalValue = (key: string, value: string) => {
+    setFormModal((current) =>
+      current
+        ? { ...current, values: { ...current.values, [key]: value } }
+        : current
+    );
+  };
+
+  const closeFormModal = () => {
+    if (!modalLoading) setFormModal(null);
+  };
 
   if (loading) {
     return (
@@ -331,33 +392,19 @@ export default function Dashboard() {
   );
 
   const handleUpdateOnboarding = async () => {
-    const revenusMensuels = prompt(
-      "Revenus mensuels ?",
-      String(onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0)
-    );
-
-    const chargesMensuelles = prompt(
-      "Charges mensuelles ?",
-      String(onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0)
-    );
-
-    if (revenusMensuels === null || chargesMensuelles === null) return;
-
-    try {
-      await apiRequest("/auth/onboarding/update", token, {
-        method: "PUT",
-        body: JSON.stringify({
-          revenus_mensuels: Number(revenusMensuels),
-          charges_mensuelles: Number(chargesMensuelles),
-        }),
-      });
-
-      await refreshAfterMutation();
-      alert("Situation mise a jour");
-    } catch (err) {
-      console.error(err);
-      alert("Erreur onboarding");
-    }
+    setFormModal({
+      kind: "onboarding",
+      title: "Modifier la situation",
+      description: "Mets a jour revenus et charges avec une saisie claire.",
+      values: {
+        revenus_mensuels: String(
+          onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0
+        ),
+        charges_mensuelles: String(
+          onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0
+        ),
+      },
+    });
   };
 
   const handleUpgradePlan = async (plan: string) => {
@@ -370,17 +417,18 @@ export default function Dashboard() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert("Checkout Stripe indisponible pour le moment.");
+        showToast("Checkout Stripe indisponible pour le moment.", "error");
       }
     } catch (err) {
       console.error(err);
       const message = err instanceof Error ? err.message : "";
       const missingPrice = message.match(/STRIPE_PRICE_[A-Z_]+/)?.[0];
 
-      alert(
+      showToast(
         missingPrice
           ? `Abonnement Stripe non configure: ajoute ${missingPrice} dans Render.`
-          : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe."
+          : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe.",
+        "error"
       );
     }
   };
@@ -394,61 +442,31 @@ export default function Dashboard() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert("Portail abonnement indisponible pour le moment.");
+        showToast("Portail abonnement indisponible pour le moment.", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Impossible d'ouvrir le portail abonnement pour le moment.");
+      showToast("Impossible d'ouvrir le portail abonnement pour le moment.", "error");
     }
   };
 
   const handleCreateWorkspace = async () => {
-    const name = prompt("Nom du nouvel espace ?", "Family Office");
-    if (!name) return;
-
-    try {
-      const data = await apiRequest<{ workspace_id?: number }>("/workspaces/", token, {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-
-      if (data.workspace_id && typeof window !== "undefined") {
-        localStorage.setItem("activeWorkspaceId", String(data.workspace_id));
-      }
-
-      await refreshAll();
-    } catch (err) {
-      console.error(err);
-      alert("Impossible de creer cet espace.");
-    }
+    setFormModal({
+      kind: "workspace",
+      title: "Nouvel espace",
+      description: "Cree un espace Family Office clair et partageable.",
+      values: { name: "Family Office" },
+    });
   };
 
   const handleInviteWorkspaceMember = async (workspaceId: number) => {
-    const email = prompt("Email du membre a inviter ?");
-    if (!email) return;
-
-    const role = prompt("Role ? owner/admin/member/viewer", "member") || "member";
-
-    try {
-      const data = await apiRequest<{ invite_url?: string; token?: string }>(
-        `/workspaces/${workspaceId}/invite`,
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({ email, role }),
-        }
-      );
-
-      await refreshAll();
-      alert(
-        data.invite_url
-          ? `Invitation creee. Lien: ${data.invite_url}`
-          : "Invitation creee."
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Impossible de creer l'invitation.");
-    }
+    setFormModal({
+      kind: "invite",
+      title: "Inviter un membre",
+      description: "Ajoute une personne avec le role adapte a ton espace.",
+      values: { email: "", role: "member" },
+      context: { workspaceId },
+    });
   };
 
   const handleSwitchWorkspace = async (workspaceId: number) => {
@@ -474,105 +492,48 @@ export default function Dashboard() {
 
   const handleAddPortfolioAsset = async (assetTypePreset?: string) => {
     if (!canAddPortfolioAsset) {
-      alert("Limite du plan atteinte. Passe en Gold pour ajouter plus d'assets.");
+      showToast("Limite du plan atteinte. Passe en Gold pour ajouter plus d'assets.", "error");
       return;
     }
 
-    const assetName = prompt("Nom de l'actif ? (ex: AAPL, BTC, EUR/USD)");
-    if (!assetName) return;
-
-    const assetType = prompt(
-      "Type d'actif ? (ex: STOCK, CRYPTO, ETF, COMMODITIES, FOREX)",
-      assetTypePreset || ""
-    );
-    if (!assetType) return;
-
-    if (isRealEstatePortfolioType(assetType)) {
-      alert(
-        "Cette categorie a maintenant son espace dedie. Utilise le module correspondant pour ajouter cet asset."
-      );
-      return;
-    }
-
-    const quantity = parsePositiveNumber(prompt("Quantite ?", "1"));
-    const purchasePrice = parsePositiveNumber(prompt("Prix d'achat unitaire ?", "0"));
-
-    if (quantity === null || purchasePrice === null) {
-      alert("Quantite ou prix invalide");
-      return;
-    }
-
-    try {
-      await savePortfolioAsset("/portfolio", "POST", {
-        asset_name: assetName,
-        asset_type: assetType,
-        quantity,
-        purchase_price: purchasePrice,
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Erreur ajout portfolio");
-    }
+    setFormModal({
+      kind: "portfolio",
+      title: "Ajouter un actif",
+      description: "Actions, ETF, crypto, commodities ou devises. Les autres categories ont leur espace dedie.",
+      values: {
+        asset_name: "",
+        asset_type: assetTypePreset || "",
+        quantity: "1",
+        purchase_price: "0",
+      },
+    });
   };
 
   const handleUpdatePortfolioAsset = async (asset: PortfolioAsset) => {
-    const assetName = prompt(
-      "Nom de l'actif ?",
-      asset.asset_name || asset.name || ""
-    );
-    if (!assetName) return;
-
-    const assetType = prompt(
-      "Type d'actif ?",
-      asset.asset_type || asset.type || ""
-    );
-    if (!assetType) return;
-
-    if (isRealEstatePortfolioType(assetType)) {
-      alert(
-        "Cette categorie se gere dans un module dedie. Cree l'asset dans le bon module puis supprime l'ancien asset si besoin."
-      );
-      return;
-    }
-
-    const quantity = parsePositiveNumber(
-      prompt("Quantite ?", String(asset.quantity ?? 1))
-    );
-    const purchasePrice = parsePositiveNumber(
-      prompt("Prix d'achat unitaire ?", String(asset.purchase_price ?? 0))
-    );
-
-    if (quantity === null || purchasePrice === null) {
-      alert("Quantite ou prix invalide");
-      return;
-    }
-
-    try {
-      await savePortfolioAsset(`/portfolio/${asset.id}`, "PUT", {
-        asset_name: assetName,
-        asset_type: assetType,
-        quantity,
-        purchase_price: purchasePrice,
-      });
-    } catch (err) {
-      console.error(err);
-      alert("Erreur modification portfolio");
-    }
+    setFormModal({
+      kind: "portfolio",
+      title: "Modifier l'actif",
+      description: "Garde cette ligne dans les categories financieres dediees au portefeuille.",
+      values: {
+        asset_name: asset.asset_name || asset.name || "",
+        asset_type: asset.asset_type || asset.type || "",
+        quantity: String(asset.quantity ?? 1),
+        purchase_price: String(asset.purchase_price ?? 0),
+      },
+      context: { id: asset.id },
+    });
   };
 
   const handleDeletePortfolioAsset = async (id: number) => {
-    if (!confirm("Supprimer cet actif du portfolio ?")) return;
-
-    try {
-      await apiRequest(`/portfolio/${id}`, token, {
-        method: "DELETE",
-      });
-
-      await refreshAfterMutation();
-    } catch (err) {
-      console.error(err);
-      alert("Erreur suppression portfolio");
-    }
+    setConfirmModal({
+      title: "Supprimer cet actif ?",
+      description: "Cette action retire la ligne du portefeuille.",
+      onConfirm: async () => {
+        await apiRequest(`/portfolio/${id}`, token, { method: "DELETE" });
+        await refreshAfterMutation();
+        showToast("Actif supprime.", "success");
+      },
+    });
   };
 
   const handleAddFinance = async (data: FinancePayload) => {
@@ -593,281 +554,550 @@ export default function Dashboard() {
   };
 
   const handleUpdateFinance = async (item: FinanceEntry) => {
-    const name = prompt("Nom ?", item.name || item.label || "");
-    const amount = prompt("Montant ?", String(item.amount || 0));
-
-    if (!name || !amount) return;
-
     await apiRequest(`/finance/${item.id}`, token, {
       method: "PUT",
       body: JSON.stringify({
-        name,
-        amount: Number(amount),
+        name: item.name || item.label || "",
+        amount: Number(item.amount || 0),
       }),
     });
 
     await refreshAfterMutation();
   };
 
-  const buildRealEstatePayload = (
-    type: RealEstateType,
-    asset?: RealEstateAsset
-  ): RealEstatePayload | null => {
-    const name = prompt("Nom du bien ?", asset?.name || "");
-    if (!name) return null;
-
-    const purchasePrice = parseNonNegativeNumber(
-      prompt("Prix d'achat ?", String(asset?.purchase_price ?? 0))
-    );
-    if (purchasePrice === null) {
-      alert("Prix d'achat invalide");
-      return null;
-    }
-
-    const estimatedValue = parseNonNegativeNumber(
-      prompt(
-        type === "flip" ? "Valeur estimee actuelle ?" : "Valeur estimee ?",
-        String(asset?.estimated_value ?? asset?.target_value ?? purchasePrice)
-      )
-    );
-    if (estimatedValue === null) {
-      alert("Valeur estimee invalide");
-      return null;
-    }
-
-    let resalePrice = Number(asset?.resale_price || 0);
-    let monthlyRent = Number(asset?.monthly_rent || 0);
-    let monthlyCharges = Number(asset?.monthly_charges || 0);
-
-    if (type === "flip") {
-      const nextResalePrice = parseNonNegativeNumber(
-        prompt("Prix de revente cible ?", String(resalePrice || estimatedValue))
-      );
-      if (nextResalePrice === null) {
-        alert("Prix de revente invalide");
-        return null;
-      }
-      resalePrice = nextResalePrice;
-    }
-
-    if (type === "rental") {
-      const nextMonthlyRent = parseNonNegativeNumber(
-        prompt("Loyer mensuel ?", String(monthlyRent))
-      );
-      const nextMonthlyCharges = parseNonNegativeNumber(
-        prompt("Charges mensuelles liees au bien ?", String(monthlyCharges))
-      );
-
-      if (nextMonthlyRent === null || nextMonthlyCharges === null) {
-        alert("Loyer ou charges invalides");
-        return null;
-      }
-
-      monthlyRent = nextMonthlyRent;
-      monthlyCharges = nextMonthlyCharges;
-    }
-
-    const notes = prompt("Notes ? (optionnel)", asset?.notes || "") || null;
-
-    return {
-      property_type: type,
-      name,
-      purchase_price: purchasePrice,
-      estimated_value: estimatedValue,
-      resale_price: resalePrice,
-      monthly_rent: monthlyRent,
-      monthly_charges: monthlyCharges,
-      notes,
-    };
-  };
-
   const handleAddRealEstate = async (type: RealEstateType) => {
-    const payload = buildRealEstatePayload(type);
-    if (!payload) return;
-
-    try {
-      await apiRequest("/real-estate/", token, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      await refreshAfterMutation();
-    } catch (err) {
-      console.error(err);
-      alert("Erreur ajout immobilier");
-    }
+    setFormModal({
+      kind: "real_estate",
+      title: "Ajouter un bien",
+      description: "Suis achat, valeur cible, plus-value et rendement dans un format unifie.",
+      values: {
+        name: "",
+        purchase_price: "0",
+        estimated_value: "0",
+        resale_price: "0",
+        monthly_rent: "0",
+        monthly_charges: "0",
+        notes: "",
+      },
+      context: { propertyType: type },
+    });
   };
 
   const handleUpdateRealEstate = async (asset: RealEstateAsset) => {
-    const payload = buildRealEstatePayload(asset.property_type, asset);
-    if (!payload) return;
-
-    try {
-      await apiRequest(`/real-estate/${asset.id}`, token, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
-
-      await refreshAfterMutation();
-    } catch (err) {
-      console.error(err);
-      alert("Erreur modification immobilier");
-    }
+    setFormModal({
+      kind: "real_estate",
+      title: "Modifier le bien",
+      description: "Mets a jour les chiffres sans changer la logique de calcul.",
+      values: {
+        name: asset.name || "",
+        purchase_price: String(asset.purchase_price ?? 0),
+        estimated_value: String(asset.estimated_value ?? asset.target_value ?? 0),
+        resale_price: String(asset.resale_price ?? 0),
+        monthly_rent: String(asset.monthly_rent ?? 0),
+        monthly_charges: String(asset.monthly_charges ?? 0),
+        notes: asset.notes || "",
+      },
+      context: { id: asset.id, propertyType: asset.property_type },
+    });
   };
 
   const handleDeleteRealEstate = async (id: number) => {
-    if (!confirm("Supprimer ce bien immobilier ?")) return;
-
-    try {
-      await apiRequest(`/real-estate/${id}`, token, {
-        method: "DELETE",
-      });
-
-      await refreshAfterMutation();
-    } catch (err) {
-      console.error(err);
-      alert("Erreur suppression immobilier");
-    }
-  };
-
-  const buildYieldPayload = (
-    type: YieldAssetType,
-    asset?: YieldAsset
-  ): YieldAssetPayload | null => {
-    const name = prompt("Nom ?", asset?.name || "");
-    if (!name) return null;
-
-    const principal = parseNonNegativeNumber(
-      prompt("Montant prete / investi ?", String(asset?.principal ?? 0))
-    );
-    const averageRate = parseNonNegativeNumber(
-      prompt("Taux moyen annuel (%) ?", String(asset?.average_rate ?? 0))
-    );
-    const durationMonths = parsePositiveNumber(
-      prompt("Duree en mois ?", String(asset?.duration_months ?? 12))
-    );
-
-    if (principal === null || averageRate === null || durationMonths === null) {
-      alert("Montant, taux ou duree invalide");
-      return null;
-    }
-
-    return {
-      asset_type: type,
-      name,
-      principal,
-      average_rate: averageRate,
-      duration_months: Math.round(durationMonths),
-      notes: prompt("Notes ? (optionnel)", asset?.notes || "") || null,
-    };
+    setConfirmModal({
+      title: "Supprimer ce bien ?",
+      description: "Cette action retire ce bien de la rubrique immobilier.",
+      onConfirm: async () => {
+        await apiRequest(`/real-estate/${id}`, token, { method: "DELETE" });
+        await refreshAfterMutation();
+        showToast("Bien supprime.", "success");
+      },
+    });
   };
 
   const handleAddYieldAsset = async (type: YieldAssetType) => {
-    const payload = buildYieldPayload(type);
-    if (!payload) return;
-
-    await apiRequest("/yield-assets/", token, {
-      method: "POST",
-      body: JSON.stringify(payload),
+    setFormModal({
+      kind: "yield",
+      title: "Ajouter un investissement",
+      description: "Renseigne capital, taux moyen et duree dans un format homogene.",
+      values: {
+        name: "",
+        principal: "0",
+        average_rate: "0",
+        duration_months: "12",
+        notes: "",
+      },
+      context: { yieldType: type },
     });
-    await refreshAfterMutation();
   };
 
   const handleUpdateYieldAsset = async (asset: YieldAsset) => {
-    const payload = buildYieldPayload(asset.asset_type, asset);
-    if (!payload) return;
-
-    await apiRequest(`/yield-assets/${asset.id}`, token, {
-      method: "PUT",
-      body: JSON.stringify(payload),
+    setFormModal({
+      kind: "yield",
+      title: "Modifier l'investissement",
+      description: "Mets a jour capital, taux moyen et duree.",
+      values: {
+        name: asset.name || "",
+        principal: String(asset.principal ?? 0),
+        average_rate: String(asset.average_rate ?? 0),
+        duration_months: String(asset.duration_months ?? 12),
+        notes: asset.notes || "",
+      },
+      context: { id: asset.id, yieldType: asset.asset_type },
     });
-    await refreshAfterMutation();
   };
 
   const handleDeleteYieldAsset = async (id: number) => {
-    if (!confirm("Supprimer cet investissement ?")) return;
-
-    await apiRequest(`/yield-assets/${id}`, token, { method: "DELETE" });
-    await refreshAfterMutation();
-  };
-
-  const buildVenturePayload = (
-    type: VentureAssetType,
-    asset?: VentureAsset
-  ): VentureAssetPayload | null => {
-    const name = prompt("Nom ?", asset?.name || "");
-    if (!name) return null;
-
-    const revenue = parseNonNegativeNumber(
-      prompt("Chiffre d'affaires ?", String(asset?.revenue ?? 0))
-    );
-    const charges = parseNonNegativeNumber(
-      prompt("Charges ?", String(asset?.charges ?? 0))
-    );
-    const fundraising = parseNonNegativeNumber(
-      prompt("Levee de fonds ?", String(asset?.fundraising ?? 0))
-    );
-    const debts = parseNonNegativeNumber(
-      prompt("Dettes ?", String(asset?.debts ?? 0))
-    );
-    const valuation = parseNonNegativeNumber(
-      prompt("Valorisation ? (0 si a calculer)", String(asset?.valuation ?? 0))
-    );
-
-    if (
-      revenue === null ||
-      charges === null ||
-      fundraising === null ||
-      debts === null ||
-      valuation === null
-    ) {
-      alert("Donnee invalide");
-      return null;
-    }
-
-    return {
-      asset_type: type,
-      name,
-      revenue,
-      charges,
-      fundraising,
-      debts,
-      valuation,
-      notes: prompt("Notes ? (optionnel)", asset?.notes || "") || null,
-    };
+    setConfirmModal({
+      title: "Supprimer cet investissement ?",
+      description: "Cette action retire cet actif de la rubrique rendement prive.",
+      onConfirm: async () => {
+        await apiRequest(`/yield-assets/${id}`, token, { method: "DELETE" });
+        await refreshAfterMutation();
+        showToast("Investissement supprime.", "success");
+      },
+    });
   };
 
   const handleAddVentureAsset = async (type: VentureAssetType) => {
-    const payload = buildVenturePayload(type);
-    if (!payload) return;
-
-    await apiRequest("/venture-assets/", token, {
-      method: "POST",
-      body: JSON.stringify(payload),
+    setFormModal({
+      kind: "venture",
+      title: "Ajouter un business",
+      description: "Suis chiffre d'affaires, charges, levees, dettes et valorisation.",
+      values: {
+        name: "",
+        revenue: "0",
+        charges: "0",
+        fundraising: "0",
+        debts: "0",
+        valuation: "0",
+        notes: "",
+      },
+      context: { ventureType: type },
     });
-    await refreshAfterMutation();
   };
 
   const handleUpdateVentureAsset = async (asset: VentureAsset) => {
-    const payload = buildVenturePayload(asset.asset_type, asset);
-    if (!payload) return;
-
-    await apiRequest(`/venture-assets/${asset.id}`, token, {
-      method: "PUT",
-      body: JSON.stringify(payload),
+    setFormModal({
+      kind: "venture",
+      title: "Modifier le business",
+      description: "Mets a jour les donnees d'exploitation sans changer le calcul.",
+      values: {
+        name: asset.name || "",
+        revenue: String(asset.revenue ?? 0),
+        charges: String(asset.charges ?? 0),
+        fundraising: String(asset.fundraising ?? 0),
+        debts: String(asset.debts ?? 0),
+        valuation: String(asset.valuation ?? 0),
+        notes: asset.notes || "",
+      },
+      context: { id: asset.id, ventureType: asset.asset_type },
     });
-    await refreshAfterMutation();
   };
 
   const handleDeleteVentureAsset = async (id: number) => {
-    if (!confirm("Supprimer ce business ?")) return;
+    setConfirmModal({
+      title: "Supprimer ce business ?",
+      description: "Cette action retire cette ligne de la rubrique Business & Ventures.",
+      onConfirm: async () => {
+        await apiRequest(`/venture-assets/${id}`, token, { method: "DELETE" });
+        await refreshAfterMutation();
+        showToast("Business supprime.", "success");
+      },
+    });
+  };
 
-    await apiRequest(`/venture-assets/${id}`, token, { method: "DELETE" });
-    await refreshAfterMutation();
+  const requireName = (value?: string) => {
+    const trimmed = String(value || "").trim();
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  const handleSubmitModal = async () => {
+    if (!formModal) return;
+
+    const values = formModal.values;
+
+    try {
+      setModalLoading(true);
+
+      if (formModal.kind === "onboarding") {
+        await apiRequest("/auth/onboarding/update", token, {
+          method: "PUT",
+          body: JSON.stringify({
+            revenus_mensuels: Number(values.revenus_mensuels || 0),
+            charges_mensuelles: Number(values.charges_mensuelles || 0),
+          }),
+        });
+        await refreshAfterMutation();
+        showToast("Situation mise a jour.", "success");
+      }
+
+      if (formModal.kind === "workspace") {
+        const name = requireName(values.name);
+        if (!name) throw new Error("Nom requis");
+
+        const data = await apiRequest<{ workspace_id?: number }>("/workspaces/", token, {
+          method: "POST",
+          body: JSON.stringify({ name }),
+        });
+
+        if (data.workspace_id && typeof window !== "undefined") {
+          localStorage.setItem("activeWorkspaceId", String(data.workspace_id));
+        }
+
+        await refreshAll();
+        showToast("Espace cree.", "success");
+      }
+
+      if (formModal.kind === "invite") {
+        const email = requireName(values.email);
+        const role = values.role || "member";
+        const workspaceId = formModal.context?.workspaceId;
+        if (!email || !workspaceId) throw new Error("Invitation incomplete");
+
+        const data = await apiRequest<{ invite_url?: string; token?: string }>(
+          `/workspaces/${workspaceId}/invite`,
+          token,
+          {
+            method: "POST",
+            body: JSON.stringify({ email, role }),
+          }
+        );
+
+        await refreshAll();
+        showToast(
+          data.invite_url
+            ? `Invitation creee. Lien: ${data.invite_url}`
+            : "Invitation creee.",
+          "success"
+        );
+      }
+
+      if (formModal.kind === "portfolio") {
+        const assetName = requireName(values.asset_name);
+        const assetType = requireName(values.asset_type);
+        const quantity = parsePositiveNumber(values.quantity);
+        const purchasePrice = parsePositiveNumber(values.purchase_price);
+
+        if (!assetName || !assetType || quantity === null || purchasePrice === null) {
+          throw new Error("Donnees portfolio invalides");
+        }
+
+        if (isRealEstatePortfolioType(assetType)) {
+          throw new Error("Cette categorie se gere dans son module dedie.");
+        }
+
+        await savePortfolioAsset(
+          formModal.context?.id ? `/portfolio/${formModal.context.id}` : "/portfolio",
+          formModal.context?.id ? "PUT" : "POST",
+          {
+            asset_name: assetName,
+            asset_type: assetType,
+            quantity,
+            purchase_price: purchasePrice,
+          }
+        );
+        showToast("Portefeuille mis a jour.", "success");
+      }
+
+      if (formModal.kind === "real_estate") {
+        const propertyType = formModal.context?.propertyType;
+        const name = requireName(values.name);
+        const purchasePrice = parseNonNegativeNumber(values.purchase_price);
+        const estimatedValue = parseNonNegativeNumber(values.estimated_value);
+        const resalePrice = parseNonNegativeNumber(values.resale_price);
+        const monthlyRent = parseNonNegativeNumber(values.monthly_rent);
+        const monthlyCharges = parseNonNegativeNumber(values.monthly_charges);
+
+        if (
+          !propertyType ||
+          !name ||
+          purchasePrice === null ||
+          estimatedValue === null ||
+          resalePrice === null ||
+          monthlyRent === null ||
+          monthlyCharges === null
+        ) {
+          throw new Error("Donnees immobilieres invalides");
+        }
+
+        const payload: RealEstatePayload = {
+          property_type: propertyType,
+          name,
+          purchase_price: purchasePrice,
+          estimated_value: estimatedValue,
+          resale_price: resalePrice,
+          monthly_rent: monthlyRent,
+          monthly_charges: monthlyCharges,
+          notes: values.notes || null,
+        };
+
+        await apiRequest(
+          formModal.context?.id
+            ? `/real-estate/${formModal.context.id}`
+            : "/real-estate/",
+          token,
+          {
+            method: formModal.context?.id ? "PUT" : "POST",
+            body: JSON.stringify(payload),
+          }
+        );
+        await refreshAfterMutation();
+        showToast("Immobilier mis a jour.", "success");
+      }
+
+      if (formModal.kind === "yield") {
+        const assetType = formModal.context?.yieldType;
+        const name = requireName(values.name);
+        const principal = parseNonNegativeNumber(values.principal);
+        const averageRate = parseNonNegativeNumber(values.average_rate);
+        const durationMonths = parsePositiveNumber(values.duration_months);
+
+        if (!assetType || !name || principal === null || averageRate === null || durationMonths === null) {
+          throw new Error("Donnees invalides");
+        }
+
+        const payload: YieldAssetPayload = {
+          asset_type: assetType,
+          name,
+          principal,
+          average_rate: averageRate,
+          duration_months: Math.round(durationMonths),
+          notes: values.notes || null,
+        };
+
+        await apiRequest(
+          formModal.context?.id
+            ? `/yield-assets/${formModal.context.id}`
+            : "/yield-assets/",
+          token,
+          {
+            method: formModal.context?.id ? "PUT" : "POST",
+            body: JSON.stringify(payload),
+          }
+        );
+        await refreshAfterMutation();
+        showToast("Investissement mis a jour.", "success");
+      }
+
+      if (formModal.kind === "venture") {
+        const assetType = formModal.context?.ventureType;
+        const name = requireName(values.name);
+        const revenue = parseNonNegativeNumber(values.revenue);
+        const charges = parseNonNegativeNumber(values.charges);
+        const fundraising = parseNonNegativeNumber(values.fundraising);
+        const debts = parseNonNegativeNumber(values.debts);
+        const valuation = parseNonNegativeNumber(values.valuation);
+
+        if (
+          !assetType ||
+          !name ||
+          revenue === null ||
+          charges === null ||
+          fundraising === null ||
+          debts === null ||
+          valuation === null
+        ) {
+          throw new Error("Donnees business invalides");
+        }
+
+        const payload: VentureAssetPayload = {
+          asset_type: assetType,
+          name,
+          revenue,
+          charges,
+          fundraising,
+          debts,
+          valuation,
+          notes: values.notes || null,
+        };
+
+        await apiRequest(
+          formModal.context?.id
+            ? `/venture-assets/${formModal.context.id}`
+            : "/venture-assets/",
+          token,
+          {
+            method: formModal.context?.id ? "PUT" : "POST",
+            body: JSON.stringify(payload),
+          }
+        );
+        await refreshAfterMutation();
+        showToast("Business mis a jour.", "success");
+      }
+
+      setFormModal(null);
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err instanceof Error ? err.message : "Impossible d'enregistrer.",
+        "error"
+      );
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleConfirmModal = async () => {
+    if (!confirmModal) return;
+
+    try {
+      setModalLoading(true);
+      await confirmModal.onConfirm();
+      setConfirmModal(null);
+    } catch (err) {
+      console.error(err);
+      showToast("Impossible de supprimer cet element.", "error");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const renderFormFields = () => {
+    if (!formModal) return null;
+    const values = formModal.values;
+
+    if (formModal.kind === "invite") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Email" value={values.email || ""} onChange={(value) => updateModalValue("email", value)} />
+          <SelectField
+            label="Role"
+            value={values.role || "member"}
+            onChange={(value) => updateModalValue("role", value)}
+            options={[
+              { label: "Owner", value: "owner" },
+              { label: "Admin", value: "admin" },
+              { label: "Member", value: "member" },
+              { label: "Viewer", value: "viewer" },
+            ]}
+          />
+        </div>
+      );
+    }
+
+    if (formModal.kind === "onboarding") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Revenus mensuels" type="number" value={values.revenus_mensuels || "0"} onChange={(value) => updateModalValue("revenus_mensuels", value)} />
+          <TextField label="Charges mensuelles" type="number" value={values.charges_mensuelles || "0"} onChange={(value) => updateModalValue("charges_mensuelles", value)} />
+        </div>
+      );
+    }
+
+    if (formModal.kind === "workspace") {
+      return (
+        <TextField label="Nom de l'espace" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+      );
+    }
+
+    if (formModal.kind === "portfolio") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Nom de l'actif" value={values.asset_name || ""} onChange={(value) => updateModalValue("asset_name", value)} placeholder="AAPL, BTC, EUR/USD" />
+          <TextField label="Type" value={values.asset_type || ""} onChange={(value) => updateModalValue("asset_type", value)} placeholder="STOCK, ETF, CRYPTO, FOREX" />
+          <TextField label="Quantite" type="number" value={values.quantity || "1"} onChange={(value) => updateModalValue("quantity", value)} />
+          <TextField label="Prix d'achat unitaire" type="number" value={values.purchase_price || "0"} onChange={(value) => updateModalValue("purchase_price", value)} />
+        </div>
+      );
+    }
+
+    if (formModal.kind === "real_estate") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Nom du bien" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+          <TextField label="Prix d'achat" type="number" value={values.purchase_price || "0"} onChange={(value) => updateModalValue("purchase_price", value)} />
+          <TextField label="Valeur estimee / cible" type="number" value={values.estimated_value || "0"} onChange={(value) => updateModalValue("estimated_value", value)} />
+          <TextField label="Prix de revente cible" type="number" value={values.resale_price || "0"} onChange={(value) => updateModalValue("resale_price", value)} />
+          <TextField label="Loyer mensuel" type="number" value={values.monthly_rent || "0"} onChange={(value) => updateModalValue("monthly_rent", value)} />
+          <TextField label="Charges mensuelles" type="number" value={values.monthly_charges || "0"} onChange={(value) => updateModalValue("monthly_charges", value)} />
+          <div className="sm:col-span-2">
+            <TextField label="Notes" value={values.notes || ""} onChange={(value) => updateModalValue("notes", value)} />
+          </div>
+        </div>
+      );
+    }
+
+    if (formModal.kind === "yield") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Nom" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+          <TextField label="Capital prete / investi" type="number" value={values.principal || "0"} onChange={(value) => updateModalValue("principal", value)} />
+          <TextField label="Taux moyen annuel" type="number" value={values.average_rate || "0"} onChange={(value) => updateModalValue("average_rate", value)} />
+          <TextField label="Duree en mois" type="number" value={values.duration_months || "12"} onChange={(value) => updateModalValue("duration_months", value)} />
+          <div className="sm:col-span-2">
+            <TextField label="Notes" value={values.notes || ""} onChange={(value) => updateModalValue("notes", value)} />
+          </div>
+        </div>
+      );
+    }
+
+    if (formModal.kind === "venture") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TextField label="Nom" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+          <TextField label="Chiffre d'affaires" type="number" value={values.revenue || "0"} onChange={(value) => updateModalValue("revenue", value)} />
+          <TextField label="Charges" type="number" value={values.charges || "0"} onChange={(value) => updateModalValue("charges", value)} />
+          <TextField label="Levee de fonds" type="number" value={values.fundraising || "0"} onChange={(value) => updateModalValue("fundraising", value)} />
+          <TextField label="Dettes" type="number" value={values.debts || "0"} onChange={(value) => updateModalValue("debts", value)} />
+          <TextField label="Valorisation" type="number" value={values.valuation || "0"} onChange={(value) => updateModalValue("valuation", value)} />
+          <div className="sm:col-span-2">
+            <TextField label="Notes" value={values.notes || ""} onChange={(value) => updateModalValue("notes", value)} />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
     <main className="min-h-screen bg-black pb-32 text-white lg:pb-24">
+      <WealthToast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
+
+      <WealthModal
+        open={Boolean(formModal)}
+        title={formModal?.title || ""}
+        description={formModal?.description}
+        onClose={closeFormModal}
+        footer={
+          <>
+            <ActionButton variant="secondary" onClick={closeFormModal}>
+              Annuler
+            </ActionButton>
+            <ActionButton onClick={handleSubmitModal} disabled={modalLoading}>
+              {modalLoading ? "Enregistrement..." : "Valider"}
+            </ActionButton>
+          </>
+        }
+      >
+        {renderFormFields()}
+      </WealthModal>
+
+      <WealthModal
+        open={Boolean(confirmModal)}
+        title={confirmModal?.title || ""}
+        description={confirmModal?.description}
+        eyebrow="Confirmation"
+        onClose={() => setConfirmModal(null)}
+        footer={
+          <>
+            <ActionButton variant="secondary" onClick={() => setConfirmModal(null)}>
+              Annuler
+            </ActionButton>
+            <ActionButton variant="danger" onClick={handleConfirmModal} disabled={modalLoading}>
+              Supprimer
+            </ActionButton>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-400">
+          Confirme uniquement si tu veux vraiment retirer cet element.
+        </p>
+      </WealthModal>
+
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-black/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <Header dashboard={dashboard} onUpgrade={handleUpgradePlan} />

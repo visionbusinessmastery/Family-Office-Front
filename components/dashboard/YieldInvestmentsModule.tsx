@@ -7,6 +7,7 @@ import type {
   YieldAssetType,
 } from "@/lib/types";
 import OpportunityInsightCard from "./OpportunityInsightCard";
+import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
 
 type Props = {
   data?: YieldAssetData | null;
@@ -43,29 +44,11 @@ export default function YieldInvestmentsModule({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Capital prete / investi</p>
-          <h3 className="text-xl font-black">
-            {money.format(n(totals.total_principal))} EUR
-          </h3>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Taux moyen</p>
-          <h3 className="text-xl font-black">{n(totals.average_rate).toFixed(2)}%</h3>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Plus-value projetee</p>
-          <h3 className="text-xl font-black text-emerald-400">
-            +{money.format(n(totals.total_projected_gain))} EUR
-          </h3>
-        </div>
-        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/30 rounded-2xl p-4">
-          <p className="text-xs text-gray-400">Montant final enrichi</p>
-          <h3 className="text-xl font-black text-[#3fa9f5]">
-            {money.format(n(totals.total_final_value))} EUR
-          </h3>
-        </div>
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard label="Capital investi" value={`${money.format(n(totals.total_principal))} EUR`} />
+        <MetricCard label="Taux moyen" value={`${n(totals.average_rate).toFixed(2)}%`} />
+        <MetricCard label="Plus-value projetee" value={`+${money.format(n(totals.total_projected_gain))} EUR`} tone="success" />
+        <MetricCard label="Montant final enrichi" value={`${money.format(n(totals.total_final_value))} EUR`} tone="primary" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -80,12 +63,12 @@ export default function YieldInvestmentsModule({
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className="font-bold">{type.label}</h3>
                 {onAdd && (
-                  <button
+                  <ActionButton
                     onClick={() => onAdd(type.key)}
-                    className="bg-[#3fa9f5] px-3 py-2 rounded-xl text-sm font-semibold"
+                    icon="+"
                   >
                     Ajouter
-                  </button>
+                  </ActionButton>
                 )}
               </div>
 
@@ -93,7 +76,17 @@ export default function YieldInvestmentsModule({
                 <OpportunityInsightCard opportunity={opportunity} />
 
                 {rows.length === 0 ? (
-                  <p className="text-sm text-gray-500">Aucun asset.</p>
+                  <EmptyState
+                    title="Aucun actif"
+                    description="Ajoute une ligne pour suivre capital, taux et valeur finale."
+                    action={
+                      onAdd ? (
+                        <ActionButton onClick={() => onAdd(type.key)} icon="+">
+                          Ajouter
+                        </ActionButton>
+                      ) : null
+                    }
+                  />
                 ) : (
                   rows.map((asset) => (
                     <article key={asset.id} className="bg-black/30 border border-white/10 rounded-xl p-4">
@@ -117,14 +110,14 @@ export default function YieldInvestmentsModule({
                       {(onUpdate || onDelete) && (
                         <div className="flex justify-end gap-2 mt-4">
                           {onUpdate && (
-                            <button onClick={() => onUpdate(asset)} className="px-3 py-1 rounded bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 text-sm">
+                            <ActionButton onClick={() => onUpdate(asset)} variant="secondary" className="px-3 py-1.5 text-xs">
                               Modifier
-                            </button>
+                            </ActionButton>
                           )}
                           {onDelete && (
-                            <button onClick={() => onDelete(asset.id)} className="px-3 py-1 rounded bg-red-500/20 border border-red-500/30 text-red-300 text-sm">
+                            <ActionButton onClick={() => onDelete(asset.id)} variant="danger" className="px-3 py-1.5 text-xs">
                               Supprimer
-                            </button>
+                            </ActionButton>
                           )}
                         </div>
                       )}

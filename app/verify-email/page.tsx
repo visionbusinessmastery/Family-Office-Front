@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import { ActionButton, WealthToast } from "@/components/ui/WealthUI";
 
 type State = "loading" | "success" | "error";
 
@@ -27,6 +28,10 @@ function VerifyEmailContent() {
   const [message, setMessage] = useState("Verification en cours...");
   const [email, setEmail] = useState<string | null>(initialEmail);
   const [resending, setResending] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -75,7 +80,7 @@ function VerifyEmailContent() {
     const emailToUse = email || localStorage.getItem("verified_email");
 
     if (!emailToUse) {
-      alert("Email introuvable");
+      setToast({ message: "Email introuvable.", type: "error" });
       return;
     }
 
@@ -101,9 +106,12 @@ function VerifyEmailContent() {
         throw new Error(data?.message || "Erreur resend");
       }
 
-      alert("Email de verification renvoye");
+      setToast({ message: "Email de verification renvoye.", type: "success" });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Erreur lors du renvoi");
+      setToast({
+        message: err instanceof Error ? err.message : "Erreur lors du renvoi",
+        type: "error",
+      });
     } finally {
       setResending(false);
     }
@@ -114,6 +122,11 @@ function VerifyEmailContent() {
       title="Verification email"
       subtitle="On securise ton acces avant d'ouvrir ton cockpit patrimonial."
     >
+      <WealthToast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
       <div className="text-center">
         <p className="text-sm text-gray-300">{message}</p>
 
@@ -123,20 +136,20 @@ function VerifyEmailContent() {
           <div className="mt-6">
             <p className="text-red-400 mb-4">Verification echouee</p>
 
-            <button
+            <ActionButton
               onClick={resendEmail}
               disabled={resending}
-              className="rounded-xl bg-[#3fa9f5] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50"
             >
               {resending ? "Envoi..." : "Renvoyer email"}
-            </button>
+            </ActionButton>
 
-            <button
+            <ActionButton
               onClick={() => (window.location.href = "/")}
-              className="ml-3 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-black"
+              variant="secondary"
+              className="ml-3"
             >
               Accueil
-            </button>
+            </ActionButton>
           </div>
         )}
 
