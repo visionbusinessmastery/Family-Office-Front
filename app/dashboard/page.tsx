@@ -27,6 +27,7 @@ import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import LegacyOfficePanel from "@/components/dashboard/LegacyOfficePanel";
+import OpportunityDiscoveryPanel from "@/components/dashboard/OpportunityDiscoveryPanel";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
@@ -313,19 +314,16 @@ export default function Dashboard() {
       key: "real_estate",
       label: "Immobilier",
       description: "Biens",
-      locked: !hasModule("real_estate"),
     },
     {
       key: "ventures",
       label: "Business",
       description: "Ventures",
-      locked: !hasModule("yield_assets") && !hasModule("venture_assets"),
     },
     {
       key: "settings",
       label: "Family Office",
       description: "Identite",
-      locked: !hasModule("multi_user") && !hasModule("family_vault"),
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
@@ -1117,6 +1115,14 @@ export default function Dashboard() {
                 description="Stocks, ETF, crypto, forex, commodities, diversification et exposition. Pas de trading complexe: uniquement pilotage patrimonial."
               />
 
+              <OpportunityDiscoveryPanel
+                universe="investments"
+                title="Investment Discovery"
+                description="Ethan identifie des pistes d'allocation selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
+                plan={currentPlan}
+                token={token}
+              />
+
               {hasModule("diversification") ? (
                 <section className="grid grid-cols-1 gap-5">
                   <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} />
@@ -1150,22 +1156,22 @@ export default function Dashboard() {
                 title="Biens & rendement"
                 description="Residence principale, locatif, achat/revente, valorisation et plus-value potentielle."
               />
-              {hasModule("real_estate") ? (
-                <RealEstateModule
-                  data={realEstate}
-                  onAdd={handleAddRealEstate}
-                  onUpdate={handleUpdateRealEstate}
-                  onDelete={handleDeleteRealEstate}
-                  opportunity={findOpportunity("real_estate")}
-                />
-              ) : (
-                <LockedSection
-                  title="Module immobilier"
-                  description="Debloque le suivi immobilier pour separer residences, locatif, achat/revente et rendement de ton portefeuille financier."
-                  onUpgrade={handleUpgradePlan}
-                  plan="gold"
-                />
-              )}
+
+              <OpportunityDiscoveryPanel
+                universe="real_estate"
+                title="Recherche immobiliere patrimoniale"
+                description="Residence principale, locatif, achat/revente ou commercial: Ethan priorise rendement, cashflow, risque local et prochaine verification."
+                plan={currentPlan}
+                token={token}
+              />
+
+              <RealEstateModule
+                data={realEstate}
+                onAdd={handleAddRealEstate}
+                onUpdate={handleUpdateRealEstate}
+                onDelete={handleDeleteRealEstate}
+                opportunity={findOpportunity("real_estate")}
+              />
             </div>
           )}
 
@@ -1177,38 +1183,35 @@ export default function Dashboard() {
                 description="Business, startup, activites digitales, franchise, crowdfunding et private equity dans une vue dediee."
               />
 
-              {hasModule("yield_assets") ? (
-                <YieldInvestmentsModule
-                  data={yieldAssets}
-                  onAdd={handleAddYieldAsset}
-                  onUpdate={handleUpdateYieldAsset}
-                  onDelete={handleDeleteYieldAsset}
-                  opportunities={categoryOpportunityItems.filter((item) =>
-                    ["crowdfunding", "private_equity"].includes(item.key || "")
-                  )}
-                />
-              ) : (
-                <LockedSection
-                  title="Prets & Private Equity"
-                  description="Suis les montants pretes, taux moyens et valeurs finales dans un espace dedie."
-                  onUpgrade={handleUpgradePlan}
-                  plan="gold"
-                />
-              )}
+              <OpportunityDiscoveryPanel
+                universe="business"
+                title="Business Opportunity Engine"
+                description="Ethan compare business digital, startup, franchise, reprise, crowdfunding et private equity selon ton budget, ton risque et ton ambition."
+                plan={currentPlan}
+                token={token}
+              />
 
-              {hasModule("venture_assets") ? (
-                <VentureAssetsModule
-                  data={ventureAssets}
-                  onAdd={handleAddVentureAsset}
-                  onUpdate={handleUpdateVentureAsset}
-                  onDelete={handleDeleteVentureAsset}
-                  opportunities={categoryOpportunityItems.filter((item) =>
-                    ["ai_business", "business", "startup", "franchise"].includes(
-                      item.key || ""
-                    )
-                  )}
-                />
-              ) : null}
+              <YieldInvestmentsModule
+                data={yieldAssets}
+                onAdd={handleAddYieldAsset}
+                onUpdate={handleUpdateYieldAsset}
+                onDelete={handleDeleteYieldAsset}
+                opportunities={categoryOpportunityItems.filter((item) =>
+                  ["crowdfunding", "private_equity"].includes(item.key || "")
+                )}
+              />
+
+              <VentureAssetsModule
+                data={ventureAssets}
+                onAdd={handleAddVentureAsset}
+                onUpdate={handleUpdateVentureAsset}
+                onDelete={handleDeleteVentureAsset}
+                opportunities={categoryOpportunityItems.filter((item) =>
+                  ["ai_business", "business", "startup", "franchise"].includes(
+                    item.key || ""
+                  )
+                )}
+              />
             </div>
           )}
 
@@ -1220,16 +1223,7 @@ export default function Dashboard() {
                 description="Ton Conseiller exclusif"
               />
 
-              {hasModule("opportunities") ? (
-                <OpportunitiesModule intelligence={intelligence} />
-              ) : (
-                <LockedSection
-                  title="Opportunites avancees"
-                  description="Les signaux personnalises par categorie se debloquent avec le plan Growth."
-                  onUpgrade={handleUpgradePlan}
-                  plan="gold"
-                />
-              )}
+              <OpportunitiesModule intelligence={intelligence} />
 
               <AdvisorChat
                 recommendations={scoreAdvice}
@@ -1271,25 +1265,16 @@ export default function Dashboard() {
                 level={product?.progression?.level || commandCenter?.level || dashboard?.level}
               />
 
-              {hasModule("multi_user") ? (
-                <WorkspacePanel
-                  data={workspaces}
-                  onCreate={handleCreateWorkspace}
-                  onInvite={handleInviteWorkspaceMember}
-                  onSwitch={handleSwitchWorkspace}
-                />
-              ) : (
-                <LockedSection
-                  title="Multi-user Family Office"
-                  description="Invite ton equipe, ta famille ou tes partenaires lorsque ton espace passe en Wealth OS."
-                  onUpgrade={handleUpgradePlan}
-                  plan="elite"
-                />
-              )}
+              <WorkspacePanel
+                data={workspaces}
+                onCreate={handleCreateWorkspace}
+                onInvite={handleInviteWorkspaceMember}
+                onSwitch={handleSwitchWorkspace}
+              />
 
               <LegacyOfficePanel
                 data={legacyOverview}
-                locked={!hasModule("family_vault")}
+                locked={false}
                 onUpgrade={handleUpgradePlan}
               />
 

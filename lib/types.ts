@@ -289,6 +289,51 @@ export type CategoryOpportunityData = {
   categories?: CategoryOpportunity[];
 };
 
+export type OpportunityUniverse = "real_estate" | "investments" | "business";
+
+export type OpportunityIntelligenceItem = {
+  id?: string;
+  universe?: OpportunityUniverse;
+  type?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  image_url?: string | null;
+  budget?: string | number | null;
+  price?: string | number | null;
+  yield_percent?: string | number | null;
+  cashflow_estimate?: string | number | null;
+  volatility?: string | null;
+  momentum?: string | null;
+  ethan_score?: string | number | null;
+  strengths?: string[];
+  risks?: string[];
+  projection?: string;
+  next_step?: string;
+};
+
+export type OpportunityIntelligenceData = {
+  universe?: OpportunityUniverse;
+  plan?: string;
+  depth?: {
+    max_results?: number;
+    depth?: string;
+    advanced?: boolean;
+    message?: string;
+  };
+  items?: OpportunityIntelligenceItem[];
+  sources?: string[];
+  market_signal?: {
+    query?: string;
+    sentiment?: string;
+    sentiment_score?: number;
+    headline?: string | null;
+    source?: string | null;
+  };
+  generated_at?: string;
+  cache_hit?: boolean;
+};
+
 export type PortfolioHistoryPoint = {
   date?: string;
   created_at?: string;
