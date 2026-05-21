@@ -312,7 +312,8 @@ export default function Dashboard() {
     );
   }
 
-  const globalScore = commandCenter?.global_score || 0;
+  const globalScore =
+    Number(intelligence?.global_score ?? commandCenter?.global_score ?? 0) || 0;
   const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
