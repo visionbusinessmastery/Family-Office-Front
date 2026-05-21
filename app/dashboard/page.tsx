@@ -313,7 +313,7 @@ export default function Dashboard() {
   }
 
   const globalScore =
-    Number(intelligence?.global_score ?? commandCenter?.global_score ?? 0) || 0;
+    Number(commandCenter?.global_score ?? intelligence?.global_score ?? 0) || 0;
   const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
@@ -426,10 +426,13 @@ export default function Dashboard() {
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
-  const opportunitiesCount = getStrategicOpportunityCount(
-    intelligence?.opportunities,
-    categoryOpportunities
-  );
+  const opportunitiesCount =
+    typeof commandCenter?.opportunities_count === "number"
+      ? commandCenter.opportunities_count
+      : getStrategicOpportunityCount(
+          commandCenter?.opportunities ?? intelligence?.opportunities,
+          categoryOpportunities
+        );
 
   const handleUpdateOnboarding = async () => {
     setFormModal({

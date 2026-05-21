@@ -365,6 +365,8 @@ export type CommandCenter = {
     details?: ScoreDetails;
   };
   advice?: string[];
+  opportunities?: OpportunityData | Opportunity[];
+  opportunities_count?: number;
   modules?: Record<string, { score?: number }>;
   onboarding?: OnboardingData;
 };
