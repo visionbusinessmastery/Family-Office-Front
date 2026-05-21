@@ -73,6 +73,7 @@ const dataLabels: Record<string, string> = {
   ethan_memory: "Memoires Ethan",
   notifications: "Notifications",
   legacy: "Elements Legacy",
+  oauth_accounts: "Comptes sociaux",
 };
 
 function ToggleRow({

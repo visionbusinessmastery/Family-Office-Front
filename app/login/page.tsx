@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import BrandMark from "@/components/BrandMark";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -158,6 +159,19 @@ export default function LoginPage() {
           >
             {loading ? "Ouverture..." : "Ouvrir mon cockpit"}
           </button>
+
+          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-white/40">
+            <span className="h-px flex-1 bg-white/10" />
+            ou
+            <span className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <SocialLoginButtons disabled={loading} compact />
+
+          <p className="mt-3 text-center text-xs leading-relaxed text-gray-500">
+            En continuant avec un provider social, tu confirmes vouloir acceder
+            a WHITE ROCK avec une authentification securisee.
+          </p>
 
           {message && (
             <p className="mt-4 text-center text-sm text-gray-300">{message}</p>

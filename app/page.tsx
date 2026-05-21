@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -171,6 +172,21 @@ export default function Home() {
                 {message}
               </p>
             )}
+
+            <div className="mt-5 max-w-xl">
+              <div className="mb-3 flex items-center gap-3 text-xs uppercase tracking-widest text-white/40">
+                <span className="h-px flex-1 bg-white/10" />
+                Connexion rapide
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <SocialLoginButtons disabled={!legalOk || submitState === "loading"} />
+              {!legalOk && (
+                <p className="mt-2 text-xs text-amber-100/80">
+                  Accepte les conditions et la confidentialite avant de continuer
+                  avec un provider social.
+                </p>
+              )}
+            </div>
 
             <div className="mt-4 space-y-1 text-sm text-white/60">
               <p>Construis une vision claire de ton patrimoine.</p>
