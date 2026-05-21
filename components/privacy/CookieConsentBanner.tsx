@@ -37,8 +37,12 @@ export default function CookieConsentBanner() {
   const [preferences, setPreferences] = useState<CookiePreferences>(defaultPreferences);
 
   useEffect(() => {
-    setMounted(true);
-    setVisible(!localStorage.getItem(STORAGE_KEY));
+    const timer = window.setTimeout(() => {
+      setMounted(true);
+      setVisible(!localStorage.getItem(STORAGE_KEY));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const persist = async (next: CookiePreferences) => {

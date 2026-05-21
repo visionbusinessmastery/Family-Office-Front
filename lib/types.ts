@@ -306,6 +306,7 @@ export type OpportunityIntelligenceItem = {
   title?: string;
   description?: string;
   source?: string;
+  url?: string | null;
   image_url?: string | null;
   budget?: string | number | null;
   price?: string | number | null;

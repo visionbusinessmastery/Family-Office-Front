@@ -287,6 +287,8 @@ export default function OpportunityDiscoveryPanel({
           {items.map((item, index) => {
             const price = formatMoney(item.price);
             const cashflow = formatMoney(item.cashflow_estimate);
+            const sourceAction =
+              item.universe === "real_estate" ? "Ouvrir la recherche" : "Voir la source";
 
             return (
               <article
@@ -370,6 +372,16 @@ export default function OpportunityDiscoveryPanel({
                   <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
                     {item.next_step}
                   </p>
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[#3fa9f5]/35 bg-[#3fa9f5]/10 px-4 py-3 text-sm font-bold text-[#8bd0ff] transition hover:border-[#3fa9f5]/60 hover:bg-[#3fa9f5]/20"
+                    >
+                      {sourceAction}
+                    </a>
+                  )}
                 </div>
               </article>
             );

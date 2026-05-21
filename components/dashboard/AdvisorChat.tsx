@@ -119,8 +119,12 @@ export default function AdvisorChat({
   const affiliations = aiCoach?.affiliations || [];
 
   useEffect(() => {
-    setMessages(readCachedMessages());
-    setCacheReady(true);
+    const timer = window.setTimeout(() => {
+      setMessages(readCachedMessages());
+      setCacheReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
