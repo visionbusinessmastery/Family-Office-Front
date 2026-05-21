@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, clearAuthSession, isJwtExpired } from "@/lib/api";
 import type {
   CommandCenter,
   CategoryOpportunityData,
@@ -178,7 +178,7 @@ export function useDashboard() {
   }, [applyUserProfile, safeFetch]);
 
   const loadGamification = useCallback(async () => {
-    const data = await safeFetch<GamificationData>("/gamification");
+    const data = await safeFetch<GamificationData>("/gamification/");
     setGamification(data);
   }, [safeFetch]);
 
@@ -239,12 +239,12 @@ export function useDashboard() {
   }, [safeFetch]);
 
   const loadFinance = useCallback(async () => {
-    const data = await safeFetch<Partial<FinanceData>>("/finance");
+    const data = await safeFetch<Partial<FinanceData>>("/finance/");
     setFinance({ ...emptyFinance, ...data });
   }, [safeFetch]);
 
   const loadPortfolio = useCallback(async () => {
-    const data = await safeFetch<PortfolioResponse>("/portfolio");
+    const data = await safeFetch<PortfolioResponse>("/portfolio/");
     const nextPortfolio = extractPortfolio(data);
 
     if (nextPortfolio) {
@@ -378,9 +378,10 @@ export function useDashboard() {
   }, [recalcScore, refreshAll]);
 
   useEffect(() => {
-    if (!token) {
+    if (!token || isJwtExpired(token)) {
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        clearAuthSession();
+        window.location.assign("/login?reason=session_expired");
       }
       return;
     }

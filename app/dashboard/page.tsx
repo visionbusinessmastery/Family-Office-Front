@@ -555,7 +555,7 @@ export default function Dashboard() {
   };
 
   const handleAddFinance = async (data: FinancePayload) => {
-    await apiRequest("/finance", token, {
+    await apiRequest("/finance/", token, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -804,7 +804,7 @@ export default function Dashboard() {
         }
 
         await savePortfolioAsset(
-          formModal.context?.id ? `/portfolio/${formModal.context.id}` : "/portfolio",
+          formModal.context?.id ? `/portfolio/${formModal.context.id}` : "/portfolio/",
           formModal.context?.id ? "PUT" : "POST",
           {
             asset_name: assetName,
