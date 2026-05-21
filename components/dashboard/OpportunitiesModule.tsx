@@ -1,13 +1,13 @@
 "use client";
 
 import type {
+  CommandCenter,
   Opportunity,
   OpportunityData,
-  UserIntelligence,
 } from "@/lib/types";
 
 type OpportunitiesModuleProps = {
-  intelligence: UserIntelligence | null;
+  commandCenter: CommandCenter | null;
 };
 
 const priorityClasses: Record<string, string> = {
@@ -17,7 +17,7 @@ const priorityClasses: Record<string, string> = {
 };
 
 const normalizeOpportunities = (
-  opportunities: UserIntelligence["opportunities"]
+  opportunities: CommandCenter["opportunities"]
 ): Opportunity[] => {
   if (Array.isArray(opportunities)) return opportunities;
 
@@ -25,9 +25,13 @@ const normalizeOpportunities = (
 };
 
 export default function OpportunitiesModule({
-  intelligence,
+  commandCenter,
 }: OpportunitiesModuleProps) {
-  const opportunities = normalizeOpportunities(intelligence?.opportunities);
+  const opportunities = normalizeOpportunities(commandCenter?.opportunities);
+  const detectedCount =
+    typeof commandCenter?.opportunities_count === "number"
+      ? commandCenter.opportunities_count
+      : opportunities.length;
   const enrichedOpportunities =
     opportunities.length > 0
       ? opportunities
@@ -61,8 +65,8 @@ export default function OpportunitiesModule({
         </div>
 
         <span className="text-sm text-[#3fa9f5]">
-          {enrichedOpportunities.length} detectee
-          {enrichedOpportunities.length > 1 ? "s" : ""}
+          {detectedCount} detectee
+          {detectedCount > 1 ? "s" : ""}
         </span>
       </div>
 

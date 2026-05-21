@@ -23,7 +23,6 @@ import type {
   VentureAsset,
   VentureAssetPayload,
   VentureAssetType,
-  UserIntelligence,
   YieldAsset,
   YieldAssetPayload,
   YieldAssetType,
@@ -202,22 +201,29 @@ const isRealEstatePortfolioType = (value: string) =>
   );
 
 const getStrategicOpportunityCount = (
-  opportunities: UserIntelligence["opportunities"] | undefined,
-  categories: CategoryOpportunityData | null
+  opportunities: unknown
 ) => {
   if (Array.isArray(opportunities)) return opportunities.length;
 
-  if (typeof opportunities?.count === "number") {
+  if (
+    opportunities &&
+    typeof opportunities === "object" &&
+    "count" in opportunities &&
+    typeof opportunities.count === "number"
+  ) {
     return opportunities.count;
   }
 
-  if (Array.isArray(opportunities?.opportunities)) {
+  if (
+    opportunities &&
+    typeof opportunities === "object" &&
+    "opportunities" in opportunities &&
+    Array.isArray(opportunities.opportunities)
+  ) {
     return opportunities.opportunities.length;
   }
 
-  return categories?.categories?.filter(
-    (item) => item.detected_opportunity || item.market_signal?.headline
-  ).length || 0;
+  return 0;
 };
 
 export default function Dashboard() {
@@ -227,7 +233,6 @@ export default function Dashboard() {
     realEstate,
     yieldAssets,
     ventureAssets,
-    intelligence,
     categoryOpportunities,
     legacyOverview,
     onboarding,
@@ -313,7 +318,7 @@ export default function Dashboard() {
   }
 
   const globalScore =
-    Number(commandCenter?.global_score ?? intelligence?.global_score ?? 0) || 0;
+    Number(commandCenter?.global_score ?? 0) || 0;
   const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
@@ -429,10 +434,7 @@ export default function Dashboard() {
   const opportunitiesCount =
     typeof commandCenter?.opportunities_count === "number"
       ? commandCenter.opportunities_count
-      : getStrategicOpportunityCount(
-          commandCenter?.opportunities ?? intelligence?.opportunities,
-          categoryOpportunities
-        );
+      : getStrategicOpportunityCount(commandCenter?.opportunities);
 
   const handleUpdateOnboarding = async () => {
     setFormModal({
@@ -1514,7 +1516,7 @@ export default function Dashboard() {
                 description="Ton Conseiller exclusif"
               />
 
-              <OpportunitiesModule intelligence={intelligence} />
+              <OpportunitiesModule commandCenter={commandCenter} />
 
               <AdvisorChat
                 recommendations={scoreAdvice}
