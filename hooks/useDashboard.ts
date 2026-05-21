@@ -29,6 +29,8 @@ const emptyFinance: FinanceData = {
   dettes: [],
 };
 
+const DASHBOARD_LIVE_REFRESH_MS = 60_000;
+
 type BillingSubscription = {
   plan?: string;
   status?: string;
@@ -367,6 +369,22 @@ export function useDashboard() {
     loadUserProfile,
   ]);
 
+  const refreshLive = useCallback(async () => {
+    await Promise.all([
+      loadBillingSubscription(),
+      loadProductContext(),
+      loadCommandCenter(),
+      loadCategoryOpportunities(),
+      loadGamification(),
+    ]);
+  }, [
+    loadBillingSubscription,
+    loadCategoryOpportunities,
+    loadCommandCenter,
+    loadGamification,
+    loadProductContext,
+  ]);
+
   const refreshAfterMutation = useCallback(async () => {
     try {
       await recalcScore();
@@ -388,24 +406,7 @@ export function useDashboard() {
 
     const loadAll = async () => {
       try {
-        await loadBillingSubscription();
-        await loadProductContext();
-        const userData = await loadUserProfile();
-
-        await loadCommandCenter();
-        await Promise.all([
-          loadPortfolio(),
-          loadWorkspaces(),
-          loadLegacyOverview(),
-          loadHistory(),
-          loadRealEstate(),
-          loadYieldAssets(),
-          loadVentureAssets(),
-          loadFinance(),
-          loadCategoryOpportunities(),
-          loadOnboarding(userData),
-          loadGamification(),
-        ]);
+        await refreshAll();
       } catch (err) {
         console.error("DASHBOARD ERROR:", err);
       } finally {
@@ -415,30 +416,18 @@ export function useDashboard() {
 
     loadAll();
 
+    let refreshInFlight = false;
     const interval = setInterval(() => {
-      refreshAll();
-    }, 10000);
+      if (document.visibilityState !== "visible" || refreshInFlight) return;
+
+      refreshInFlight = true;
+      refreshLive().finally(() => {
+        refreshInFlight = false;
+      });
+    }, DASHBOARD_LIVE_REFRESH_MS);
 
     return () => clearInterval(interval);
-  }, [
-    loadCommandCenter,
-    loadFinance,
-    loadCategoryOpportunities,
-    loadGamification,
-    loadHistory,
-    loadLegacyOverview,
-    loadRealEstate,
-    loadYieldAssets,
-    loadVentureAssets,
-    loadOnboarding,
-    loadPortfolio,
-    loadBillingSubscription,
-    loadProductContext,
-    loadWorkspaces,
-    loadUserProfile,
-    refreshAll,
-    token,
-  ]);
+  }, [refreshAll, refreshLive, token]);
 
   return {
     user,
