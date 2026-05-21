@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import type { GamificationData } from "@/lib/types";
 
@@ -30,6 +30,80 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_CACHED_MESSAGES = 40;
+
+type CachedConversation = {
+  updatedAt: number;
+  messages: ChatMessage[];
+};
+
+function getUserCacheKey() {
+  if (typeof window === "undefined") return "ethanConversation:anonymous";
+
+  const token = localStorage.getItem("token");
+  if (!token) return "ethanConversation:anonymous";
+
+  try {
+    const tokenPayload = token.split(".")[1];
+    const paddedPayload = tokenPayload.padEnd(
+      tokenPayload.length + ((4 - (tokenPayload.length % 4)) % 4),
+      "="
+    );
+    const payload = JSON.parse(
+      atob(paddedPayload.replace(/-/g, "+").replace(/_/g, "/"))
+    );
+    return `ethanConversation:${payload.sub || payload.email || payload.user_id || "user"}`;
+  } catch {
+    return "ethanConversation:user";
+  }
+}
+
+function trimMessages(messages: ChatMessage[]) {
+  if (messages.length <= MAX_CACHED_MESSAGES) return messages;
+
+  const conversation = messages.filter(
+    (message) => message.content !== initialMessages[0].content
+  );
+
+  return [
+    initialMessages[0],
+    ...conversation.slice(-(MAX_CACHED_MESSAGES - 1)),
+  ];
+}
+
+function readCachedMessages() {
+  if (typeof window === "undefined") return initialMessages;
+
+  try {
+    const raw = localStorage.getItem(getUserCacheKey());
+    if (!raw) return initialMessages;
+
+    const cached = JSON.parse(raw) as CachedConversation;
+    if (!cached.updatedAt || Date.now() - cached.updatedAt > CACHE_TTL_MS) {
+      localStorage.removeItem(getUserCacheKey());
+      return initialMessages;
+    }
+
+    return Array.isArray(cached.messages) && cached.messages.length > 0
+      ? trimMessages(cached.messages)
+      : initialMessages;
+  } catch {
+    return initialMessages;
+  }
+}
+
+function writeCachedMessages(messages: ChatMessage[]) {
+  if (typeof window === "undefined") return;
+
+  const payload: CachedConversation = {
+    updatedAt: Date.now(),
+    messages: trimMessages(messages),
+  };
+
+  localStorage.setItem(getUserCacheKey(), JSON.stringify(payload));
+}
+
 export default function AdvisorChat({
   recommendations = [],
   aiCoach,
@@ -38,10 +112,28 @@ export default function AdvisorChat({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cacheReady, setCacheReady] = useState(false);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const affiliations = aiCoach?.affiliations || [];
+
+  useEffect(() => {
+    setMessages(readCachedMessages());
+    setCacheReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!cacheReady) return;
+    writeCachedMessages(messages);
+  }, [cacheReady, messages]);
+
+  const clearConversation = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(getUserCacheKey());
+    }
+    setMessages(initialMessages);
+  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -92,7 +184,18 @@ export default function AdvisorChat({
         <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
           Conseiller Patrimonial
         </p>
-        <h2 className="mt-1 text-2xl font-black">Ethan</h2>
+        <div className="mt-1 flex items-center justify-between gap-3">
+          <h2 className="text-2xl font-black">Ethan</h2>
+          {messages.length > 1 && (
+            <button
+              type="button"
+              onClick={clearConversation}
+              className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 transition hover:border-red-400/40 hover:text-red-200"
+            >
+              Effacer
+            </button>
+          )}
+        </div>
         <p className="text-sm text-gray-400">
           Un regard calme pour transformer ton contexte en decisions simples.
         </p>
