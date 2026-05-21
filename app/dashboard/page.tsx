@@ -12,6 +12,7 @@ import {
   WealthToast,
 } from "@/components/ui/WealthUI";
 import type {
+  CategoryOpportunityData,
   FinanceEntry,
   FinancePayload,
   PortfolioAsset,
@@ -22,6 +23,7 @@ import type {
   VentureAsset,
   VentureAssetPayload,
   VentureAssetType,
+  UserIntelligence,
   YieldAsset,
   YieldAssetPayload,
   YieldAssetType,
@@ -198,6 +200,25 @@ const isRealEstatePortfolioType = (value: string) =>
   ].includes(
     value.trim().toUpperCase()
   );
+
+const getStrategicOpportunityCount = (
+  opportunities: UserIntelligence["opportunities"] | undefined,
+  categories: CategoryOpportunityData | null
+) => {
+  if (Array.isArray(opportunities)) return opportunities.length;
+
+  if (typeof opportunities?.count === "number") {
+    return opportunities.count;
+  }
+
+  if (Array.isArray(opportunities?.opportunities)) {
+    return opportunities.opportunities.length;
+  }
+
+  return categories?.categories?.filter(
+    (item) => item.detected_opportunity || item.market_signal?.headline
+  ).length || 0;
+};
 
 export default function Dashboard() {
   const {
@@ -404,9 +425,9 @@ export default function Dashboard() {
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
-  const opportunitiesCount = categoryOpportunityItems.reduce(
-    (acc, item) => acc + Number(item.count || 0),
-    0
+  const opportunitiesCount = getStrategicOpportunityCount(
+    intelligence?.opportunities,
+    categoryOpportunities
   );
 
   const handleUpdateOnboarding = async () => {

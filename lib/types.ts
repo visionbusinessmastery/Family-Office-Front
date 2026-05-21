@@ -264,6 +264,8 @@ export type OpportunityData = {
 };
 
 export type UserIntelligence = {
+  global_score?: number;
+  level?: string;
   opportunities?: OpportunityData | Opportunity[];
   strategic_intelligence?: Record<string, unknown>;
   financial_features?: Record<string, unknown>;
