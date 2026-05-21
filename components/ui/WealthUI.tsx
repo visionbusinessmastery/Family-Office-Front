@@ -62,6 +62,18 @@ export function TextField({
   placeholder,
   hint,
 }: TextFieldProps) {
+  const handleChange = (nextValue: string) => {
+    if (type === "number") {
+      const normalized = nextValue
+        .replace(",", ".")
+        .replace(/^0+(?=\d)/, "");
+      onChange(normalized === "" ? "0" : normalized);
+      return;
+    }
+
+    onChange(nextValue);
+  };
+
   return (
     <label className="block">
       <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
@@ -70,7 +82,7 @@ export function TextField({
       <input
         type={type}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => handleChange(event.target.value)}
         placeholder={placeholder}
         className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 px-3 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-[#3fa9f5]/60"
       />

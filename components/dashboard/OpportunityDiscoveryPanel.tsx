@@ -50,7 +50,7 @@ const universeCopy: Record<
   },
   business: {
     eyebrow: "Business",
-    submit: "Explorer les opportunites",
+    submit: "Explorer les opportunités",
     defaults: {
       business_type: "digital business",
       budget: "10000",
@@ -60,6 +60,54 @@ const universeCopy: Record<
       risk: "medium",
     },
   },
+};
+
+const fieldLabels: Record<string, string> = {
+  objective: "Objectif",
+  estate_type: "Type",
+  city: "Ville",
+  country: "Pays",
+  budget_min: "Budget min",
+  budget_max: "Budget max",
+  target_yield: "Rendement cible",
+  asset_classes: "Classes d'actifs",
+  strategy: "Stratégie",
+  horizon: "Horizon",
+  risk: "Risque",
+  sector: "Secteur",
+  business_type: "Type business",
+  budget: "Budget",
+  ambition: "Ambition",
+};
+
+const selectOptions: Record<string, string[]> = {
+  objective: [
+    "résidence principale",
+    "résidence secondaire",
+    "investissement locatif",
+    "achat/revente",
+    "commercial",
+  ],
+  estate_type: ["ancien", "neuf", "VEFA", "travaux", "enchères"],
+  country: ["France", "Canada", "Belgique", "Suisse", "Luxembourg", "Global"],
+  asset_classes: [
+    "stocks,etf",
+    "stocks,etf,crypto,commodities",
+    "etf,forex,commodities",
+    "crypto,stocks",
+  ],
+  strategy: ["diversification", "dividendes", "croissance", "value", "défensive"],
+  horizon: ["1 an", "3 ans", "5 ans", "10 ans", "20 ans"],
+  risk: ["low", "medium", "high"],
+  business_type: [
+    "digital business",
+    "reprise entreprise",
+    "fonds de commerce",
+    "franchise",
+    "startup",
+    "side business",
+  ],
+  ambition: ["cashflow", "croissance", "impact", "acquisition", "transmission"],
 };
 
 const formatMoney = (value?: string | number | null) => {
@@ -124,6 +172,11 @@ export default function OpportunityDiscoveryPanel({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!token) {
+      setError("Session expirée. Reconnecte-toi pour générer les signaux.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -143,7 +196,11 @@ export default function OpportunityDiscoveryPanel({
       setOpen(false);
     } catch (err) {
       console.error(err);
-      setError("Ethan n'a pas pu analyser cet univers pour le moment.");
+      setError(
+        err instanceof Error && err.message.includes("Failed to fetch")
+          ? "Connexion API impossible. Vérifie la configuration NEXT_PUBLIC_API_URL et le backend."
+          : "Ethan n'a pas pu analyser cet univers pour le moment."
+      );
     } finally {
       setLoading(false);
     }
@@ -183,12 +240,24 @@ export default function OpportunityDiscoveryPanel({
                 key={key}
                 className="flex min-w-[135px] flex-1 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 sm:flex-none"
               >
-                <span className="text-gray-500">{key.replaceAll("_", " ")}</span>
-                <input
-                  value={form[key] || ""}
-                  onChange={(event) => handleChange(key, event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-white outline-none"
-                />
+                <span className="text-gray-500">{fieldLabels[key] || key.replaceAll("_", " ")}</span>
+                {selectOptions[key] ? (
+                  <select
+                    value={form[key] || ""}
+                    onChange={(event) => handleChange(key, event.target.value)}
+                    className="min-w-0 flex-1 bg-black/20 text-white outline-none"
+                  >
+                    {selectOptions[key].map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    value={form[key] || ""}
+                    onChange={(event) => handleChange(key, event.target.value)}
+                    className="min-w-0 flex-1 bg-transparent text-white outline-none"
+                  />
+                )}
               </label>
             ))}
           </div>
@@ -308,7 +377,7 @@ export default function OpportunityDiscoveryPanel({
         </div>
       ) : (
         <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-400">
-          Lance une recherche pour obtenir jusqu&apos;a 6 opportunites priorisees par Ethan.
+          Lance une recherche pour obtenir jusqu&apos;à 6 opportunités priorisées par Ethan.
         </div>
       )}
 
@@ -334,8 +403,8 @@ export default function OpportunityDiscoveryPanel({
                   {title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                  Renseigne quelques criteres. Ethan garde une lecture simple:
-                  potentiel, risque, coherence et prochaine action.
+                  Renseigne quelques critères. Ethan garde une lecture simple:
+                  potentiel, risque, cohérence et prochaine action.
                 </p>
               </div>
               <button
@@ -351,28 +420,40 @@ export default function OpportunityDiscoveryPanel({
               {fields.map(([key]) => (
                 <label key={key} className="text-sm">
                   <span className="block text-xs uppercase tracking-widest text-gray-500">
-                    {key.replaceAll("_", " ")}
+                    {fieldLabels[key] || key.replaceAll("_", " ")}
                   </span>
-                  <input
-                    value={form[key] || ""}
-                    onChange={(event) => handleChange(key, event.target.value)}
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 px-3 py-3 text-white outline-none transition focus:border-[#3fa9f5]/60"
-                  />
+                  {selectOptions[key] ? (
+                    <select
+                      value={form[key] || ""}
+                      onChange={(event) => handleChange(key, event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 px-3 py-3 text-white outline-none transition focus:border-[#3fa9f5]/60"
+                    >
+                      {selectOptions[key].map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={form[key] || ""}
+                      onChange={(event) => handleChange(key, event.target.value)}
+                      className="mt-2 w-full rounded-xl border border-white/10 bg-black/35 px-3 py-3 text-white outline-none transition focus:border-[#3fa9f5]/60"
+                    />
+                  )}
                 </label>
               ))}
             </div>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs leading-relaxed text-gray-500">
-                Les resultats sont limites, caches et regeneres seulement si tes
-                criteres ou ton patrimoine evoluent.
+                Les résultats sont limités, cachés et régénérés seulement si tes
+                critères ou ton patrimoine évoluent.
               </p>
               <button
                 type="submit"
                 disabled={loading}
                 className="rounded-xl bg-[#3fa9f5] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#2588d2] disabled:opacity-60"
               >
-                {loading ? "Analyse en cours..." : "Generer les signaux"}
+                {loading ? "Analyse en cours..." : "Générer les signaux"}
               </button>
             </div>
           </form>

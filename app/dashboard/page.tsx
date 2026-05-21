@@ -58,6 +58,7 @@ type DashboardSection =
   | "ventures"
   | "ai"
   | "progression"
+  | "legacy"
   | "settings";
 
 type NavigationItem = {
@@ -246,6 +247,18 @@ export default function Dashboard() {
     if (!modalLoading) setFormModal(null);
   };
 
+  const goToSection = (section: DashboardSection) => {
+    setActiveSection(section);
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+  };
+
+  const interactiveCard =
+    "cursor-pointer transition hover:-translate-y-0.5 hover:border-[#3fa9f5]/40 hover:bg-white/[0.07]";
+
   if (loading) {
     return (
       <main className="relative min-h-screen overflow-hidden bg-black p-4 text-white">
@@ -380,9 +393,14 @@ export default function Dashboard() {
       description: "Ventures",
     },
     {
+      key: "legacy",
+      label: "Legacy",
+      description: "Transmission",
+    },
+    {
       key: "settings",
       label: "Family Office",
-      description: "Identite",
+      description: "Identité",
     },
   ];
   const activeNavigation = navigation.find((item) => item.key === activeSection);
@@ -925,6 +943,11 @@ export default function Dashboard() {
       }
 
       setFormModal(null);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
     } catch (err) {
       console.error(err);
       showToast(
@@ -993,8 +1016,19 @@ export default function Dashboard() {
       return (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Nom de l'actif" value={values.asset_name || ""} onChange={(value) => updateModalValue("asset_name", value)} placeholder="AAPL, BTC, EUR/USD" />
-          <TextField label="Type" value={values.asset_type || ""} onChange={(value) => updateModalValue("asset_type", value)} placeholder="STOCK, ETF, CRYPTO, FOREX" />
-          <TextField label="Quantite" type="number" value={values.quantity || "1"} onChange={(value) => updateModalValue("quantity", value)} />
+          <SelectField
+            label="Classe d'actif"
+            value={values.asset_type || ""}
+            onChange={(value) => updateModalValue("asset_type", value)}
+            options={[
+              { label: "Action", value: "STOCK" },
+              { label: "ETF", value: "ETF" },
+              { label: "Crypto", value: "CRYPTO" },
+              { label: "Forex", value: "FOREX" },
+              { label: "Commodities", value: "COMMODITIES" },
+            ]}
+          />
+          <TextField label="Quantité" type="number" value={values.quantity || "1"} onChange={(value) => updateModalValue("quantity", value)} />
           <TextField label="Prix d'achat unitaire" type="number" value={values.purchase_price || "0"} onChange={(value) => updateModalValue("purchase_price", value)} />
         </div>
       );
@@ -1005,7 +1039,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Nom du bien" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
           <TextField label="Prix d'achat" type="number" value={values.purchase_price || "0"} onChange={(value) => updateModalValue("purchase_price", value)} />
-          <TextField label="Valeur estimee / cible" type="number" value={values.estimated_value || "0"} onChange={(value) => updateModalValue("estimated_value", value)} />
+          <TextField label="Valeur estimée / cible" type="number" value={values.estimated_value || "0"} onChange={(value) => updateModalValue("estimated_value", value)} />
           <TextField label="Prix de revente cible" type="number" value={values.resale_price || "0"} onChange={(value) => updateModalValue("resale_price", value)} />
           <TextField label="Loyer mensuel" type="number" value={values.monthly_rent || "0"} onChange={(value) => updateModalValue("monthly_rent", value)} />
           <TextField label="Charges mensuelles" type="number" value={values.monthly_charges || "0"} onChange={(value) => updateModalValue("monthly_charges", value)} />
@@ -1020,9 +1054,9 @@ export default function Dashboard() {
       return (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Nom" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
-          <TextField label="Capital prete / investi" type="number" value={values.principal || "0"} onChange={(value) => updateModalValue("principal", value)} />
+          <TextField label="Capital prêté / investi" type="number" value={values.principal || "0"} onChange={(value) => updateModalValue("principal", value)} />
           <TextField label="Taux moyen annuel" type="number" value={values.average_rate || "0"} onChange={(value) => updateModalValue("average_rate", value)} />
-          <TextField label="Duree en mois" type="number" value={values.duration_months || "12"} onChange={(value) => updateModalValue("duration_months", value)} />
+          <TextField label="Durée en mois" type="number" value={values.duration_months || "12"} onChange={(value) => updateModalValue("duration_months", value)} />
           <div className="sm:col-span-2">
             <TextField label="Notes" value={values.notes || ""} onChange={(value) => updateModalValue("notes", value)} />
           </div>
@@ -1036,7 +1070,7 @@ export default function Dashboard() {
           <TextField label="Nom" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
           <TextField label="Chiffre d'affaires" type="number" value={values.revenue || "0"} onChange={(value) => updateModalValue("revenue", value)} />
           <TextField label="Charges" type="number" value={values.charges || "0"} onChange={(value) => updateModalValue("charges", value)} />
-          <TextField label="Levee de fonds" type="number" value={values.fundraising || "0"} onChange={(value) => updateModalValue("fundraising", value)} />
+          <TextField label="Levée de fonds" type="number" value={values.fundraising || "0"} onChange={(value) => updateModalValue("fundraising", value)} />
           <TextField label="Dettes" type="number" value={values.debts || "0"} onChange={(value) => updateModalValue("debts", value)} />
           <TextField label="Valorisation" type="number" value={values.valuation || "0"} onChange={(value) => updateModalValue("valuation", value)} />
           <div className="sm:col-span-2">
@@ -1123,7 +1157,7 @@ export default function Dashboard() {
                 return (
                   <button
                     key={item.key}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() => goToSection(item.key)}
                     className={`min-w-[150px] rounded-xl border px-3 py-3 text-left transition lg:min-w-0 ${
                       active
                         ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white"
@@ -1192,38 +1226,39 @@ export default function Dashboard() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <button onClick={() => goToSection("settings")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
                       <p className="text-xs text-gray-400">Patrimoine global</p>
                       <h3 className="mt-2 text-2xl font-black">
                         {money.format(globalPortfolioValue)} EUR
                       </h3>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    </button>
+                    <button onClick={() => goToSection("investments")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
                       <p className="text-xs text-gray-400">+/- value</p>
                       <h3 className={`mt-2 text-2xl font-black ${globalPortfolioGainClass}`}>
                         {globalPortfolioGain >= 0 ? "+" : ""}
                         {money.format(globalPortfolioGain)} EUR
                       </h3>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-xs text-gray-400">Completion</p>
+                    </button>
+                    <button onClick={() => goToSection("progression")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
+                      <p className="text-xs text-gray-400">Complétion</p>
                       <h3 className="mt-2 text-2xl font-black text-[#3fa9f5]">
                         {product?.data_profile?.completion_percent || 0}%
                       </h3>
-                    </div>
+                    </button>
                   </div>
                 </div>
 
                 {categoryCounts.length > 0 && (
                   <div className="mt-5 flex flex-wrap gap-2">
                     {categoryCounts.slice(0, 6).map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                      >
-                        <span className="text-gray-400">{item.label}</span>{" "}
-                        <span className="font-bold text-white">{item.value}</span>
-                      </div>
+                    <button
+                      key={item.label}
+                      onClick={() => goToSection("settings")}
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
+                    >
+                      <span className="text-gray-400">{item.label}</span>{" "}
+                      <span className="font-bold text-white">{item.value}</span>
+                    </button>
                     ))}
                   </div>
                 )}
@@ -1243,9 +1278,12 @@ export default function Dashboard() {
                 </div>
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                   {(product?.missions || []).slice(0, 3).map((mission) => (
-                    <div
+                    <button
                       key={mission.key}
-                      className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                      onClick={() => {
+                        window.location.href = "/progression/challenges";
+                      }}
+                      className={`rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left ${interactiveCard}`}
                     >
                       <div className="flex h-full flex-col justify-between gap-3">
                         <div>
@@ -1260,7 +1298,7 @@ export default function Dashboard() {
                           </span>
                         ) : null}
                       </div>
-                    </div>
+                    </button>
                   ))}
 
                   {(product?.missions || []).length === 0 && (
@@ -1478,6 +1516,32 @@ export default function Dashboard() {
               />
 
               <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
+
+              <section className={`rounded-2xl border border-white/10 bg-zinc-950 p-5 ${interactiveCard}`} onClick={() => { window.location.href = "/progression/challenges"; }}>
+                <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                  Missions
+                </p>
+                <h2 className="mt-2 text-2xl font-bold">Défis, badges et récompenses</h2>
+                <p className="mt-2 text-sm text-gray-400">
+                  Ouvre le centre de progression pour comprendre les XP, les bonus et les prochains déblocages.
+                </p>
+              </section>
+            </div>
+          )}
+
+          {activeSection === "legacy" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Legacy"
+                title="Dynasty Office"
+                description="Transmission, héritiers, gouvernance familiale, protection et stratégie long terme."
+              />
+
+              <LegacyOfficePanel
+                data={legacyOverview}
+                locked={false}
+                onUpgrade={handleUpgradePlan}
+              />
             </div>
           )}
 
@@ -1500,12 +1564,6 @@ export default function Dashboard() {
                 onSwitch={handleSwitchWorkspace}
               />
 
-              <LegacyOfficePanel
-                data={legacyOverview}
-                locked={false}
-                onUpgrade={handleUpgradePlan}
-              />
-
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -1519,7 +1577,7 @@ export default function Dashboard() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-5">
+              <section className={`rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-5 ${interactiveCard}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
@@ -1593,7 +1651,7 @@ export default function Dashboard() {
             return (
               <button
                 key={item.key}
-                onClick={() => setActiveSection(item.key)}
+                onClick={() => goToSection(item.key)}
                 className={`min-w-[70px] rounded-xl border px-2 py-1.5 text-center transition ${
                   active
                     ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white"
