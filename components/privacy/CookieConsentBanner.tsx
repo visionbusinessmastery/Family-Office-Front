@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE_URL } from "@/lib/api";
 import { ActionButton } from "@/components/ui/WealthUI";
 
@@ -32,11 +32,14 @@ function getAnonymousId() {
 }
 
 export default function CookieConsentBanner() {
-  const [visible, setVisible] = useState(() =>
-    typeof window === "undefined" ? false : !localStorage.getItem(STORAGE_KEY)
-  );
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>(defaultPreferences);
-  const anonymousId = useMemo(() => getAnonymousId(), []);
+
+  useEffect(() => {
+    setMounted(true);
+    setVisible(!localStorage.getItem(STORAGE_KEY));
+  }, []);
 
   const persist = async (next: CookiePreferences) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -47,7 +50,7 @@ export default function CookieConsentBanner() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          anonymous_id: anonymousId,
+          anonymous_id: getAnonymousId(),
           preferences: next,
         }),
       });
@@ -56,7 +59,7 @@ export default function CookieConsentBanner() {
     }
   };
 
-  if (!visible) return null;
+  if (!mounted || !visible) return null;
 
   return (
     <div className="fixed inset-x-3 bottom-3 z-[80] mx-auto max-w-4xl rounded-2xl border border-white/10 bg-zinc-950/95 p-4 text-white shadow-2xl backdrop-blur-xl sm:bottom-5 sm:p-5">
