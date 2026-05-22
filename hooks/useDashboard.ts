@@ -386,14 +386,8 @@ export function useDashboard() {
   ]);
 
   const refreshAfterMutation = useCallback(async () => {
-    try {
-      await recalcScore();
-    } catch (err) {
-      console.error("SCORE RECALC ERROR:", err);
-    }
-
     await refreshAll();
-  }, [recalcScore, refreshAll]);
+  }, [refreshAll]);
 
   useEffect(() => {
     if (!token || isJwtExpired(token)) {
