@@ -12,7 +12,6 @@ import {
   WealthToast,
 } from "@/components/ui/WealthUI";
 import type {
-  CategoryOpportunityData,
   FinanceEntry,
   FinancePayload,
   PortfolioAsset,
