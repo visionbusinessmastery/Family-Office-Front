@@ -344,6 +344,7 @@ export type OpportunityIntelligenceItem = {
 export type OpportunityIntelligenceData = {
   version?: string;
   data_hash?: string;
+  timestamp?: string;
   universe?: OpportunityUniverse;
   plan?: string;
   depth?: {
@@ -384,6 +385,7 @@ export type ScoreDetails = {
 export type CommandCenter = {
   version?: string;
   data_hash?: string;
+  timestamp?: string;
   global_score?: number;
   level?: string;
   family_office_score?: {
@@ -417,6 +419,7 @@ export type UserProfile = OnboardingData & {
 export type GamificationData = {
   version?: string;
   data_hash?: string;
+  timestamp?: string;
   xp?: number;
   level?: number | string;
   streak?: number;
