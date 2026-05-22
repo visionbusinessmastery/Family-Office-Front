@@ -421,6 +421,9 @@ export type GamificationData = {
   data_hash?: string;
   timestamp?: string;
   xp?: number;
+  xp_to_next_level?: number;
+  progress_xp?: number;
+  progress_percent?: number;
   level?: number | string;
   streak?: number;
   badges?: string[];

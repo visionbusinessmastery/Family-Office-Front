@@ -18,15 +18,21 @@ export default function GamificationPanel({
   if (!gamification) return null;
 
   const xp = Number(gamification.xp || 0);
-  const xpToNextLevel = 1000;
+  const xpToNextLevel = Number(gamification.xp_to_next_level || 1000);
   const level =
     gamification.level ?? Math.max(1, Math.floor(xp / xpToNextLevel) + 1);
   const streak = gamification.streak || 0;
   const badges = Array.isArray(gamification.badges)
     ? gamification.badges
     : [];
-  const progress = xp % xpToNextLevel;
-  const progressPercent = Math.min(100, (progress / xpToNextLevel) * 100);
+  const progress =
+    gamification.progress_xp !== undefined
+      ? Number(gamification.progress_xp || 0)
+      : xp % xpToNextLevel;
+  const progressPercent =
+    gamification.progress_percent !== undefined
+      ? Number(gamification.progress_percent || 0)
+      : Math.min(100, (progress / xpToNextLevel) * 100);
   const normalizedLevel = String(userLevel || "").toUpperCase();
   const advanced = score >= 70 || normalizedLevel === "ADVANCED";
   const legacyMode =
