@@ -118,6 +118,33 @@ const formatMoney = (value?: string | number | null) => {
   }).format(number)} EUR`;
 };
 
+const strategyLabel: Record<string, string> = {
+  cashflow: "Cashflow",
+  capital_appreciation: "Valorisation",
+  hybrid: "Hybride",
+};
+
+const horizonLabel: Record<string, string> = {
+  short: "Court terme",
+  medium: "Moyen terme",
+  long: "Long terme",
+};
+
+const riskLabel: Record<string, string> = {
+  low: "Risque faible",
+  medium: "Risque modere",
+  high: "Risque eleve",
+};
+
+const scoreBreakdownLabels: Record<string, string> = {
+  return_score: "Retour",
+  risk_score: "Risque",
+  liquidity_score: "Liquidite",
+  diversification_score: "Diversification",
+  portfolio_fit_score: "Fit",
+  novelty_score: "Nouveaute",
+};
+
 const asCriteria = (
   universe: OpportunityUniverse,
   form: Record<string, string>
@@ -289,6 +316,8 @@ export default function OpportunityDiscoveryPanel({
             const cashflow = formatMoney(item.cashflow_estimate);
             const sourceAction =
               item.universe === "real_estate" ? "Ouvrir la recherche" : "Voir la source";
+            const finalScore = item.score?.final_score ?? item.ethan_score ?? 0;
+            const breakdown = item.score?.breakdown || {};
 
             return (
               <article
@@ -307,7 +336,7 @@ export default function OpportunityDiscoveryPanel({
                       </h3>
                     </div>
                     <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-200">
-                      {Number(item.ethan_score || 0)}/100
+                      {Number(finalScore || 0)}/100
                     </span>
                   </div>
 
@@ -344,7 +373,56 @@ export default function OpportunityDiscoveryPanel({
                         </p>
                       </div>
                     )}
+                    {item.expected_return && (
+                      <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                        <p className="text-gray-500">Potentiel</p>
+                        <p className="mt-1 font-bold text-white">{item.expected_return}</p>
+                      </div>
+                    )}
                   </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                    {item.strategy_type && (
+                      <span className="rounded-full border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 px-3 py-1 font-bold text-[#8bd0ff]">
+                        {strategyLabel[item.strategy_type] || item.strategy_type}
+                      </span>
+                    )}
+                    {item.investment_horizon && (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-gray-300">
+                        {horizonLabel[item.investment_horizon] || item.investment_horizon}
+                      </span>
+                    )}
+                    {item.risk_level && (
+                      <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-amber-100">
+                        {riskLabel[item.risk_level] || item.risk_level}
+                      </span>
+                    )}
+                    {item.location && (
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-gray-300">
+                        {item.location}
+                      </span>
+                    )}
+                  </div>
+
+                  {Object.keys(breakdown).length > 0 && (
+                    <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                        Scoring multi-objectifs
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        {Object.entries(breakdown)
+                          .filter(([key]) => key !== "momentum_score")
+                          .map(([key, value]) => (
+                            <div key={key} className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.04] px-2 py-1.5">
+                              <span className="text-gray-400">
+                                {scoreBreakdownLabels[key] || key}
+                              </span>
+                              <span className="font-bold text-white">{Number(value || 0)}/100</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-4 space-y-3">
                     <div>
@@ -372,6 +450,14 @@ export default function OpportunityDiscoveryPanel({
                   <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
                     {item.next_step}
                   </p>
+                  {(item.explanation || item.why_this_is_new_vs_previous) && (
+                    <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm leading-relaxed text-gray-300">
+                      {item.explanation && <p>{item.explanation}</p>}
+                      {item.why_this_is_new_vs_previous && (
+                        <p className="mt-2 text-gray-400">{item.why_this_is_new_vs_previous}</p>
+                      )}
+                    </div>
+                  )}
                   {item.url && (
                     <a
                       href={item.url}

@@ -307,7 +307,25 @@ export type OpportunityIntelligenceItem = {
   description?: string;
   source?: string;
   url?: string | null;
+  link_or_source?: string | null;
   image_url?: string | null;
+  location?: string;
+  expected_return?: string;
+  risk_level?: string;
+  investment_horizon?: string;
+  strategy_type?: string;
+  score?: {
+    final_score?: number;
+    breakdown?: {
+      return_score?: number;
+      risk_score?: number;
+      liquidity_score?: number;
+      diversification_score?: number;
+      portfolio_fit_score?: number;
+      momentum_score?: number;
+      novelty_score?: number;
+    };
+  };
   budget?: string | number | null;
   price?: string | number | null;
   yield_percent?: string | number | null;
@@ -319,6 +337,8 @@ export type OpportunityIntelligenceItem = {
   risks?: string[];
   projection?: string;
   next_step?: string;
+  explanation?: string;
+  why_this_is_new_vs_previous?: string;
 };
 
 export type OpportunityIntelligenceData = {
