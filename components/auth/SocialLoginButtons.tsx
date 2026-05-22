@@ -62,24 +62,47 @@ export default function SocialLoginButtons({
 
   return (
     <div className={compact ? "space-y-2" : "space-y-3"}>
-      {providers.map((provider) => (
-        <button
-          key={provider.id}
-          type="button"
-          disabled={disabled || !provider.enabled || Boolean(provider.coming_soon) || Boolean(loadingProvider)}
-          onClick={() => startOAuth(provider)}
-          className={`flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold shadow-lg shadow-black/10 transition disabled:cursor-not-allowed disabled:opacity-50 ${providerStyles[provider.id] || "border-white/10 bg-white/[0.06] text-white"}`}
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/10 text-base">
-            {providerIcon[provider.id] || provider.label.slice(0, 1)}
-          </span>
-          <span>
-            {loadingProvider === provider.id
-              ? "Connexion..."
-              : `Continuer avec ${provider.label}`}
-          </span>
-        </button>
-      ))}
+      {providers.map((provider) => {
+        const providerDisabled =
+          disabled ||
+          !provider.enabled ||
+          Boolean(provider.coming_soon) ||
+          Boolean(loadingProvider);
+        const helperText = provider.coming_soon
+          ? "Bientôt disponible"
+          : !provider.enabled
+            ? "Configuration en cours"
+            : disabled
+              ? "Consentements requis"
+              : null;
+
+        return (
+          <button
+            key={provider.id}
+            type="button"
+            disabled={providerDisabled}
+            title={helperText || `Continuer avec ${provider.label}`}
+            onClick={() => startOAuth(provider)}
+            className={`flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold shadow-lg shadow-black/10 transition disabled:cursor-not-allowed disabled:opacity-60 ${providerStyles[provider.id] || "border-white/10 bg-white/[0.06] text-white"}`}
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/10 text-base">
+              {providerIcon[provider.id] || provider.label.slice(0, 1)}
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span>
+                {loadingProvider === provider.id
+                  ? "Connexion..."
+                  : `Continuer avec ${provider.label}`}
+              </span>
+              {helperText && (
+                <span className="text-[10px] font-medium opacity-70">
+                  {helperText}
+                </span>
+              )}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { GamificationData } from "@/lib/types";
 
 type GamificationProps = {
@@ -8,6 +11,12 @@ type GamificationProps = {
   onUpgrade?: (plan: string) => void;
 };
 
+type MissionAction = {
+  title: string;
+  description: string;
+  xp?: number;
+};
+
 export default function GamificationPanel({
   gamification,
   score = 0,
@@ -15,6 +24,10 @@ export default function GamificationPanel({
   plan,
   onUpgrade,
 }: GamificationProps) {
+  const [selectedAction, setSelectedAction] = useState<MissionAction | null>(
+    null
+  );
+
   if (!gamification) return null;
 
   const xp = Number(gamification.xp || 0);
@@ -41,9 +54,15 @@ export default function GamificationPanel({
   const recommendedPlan =
     gamification.upgrade?.recommended_plan?.toLowerCase() || null;
   const canUpgrade = Boolean(recommendedPlan);
-  const actions =
+  const actions: MissionAction[] =
     gamification.actions && gamification.actions.length > 0
-      ? gamification.actions
+      ? gamification.actions.map((action) => ({
+          title: action.title || "Mission",
+          description:
+            action.description ||
+            "Clarifie une action utile pour faire progresser ton cockpit.",
+          xp: action.xp,
+        }))
       : advanced
         ? legacyMode
           ? [
@@ -75,7 +94,6 @@ export default function GamificationPanel({
             },
           ]
         : [];
-
   return (
     <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-4 border border-gray-800 shadow-xl sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -160,9 +178,11 @@ export default function GamificationPanel({
 
             <div className="space-y-3">
               {actions.map((action, index) => (
-                <div
+                <button
+                  type="button"
                   key={`${action.title}-${index}`}
-                  className="rounded-lg border border-white/10 bg-black/30 p-3"
+                  onClick={() => setSelectedAction(action)}
+                  className="w-full rounded-lg border border-white/10 bg-black/30 p-3 text-left transition hover:border-emerald-300/40 hover:bg-white/[0.04]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -177,9 +197,28 @@ export default function GamificationPanel({
                       </span>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
+
+            {selectedAction && (
+              <div className="mt-4 rounded-xl border border-emerald-300/20 bg-black/40 p-3">
+                <p className="text-xs uppercase tracking-widest text-emerald-300">
+                  Détail mission
+                </p>
+                <p className="mt-2 font-semibold text-white">
+                  {selectedAction.title}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                  {selectedAction.description}
+                </p>
+                {selectedAction.xp ? (
+                  <p className="mt-2 text-xs font-bold text-emerald-300">
+                    Récompense: +{selectedAction.xp} XP
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
 
           <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/30 p-4 rounded-xl">

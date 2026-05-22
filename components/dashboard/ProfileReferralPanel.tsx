@@ -63,6 +63,18 @@ export default function ProfileReferralPanel({ level }: ProfileReferralPanelProp
     setProfile((current) => ({ ...current, [key]: value }));
   };
 
+  const handleAvatarFile = (file?: File) => {
+    if (!file || !file.type.startsWith("image/")) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateProfile("avatar_url", reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSaving(true);
@@ -105,7 +117,7 @@ export default function ProfileReferralPanel({ level }: ProfileReferralPanelProp
           </div>
           <div className="min-w-0">
             <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-              Identite patrimoniale
+              Identité patrimoniale
             </p>
             <h2 className="mt-1 text-2xl font-bold">Profil utilisateur</h2>
             <p className="mt-1 text-sm text-gray-400">
@@ -115,18 +127,28 @@ export default function ProfileReferralPanel({ level }: ProfileReferralPanelProp
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input
-            value={profile.first_name || ""}
-            onChange={(event) => updateProfile("first_name", event.target.value)}
-            placeholder="Prenom"
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          />
-          <input
-            value={profile.avatar_url || ""}
-            onChange={(event) => updateProfile("avatar_url", event.target.value)}
-            placeholder="URL avatar"
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          />
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Prénom
+            </span>
+            <input
+              value={profile.first_name || ""}
+              onChange={(event) => updateProfile("first_name", event.target.value)}
+              placeholder="Prénom"
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Photo de profil
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleAvatarFile(event.target.files?.[0])}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-gray-300 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-white"
+            />
+          </label>
           <textarea
             value={profile.bio || ""}
             onChange={(event) => updateProfile("bio", event.target.value)}
@@ -134,42 +156,69 @@ export default function ProfileReferralPanel({ level }: ProfileReferralPanelProp
             rows={3}
             className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5] sm:col-span-2"
           />
-          <input
-            value={profile.horizon || ""}
-            onChange={(event) => updateProfile("horizon", event.target.value)}
-            placeholder="Horizon"
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          />
-          <input
-            value={profile.main_currency || "EUR"}
-            onChange={(event) =>
-              updateProfile("main_currency", event.target.value.toUpperCase())
-            }
-            placeholder="Devise principale"
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          />
-          <select
-            value={profile.risk_level || "equilibre"}
-            onChange={(event) => updateProfile("risk_level", event.target.value)}
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          >
-            <option value="prudent">Prudent</option>
-            <option value="equilibre">Equilibre</option>
-            <option value="dynamique">Dynamique</option>
-          </select>
-          <select
-            value={profile.motivation || ""}
-            onChange={(event) => updateProfile("motivation", event.target.value)}
-            className="rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
-          >
-            <option value="">Motivation principale</option>
-            <option value="liberte financiere">Liberte financiere</option>
-            <option value="revenus passifs">Revenus passifs</option>
-            <option value="retraite">Retraite</option>
-            <option value="famille">Famille</option>
-            <option value="voyager">Voyager</option>
-            <option value="independance">Independance</option>
-          </select>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Horizon
+            </span>
+            <select
+              value={profile.horizon || "5-10 ans"}
+              onChange={(event) => updateProfile("horizon", event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
+            >
+              <option value="1-3 ans">1 - 3 ans</option>
+              <option value="3-5 ans">3 - 5 ans</option>
+              <option value="5-10 ans">5 - 10 ans</option>
+              <option value="10 ans et plus">10 ans et plus</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Devise du compte
+            </span>
+            <select
+              value={profile.main_currency || "EUR"}
+              onChange={(event) => updateProfile("main_currency", event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
+            >
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="CAD">CAD</option>
+              <option value="CHF">CHF</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Profil d&apos;investissement
+            </span>
+            <select
+              value={profile.risk_level || "equilibre"}
+              onChange={(event) => updateProfile("risk_level", event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
+            >
+              <option value="prudent">Prudent</option>
+              <option value="equilibre">Équilibré</option>
+              <option value="dynamique">Dynamique</option>
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+              Objectif visé
+            </span>
+            <select
+              value={profile.motivation || ""}
+              onChange={(event) => updateProfile("motivation", event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-[#3fa9f5]"
+            >
+              <option value="">Objectif visé</option>
+              <option value="liberte financiere">Liberté financière</option>
+              <option value="revenus passifs">Revenus passifs</option>
+              <option value="retraite">Retraite</option>
+              <option value="famille">Famille</option>
+              <option value="voyager">Voyager</option>
+              <option value="independance">Indépendance</option>
+            </select>
+          </label>
         </div>
 
         <button
@@ -181,10 +230,9 @@ export default function ProfileReferralPanel({ level }: ProfileReferralPanelProp
       </form>
 
       <div className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
-        <h2 className="text-2xl font-bold">Invitation</h2>
+        <h2 className="text-2xl font-bold">Inviter des amis</h2>
         <p className="mt-2 text-sm text-gray-400">
-          Invite sans pression: XP, mois offerts et recompenses pourront etre
-          branches ici.
+          Invite tes amis à découvrir l&apos;application et débloque des récompenses.
         </p>
 
         <div className="mt-5 rounded-xl border border-white/10 bg-black/40 p-4">

@@ -28,12 +28,12 @@ const propertyTypes: Array<{
 }> = [
   {
     key: "primary_residence",
-    title: "Residence principale",
-    description: "Prix d'achat, valeur estimee et plus-value latente.",
+    title: "Résidences",
+    description: "Résidence principale, secondaire ou partagée, avec valeur estimée et plus-value latente.",
   },
   {
     key: "flip",
-    title: "Achat revente",
+    title: "Achat-revente",
     description: "Prix d'achat, prix de revente cible et marge potentielle.",
   },
   {
@@ -68,13 +68,13 @@ export default function RealEstateModule({
         <div>
           <h2 className="text-2xl font-bold">Immobilier</h2>
           <p className="text-sm text-gray-400">
-            Une categorie dediee pour suivre les biens, les plus-values et le
+            Une catégorie dédiée pour suivre les biens, les plus-values et le
             rendement locatif.
           </p>
         </div>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <MetricCard label="Achat" value={formatMoney(totals.total_purchase)} />
         <MetricCard
           label="Valeur cible"
@@ -87,8 +87,12 @@ export default function RealEstateModule({
           tone={potentialGain >= 0 ? "success" : "danger"}
         />
         <MetricCard
-          label="Performance"
+          label="Performance locative"
           value={formatPercent(totals.average_rental_yield)}
+        />
+        <MetricCard
+          label="Performance globale"
+          value={formatPercent(totals.total_potential_gain_percent)}
         />
       </div>
 

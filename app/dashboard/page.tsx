@@ -225,6 +225,35 @@ const getStrategicOpportunityCount = (
   return 0;
 };
 
+const categoryNavigationTargets: Record<string, DashboardSection> = {
+  "ASSETS FINANCIERS": "investments",
+  "FOREX": "investments",
+  "IMMOBILIER": "real_estate",
+  "CROWDFUNDING": "ventures",
+  "PRIVATE EQUITY": "ventures",
+  "PRIVATE_EQUITY": "ventures",
+  "BUSINESS": "ventures",
+  "BUSINESS DIGITAL": "ventures",
+  "AI BUSINESS": "ventures",
+  "STARTUP": "ventures",
+  "FRANCHISE": "ventures",
+};
+
+const getCategoryTarget = (label: string): DashboardSection =>
+  categoryNavigationTargets[label.trim().toUpperCase()] || "settings";
+
+const buildStructuredNotes = (
+  values: Record<string, string>,
+  descriptors: Array<[string, string | undefined]>
+) => {
+  const details = descriptors
+    .filter(([, value]) => Boolean(value))
+    .map(([label, value]) => `${label}: ${value}`);
+  const notes = String(values.notes || "").trim();
+
+  return [...details, notes].filter(Boolean).join("\n") || null;
+};
+
 export default function Dashboard() {
   const {
     dashboard,
@@ -616,6 +645,10 @@ export default function Dashboard() {
       description: "Suis achat, valeur cible, plus-value et rendement dans un format unifie.",
       values: {
         name: "",
+        residence_type:
+          type === "primary_residence" ? "Résidence principale" : "",
+        property_kind: "Maison/Villa",
+        asset_usage: type === "primary_residence" ? "Usage privé" : "",
         purchase_price: "0",
         estimated_value: "0",
         resale_price: "0",
@@ -634,6 +667,9 @@ export default function Dashboard() {
       description: "Mets a jour les chiffres sans changer la logique de calcul.",
       values: {
         name: asset.name || "",
+        residence_type: "",
+        property_kind: "",
+        asset_usage: "",
         purchase_price: String(asset.purchase_price ?? 0),
         estimated_value: String(asset.estimated_value ?? asset.target_value ?? 0),
         resale_price: String(asset.resale_price ?? 0),
@@ -871,7 +907,11 @@ export default function Dashboard() {
           resale_price: resalePrice,
           monthly_rent: monthlyRent,
           monthly_charges: monthlyCharges,
-          notes: values.notes || null,
+          notes: buildStructuredNotes(values, [
+            ["Type de résidence", values.residence_type],
+            ["Type de bien", values.property_kind],
+            ["Usage", values.asset_usage],
+          ]),
         };
 
         await apiRequest(
@@ -1061,9 +1101,44 @@ export default function Dashboard() {
     }
 
     if (formModal.kind === "real_estate") {
+      const propertyType = formModal.context?.propertyType;
+
       return (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Nom du bien" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+          {propertyType === "primary_residence" && (
+            <SelectField
+              label="Type de résidence"
+              value={values.residence_type || "Résidence principale"}
+              onChange={(value) => updateModalValue("residence_type", value)}
+              options={[
+                { label: "Résidence principale", value: "Résidence principale" },
+                { label: "Résidence secondaire", value: "Résidence secondaire" },
+                { label: "Résidence partagée", value: "Résidence partagée" },
+              ]}
+            />
+          )}
+          <SelectField
+            label="Type de bien"
+            value={values.property_kind || "Maison/Villa"}
+            onChange={(value) => updateModalValue("property_kind", value)}
+            options={[
+              { label: "Maison / Villa", value: "Maison/Villa" },
+              { label: "Appartement", value: "Appartement" },
+              { label: "Autre", value: "Autre" },
+            ]}
+          />
+          {(propertyType === "flip" || propertyType === "rental") && (
+            <SelectField
+              label="Usage"
+              value={values.asset_usage || "Usage privé"}
+              onChange={(value) => updateModalValue("asset_usage", value)}
+              options={[
+                { label: "Usage privé", value: "Usage privé" },
+                { label: "Usage commercial", value: "Usage commercial" },
+              ]}
+            />
+          )}
           <TextField label="Prix d'achat" type="number" value={values.purchase_price || "0"} onChange={(value) => updateModalValue("purchase_price", value)} />
           <TextField label="Valeur estimée / cible" type="number" value={values.estimated_value || "0"} onChange={(value) => updateModalValue("estimated_value", value)} />
           <TextField label="Prix de revente cible" type="number" value={values.resale_price || "0"} onChange={(value) => updateModalValue("resale_price", value)} />
@@ -1231,6 +1306,9 @@ export default function Dashboard() {
                 gain={globalPortfolioGain}
                 product={product}
                 opportunitiesCount={opportunitiesCount}
+                onOpenStatus={() => goToSection("progression")}
+                onOpenAction={() => goToSection("progression")}
+                onOpenOpportunities={() => goToSection("ai")}
               />
 
               <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
@@ -1279,7 +1357,7 @@ export default function Dashboard() {
                     {categoryCounts.slice(0, 6).map((item) => (
                     <button
                       key={item.label}
-                      onClick={() => goToSection("settings")}
+                      onClick={() => goToSection(getCategoryTarget(item.label))}
                       className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
                     >
                       <span className="text-gray-400">{item.label}</span>{" "}
@@ -1348,6 +1426,7 @@ export default function Dashboard() {
                     realEstate={realEstate}
                     yieldAssets={yieldAssets}
                     ventureAssets={ventureAssets}
+                    finance={finance}
                   />
                 ) : (
                   <LockedSection
@@ -1417,7 +1496,7 @@ export default function Dashboard() {
 
               {hasModule("diversification") ? (
                 <section className="grid grid-cols-1 gap-5">
-                  <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} />
+                  <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} finance={finance} />
                 </section>
               ) : (
                 <LockedSection
@@ -1593,10 +1672,9 @@ export default function Dashboard() {
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold">Preferences</h2>
+                    <h2 className="text-2xl font-bold">Préférences</h2>
                     <p className="mt-2 text-sm text-gray-400">
-                      Les themes premium sont prepares pour personnaliser
-                      l&apos;experience sans alourdir l&apos;interface.
+                      Changer le thème
                     </p>
                   </div>
                   <ThemeSwitcher />

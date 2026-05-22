@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type {
   CommandCenter,
   Opportunity,
@@ -27,6 +28,8 @@ const normalizeOpportunities = (
 export default function OpportunitiesModule({
   commandCenter,
 }: OpportunitiesModuleProps) {
+  const [selectedOpportunity, setSelectedOpportunity] =
+    useState<Opportunity | null>(null);
   const opportunities = normalizeOpportunities(commandCenter?.opportunities);
   const detectedCount =
     typeof commandCenter?.opportunities_count === "number"
@@ -77,9 +80,11 @@ export default function OpportunitiesModule({
               priorityClasses[priority] || priorityClasses.medium;
 
             return (
-              <article
+              <button
+                type="button"
                 key={`${opportunity.type || opportunity.title}-${index}`}
-                className="border border-white/10 bg-white/5 rounded-2xl p-4"
+                onClick={() => setSelectedOpportunity(opportunity)}
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.07]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -87,7 +92,8 @@ export default function OpportunitiesModule({
                       {opportunity.title || "Opportunite"}
                     </h3>
                     <p className="text-sm text-gray-400 mt-2">
-                      {opportunity.description || "Analyse en cours."}
+                      {opportunity.description ||
+                        "Signal détecté par Ethan. Ouvre le détail pour clarifier l'action, le niveau de risque et la prochaine vérification utile."}
                     </p>
                   </div>
 
@@ -112,10 +118,56 @@ export default function OpportunitiesModule({
                     Signal premium
                   </p>
                 )}
-              </article>
+              </button>
             );
           })}
         </div>
+
+      {selectedOpportunity && (
+        <div className="mt-5 rounded-2xl border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                Détail opportunité
+              </p>
+              <h3 className="mt-1 text-lg font-bold text-white">
+                {selectedOpportunity.title || "Opportunité"}
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedOpportunity(null)}
+              className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 hover:text-white"
+            >
+              Fermer
+            </button>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-gray-300">
+            {selectedOpportunity.description ||
+              "Ethan a identifié ce signal comme pertinent pour ton cockpit. Vérifie le budget disponible, l'exposition actuelle et la prochaine action concrète avant de l'ajouter à ton plan."}
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="text-xs text-gray-500">Type</p>
+              <p className="mt-1 font-bold text-white">
+                {selectedOpportunity.type || "signal"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="text-xs text-gray-500">Priorité</p>
+              <p className="mt-1 font-bold text-white">
+                {selectedOpportunity.priority || "medium"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="text-xs text-gray-500">Score</p>
+              <p className="mt-1 font-bold text-[#3fa9f5]">
+                {selectedOpportunity.score || 0}/100
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

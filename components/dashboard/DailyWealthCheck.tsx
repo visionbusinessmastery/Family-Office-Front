@@ -7,6 +7,9 @@ type DailyWealthCheckProps = {
   gain: number;
   product?: ProductContext | null;
   opportunitiesCount?: number;
+  onOpenStatus?: () => void;
+  onOpenAction?: () => void;
+  onOpenOpportunities?: () => void;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -18,6 +21,9 @@ export default function DailyWealthCheck({
   gain,
   product,
   opportunitiesCount = 0,
+  onOpenStatus,
+  onOpenAction,
+  onOpenOpportunities,
 }: DailyWealthCheckProps) {
   const mission = product?.missions?.[0];
   const completion = product?.data_profile?.completion_percent || 0;
@@ -59,7 +65,11 @@ export default function DailyWealthCheck({
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+        <button
+          type="button"
+          onClick={onOpenStatus}
+          className="rounded-xl border border-white/10 bg-black/30 p-4 text-left transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.04]"
+        >
           <p className="text-xs uppercase tracking-widest text-gray-500">
             Statut
           </p>
@@ -68,9 +78,13 @@ export default function DailyWealthCheck({
             Le niveau reflete ton activite et ta qualite de pilotage, pas
             seulement ton abonnement.
           </p>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+        <button
+          type="button"
+          onClick={onOpenAction}
+          className="rounded-xl border border-white/10 bg-black/30 p-4 text-left transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.04]"
+        >
           <p className="text-xs uppercase tracking-widest text-gray-500">
             Action du jour
           </p>
@@ -81,9 +95,13 @@ export default function DailyWealthCheck({
             {mission?.description ||
               "Une petite action suffit pour rendre ton cockpit plus precis demain."}
           </p>
-        </div>
+        </button>
 
-        <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+        <button
+          type="button"
+          onClick={onOpenOpportunities}
+          className="rounded-xl border border-white/10 bg-black/30 p-4 text-left transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.04]"
+        >
           <p className="text-xs uppercase tracking-widest text-gray-500">
             Signal
           </p>
@@ -95,7 +113,7 @@ export default function DailyWealthCheck({
           <p className="mt-1 text-xs text-gray-400">
             Priorise ce qui peut reduire le risque ou accelerer ta trajectoire.
           </p>
-        </div>
+        </button>
       </div>
     </section>
   );

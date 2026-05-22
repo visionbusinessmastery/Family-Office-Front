@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  FinanceData,
   PortfolioAsset,
   RealEstateData,
   VentureAssetData,
@@ -20,6 +21,7 @@ type ExposureBreakdownProps = {
   realEstate?: RealEstateData | null;
   yieldAssets?: YieldAssetData | null;
   ventureAssets?: VentureAssetData | null;
+  finance?: FinanceData;
 };
 
 const money = new Intl.NumberFormat("fr-FR", {
@@ -44,6 +46,7 @@ export default function ExposureBreakdown({
   realEstate,
   yieldAssets,
   ventureAssets,
+  finance,
 }: ExposureBreakdownProps) {
   const exposure = portfolio.reduce<Record<string, number>>((acc, asset) => {
     const key = normalizeType(asset.asset_type || asset.type || "Autre");
@@ -89,6 +92,15 @@ export default function ExposureBreakdown({
   Object.entries(ventureExposure).forEach(([key, value]) => {
     if (value > 0) exposure[key] = (exposure[key] || 0) + value;
   });
+
+  const debtExposure = (finance?.dettes || []).reduce(
+    (acc, item) => acc + Number(item.amount || 0),
+    0
+  );
+
+  if (debtExposure > 0) {
+    exposure.DETTES = debtExposure;
+  }
 
   const data = Object.entries(exposure)
     .map(([name, value]) => ({ name, value }))

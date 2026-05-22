@@ -16,6 +16,8 @@ export default function ThemeSwitcher() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme =
+      theme === "light" ? "light" : "dark";
   }, [theme]);
 
   const updateTheme = (nextTheme: string) => {

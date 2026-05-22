@@ -37,6 +37,38 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+:root[data-theme="light"] .bg-black,
+:root[data-theme="light"] .bg-zinc-950 {
+  background-color: #f6f8fb !important;
+}
+
+:root[data-theme="light"] .bg-zinc-950\/70 {
+  background-color: rgba(246, 248, 251, 0.88) !important;
+}
+
+:root[data-theme="light"] .bg-white\/5,
+:root[data-theme="light"] .bg-white\/\[0\.03\],
+:root[data-theme="light"] .bg-white\/\[0\.04\],
+:root[data-theme="light"] .bg-black\/30,
+:root[data-theme="light"] .bg-black\/40,
+:root[data-theme="light"] .bg-black\/50 {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+:root[data-theme="light"] .text-white {
+  color: #111827 !important;
+}
+
+:root[data-theme="light"] .text-gray-300,
+:root[data-theme="light"] .text-gray-400,
+:root[data-theme="light"] .text-gray-500 {
+  color: #475467 !important;
+}
+
+:root[data-theme="light"] .border-white\/10 {
+  border-color: rgba(17, 24, 39, 0.12) !important;
+}
+
 .wealth-line {
   fill: none;
   stroke: rgba(63, 169, 245, 0.55);

@@ -58,6 +58,32 @@ export default function VentureAssetsModule({
         <MetricCard label="Valorisation / final" value={`${money.format(n(totals.total_final_value))} EUR`} tone="primary" />
       </div>
 
+      <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-amber-200">
+              Rachat d&apos;entreprise
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-white">
+              Reprise et fonds de commerce
+            </h3>
+            <p className="mt-1 text-sm text-gray-400">
+              Ces volets utilisent la rubrique Business existante pour rester compatibles avec le moteur actuel.
+            </p>
+          </div>
+          {onAdd && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ActionButton onClick={() => onAdd("business")} variant="secondary">
+                Rachat / Reprise
+              </ActionButton>
+              <ActionButton onClick={() => onAdd("business")} variant="secondary">
+                Fonds de commerce
+              </ActionButton>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {types.map((type) => {
           const rows = assets.filter((asset) => asset.asset_type === type.key);

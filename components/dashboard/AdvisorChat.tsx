@@ -113,6 +113,11 @@ export default function AdvisorChat({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
+  const [detail, setDetail] = useState<{
+    title: string;
+    body: string;
+    tone?: "blue" | "amber" | "cyan";
+  } | null>(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -226,7 +231,19 @@ export default function AdvisorChat({
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 transition hover:border-white/20">
+        <button
+          type="button"
+          onClick={() =>
+            setDetail({
+              title: "Guidance du jour",
+              body:
+                aiCoach?.message ||
+                "Complète ton cockpit avec une donnée utile, puis reviens vérifier l'impact sur ton score et tes prochaines actions.",
+              tone: "cyan",
+            })
+          }
+          className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20"
+        >
           <h3 className="font-bold text-white mb-2">Guidance du jour</h3>
 
           <p className="text-sm text-gray-300 leading-relaxed">
@@ -234,11 +251,26 @@ export default function AdvisorChat({
               "Tu construis une vraie base patrimoniale. Continue a completer ton cockpit, une donnee utile a la fois."}
           </p>
 
-        </div>
+        </button>
 
-        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 transition hover:border-amber-300/35">
+        <button
+          type="button"
+          onClick={() =>
+            setDetail({
+              title: "Opportunités partenaires",
+              body:
+                affiliations.length > 0
+                  ? affiliations
+                      .map((item) => `${item.title}: ${item.reason}`)
+                      .join("\n")
+                  : "Aucun partenaire prioritaire pour le moment. Ethan n'affiche cette zone que lorsqu'une proposition est cohérente avec ton profil.",
+              tone: "amber",
+            })
+          }
+          className="w-full rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-left transition hover:border-amber-300/35"
+        >
           <h3 className="font-bold text-amber-200 mb-3">
-            Opportunites partenaires
+            Opportunités partenaires
           </h3>
 
           {affiliations.length > 0 ? (
@@ -260,13 +292,25 @@ export default function AdvisorChat({
               Ethan proposera des partenaires uniquement lorsqu&apos;ils sont coherents avec ton profil.
             </p>
           )}
-        </div>
+        </button>
 
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 transition hover:border-blue-400/40">
+        <button
+          type="button"
+          onClick={() =>
+            setDetail({
+              title: notification?.title || "Notifications Ethan",
+              body:
+                notification?.message ||
+                "Aucune alerte urgente pour l'instant. Les notifications apparaîtront ici lorsqu'un signal mérite ton attention.",
+              tone: "blue",
+            })
+          }
+          className="w-full rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left transition hover:border-blue-400/40"
+        >
           <h3 className="font-bold text-blue-400 mb-2">Notification</h3>
 
           <p className="text-sm text-white">
-            {notification?.title || "Aucune notification"}
+            {notification?.title || "Aucune alerte urgente"}
           </p>
 
           {notification?.message && (
@@ -274,7 +318,30 @@ export default function AdvisorChat({
               {notification.message}
             </p>
           )}
-        </div>
+        </button>
+
+        {detail && (
+          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                  Détail
+                </p>
+                <h3 className="mt-1 font-bold text-white">{detail.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetail(null)}
+                className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 hover:text-white"
+              >
+                Fermer
+              </button>
+            </div>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-300">
+              {detail.body}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">
