@@ -30,6 +30,9 @@ const money = new Intl.NumberFormat("fr-FR", {
 
 const colors = ["#3fa9f5", "#22c55e", "#f97316", "#eab308", "#a855f7", "#ef4444"];
 
+const getColor = (name: string, index: number) =>
+  name === "DETTES" ? "#ef4444" : colors[index % colors.length];
+
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
@@ -173,7 +176,7 @@ export default function ExposureBreakdown({
                 {data.map((entry, index) => (
                   <Cell
                     key={entry.name}
-                    fill={colors[index % colors.length]}
+                    fill={getColor(entry.name, index)}
                   />
                 ))}
               </Pie>
@@ -195,7 +198,7 @@ export default function ExposureBreakdown({
                   <div className="flex items-center gap-2">
                     <span
                       className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: colors[index % colors.length] }}
+                      style={{ backgroundColor: getColor(item.name, index) }}
                     />
                     <span className="font-semibold">{item.name}</span>
                   </div>
@@ -208,7 +211,7 @@ export default function ExposureBreakdown({
                     className="h-full rounded-full"
                     style={{
                       width: `${Math.min(percent, 100)}%`,
-                      backgroundColor: colors[index % colors.length],
+                      backgroundColor: getColor(item.name, index),
                     }}
                   />
                 </div>

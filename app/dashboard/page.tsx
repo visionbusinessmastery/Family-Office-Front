@@ -29,6 +29,7 @@ import type {
 
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
+import ChartModule from "@/components/dashboard/ChartModule";
 import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
 import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
@@ -258,6 +259,7 @@ export default function Dashboard() {
   const {
     dashboard,
     portfolio,
+    history,
     realEstate,
     yieldAssets,
     ventureAssets,
@@ -1125,6 +1127,8 @@ export default function Dashboard() {
             options={[
               { label: "Maison / Villa", value: "Maison/Villa" },
               { label: "Appartement", value: "Appartement" },
+              { label: "Bureaux", value: "Bureaux" },
+              { label: "Locaux commerciaux", value: "Locaux commerciaux" },
               { label: "Autre", value: "Autre" },
             ]}
           />
@@ -1437,6 +1441,15 @@ export default function Dashboard() {
                 )}
               </section>
 
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
+                <ChartModule
+                  history={history}
+                  initialInvestment={initialInvestment}
+                  currentValue={globalPortfolioValue}
+                  currentInvestment={initialInvestment}
+                />
+              </section>
+
               <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
             </div>
           )}
@@ -1710,6 +1723,22 @@ export default function Dashboard() {
                   Plan actuel: {product?.plan || dashboard?.plan || "charge"}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    onClick={() => {
+                      window.location.href = "/plans/standard";
+                    }}
+                    className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"
+                  >
+                    Standard Plans
+                  </button>
+                  <button
+                    onClick={() => {
+                      window.location.href = "/plans/founder";
+                    }}
+                    className="rounded-xl border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-semibold text-orange-200"
+                  >
+                    Founder Plans
+                  </button>
                   <button
                     onClick={() => handleUpgradePlan("gold")}
                     className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"

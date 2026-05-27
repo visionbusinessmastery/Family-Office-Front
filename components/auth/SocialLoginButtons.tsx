@@ -53,7 +53,16 @@ export default function SocialLoginButtons({
   }, []);
 
   const startOAuth = (provider: Provider) => {
-    if (disabled || !provider.enabled || provider.coming_soon) return;
+    if (disabled) {
+      window.alert("Accepte les conditions requises avant de continuer avec un provider social.");
+      return;
+    }
+
+    if (!provider.enabled || provider.coming_soon) {
+      window.alert(`${provider.label} OAuth est en cours de configuration.`);
+      return;
+    }
+
     setLoadingProvider(provider.id);
     window.location.assign(
       `${API_BASE_URL}/auth/oauth/${provider.id}/start?redirect=${encodeURIComponent(redirect)}`
@@ -64,9 +73,6 @@ export default function SocialLoginButtons({
     <div className={compact ? "space-y-2" : "space-y-3"}>
       {providers.map((provider) => {
         const providerDisabled =
-          disabled ||
-          !provider.enabled ||
-          Boolean(provider.coming_soon) ||
           Boolean(loadingProvider);
         const helperText = provider.coming_soon
           ? "Bientôt disponible"

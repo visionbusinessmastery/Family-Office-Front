@@ -25,12 +25,83 @@ const normalizeOpportunities = (
   return (opportunities as OpportunityData | undefined)?.opportunities || [];
 };
 
+const typeCopy: Record<string, { focus: string; impact: string; risk: string }> = {
+  real_estate: {
+    focus: "renforcer la poche immobilière sans surcharger ta liquidité",
+    impact: "améliorer la stabilité patrimoniale si le rendement net reste cohérent avec tes charges",
+    risk: "la liquidité et les travaux doivent rester sous contrôle avant engagement",
+  },
+  investments: {
+    focus: "équilibrer l'allocation financière et réduire les concentrations",
+    impact: "augmenter la diversification sans créer une exposition excessive à la volatilité",
+    risk: "le timing d'entrée et la corrélation avec tes positions actuelles sont les points à vérifier",
+  },
+  business: {
+    focus: "créer une poche de cashflow ou de valorisation entrepreneuriale",
+    impact: "accélérer la trajectoire si le risque opérationnel reste maîtrisé",
+    risk: "le temps disponible, les charges fixes et la dépendance au fondateur doivent être clarifiés",
+  },
+  strategic: {
+    focus: "transformer ton score en plan d'action concret",
+    impact: "réduire les angles morts et prioriser ce qui influence vraiment ton cockpit",
+    risk: "l'enjeu est d'éviter de multiplier les actions sans arbitrage clair",
+  },
+};
+
+const getOpportunityTypeKey = (opportunity: Opportunity) =>
+  String(opportunity.type || "").toLowerCase();
+
+const buildOpportunityInsight = (
+  opportunity: Opportunity,
+  globalScore: number
+) => {
+  const typeKey = getOpportunityTypeKey(opportunity);
+  const copy =
+    typeCopy[typeKey] ||
+    typeCopy[
+      typeKey.includes("real") || typeKey.includes("immo")
+        ? "real_estate"
+        : typeKey.includes("business") || typeKey.includes("venture")
+          ? "business"
+          : typeKey.includes("invest")
+            ? "investments"
+            : "strategic"
+    ];
+  const priority =
+    opportunity.priority === "high"
+      ? "prioritaire"
+      : opportunity.priority === "low"
+        ? "à garder en veille"
+        : "à qualifier";
+
+  return `Avec un score cockpit de ${globalScore}/100, ce signal est ${priority}: il peut ${copy.impact}. L'angle utile ici est de ${copy.focus}. Point de vigilance: ${copy.risk}.`;
+};
+
+const buildOpportunityNextStep = (opportunity: Opportunity) => {
+  const typeKey = getOpportunityTypeKey(opportunity);
+
+  if (typeKey.includes("real") || typeKey.includes("immo")) {
+    return "Prochaine action: compare le rendement net, la fiscalité locale et le besoin de trésorerie avant toute visite ou simulation.";
+  }
+
+  if (typeKey.includes("business") || typeKey.includes("venture")) {
+    return "Prochaine action: vérifie le cashflow disponible, le niveau d'implication requis et le risque de dépendance opérationnelle.";
+  }
+
+  if (typeKey.includes("invest")) {
+    return "Prochaine action: mesure l'effet sur ta diversification et évite d'ajouter une ligne trop corrélée à tes positions actuelles.";
+  }
+
+  return "Prochaine action: choisis une décision simple à exécuter cette semaine, puis mesure son effet sur ton score et ta clarté patrimoniale.";
+};
+
 export default function OpportunitiesModule({
   commandCenter,
 }: OpportunitiesModuleProps) {
   const [selectedOpportunity, setSelectedOpportunity] =
     useState<Opportunity | null>(null);
   const opportunities = normalizeOpportunities(commandCenter?.opportunities);
+  const globalScore = Number(commandCenter?.global_score || 0);
   const detectedCount =
     typeof commandCenter?.opportunities_count === "number"
       ? commandCenter.opportunities_count
@@ -93,7 +164,7 @@ export default function OpportunitiesModule({
                     </h3>
                     <p className="text-sm text-gray-400 mt-2">
                       {opportunity.description ||
-                        "Signal détecté par Ethan. Ouvre le détail pour clarifier l'action, le niveau de risque et la prochaine vérification utile."}
+                        buildOpportunityInsight(opportunity, globalScore)}
                     </p>
                   </div>
 
@@ -144,7 +215,7 @@ export default function OpportunitiesModule({
           </div>
           <p className="mt-3 text-sm leading-relaxed text-gray-300">
             {selectedOpportunity.description ||
-              "Ethan a identifié ce signal comme pertinent pour ton cockpit. Vérifie le budget disponible, l'exposition actuelle et la prochaine action concrète avant de l'ajouter à ton plan."}
+              buildOpportunityInsight(selectedOpportunity, globalScore)}
           </p>
           <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div className="rounded-xl border border-white/10 bg-black/30 p-3">
@@ -166,6 +237,9 @@ export default function OpportunitiesModule({
               </p>
             </div>
           </div>
+          <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
+            {buildOpportunityNextStep(selectedOpportunity)}
+          </p>
         </div>
       )}
     </section>
