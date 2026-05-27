@@ -169,59 +169,30 @@ const preserveHighestDashboard = (
 export function useDashboard() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const cachedSession = readCachedDashboardSession(token);
 
-  const [user, setUser] = useState<UserProfile | null>(cachedSession?.user || null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(
-    cachedSession?.dashboard || readCachedDashboard
+    readCachedDashboard
   );
-  const [score, setScore] = useState<number>(cachedSession?.score || 0);
-  const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(
-    cachedSession?.scoreDetails || null
-  );
-  const [scoreAdvice, setScoreAdvice] = useState<string[]>(cachedSession?.scoreAdvice || []);
-  const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(
-    cachedSession?.commandCenter || null
-  );
-  const [gamification, setGamification] = useState<GamificationData | null>(
-    cachedSession?.gamification || null
-  );
-  const [portfolio, setPortfolio] = useState<PortfolioAsset[]>(
-    cachedSession?.portfolio || []
-  );
-  const [history, setHistory] = useState<PortfolioHistoryPoint[]>(
-    cachedSession?.history || []
-  );
-  const [realEstate, setRealEstate] = useState<RealEstateData | null>(
-    cachedSession?.realEstate || null
-  );
-  const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(
-    cachedSession?.yieldAssets || null
-  );
-  const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(
-    cachedSession?.ventureAssets || null
-  );
-  const [onboarding, setOnboarding] = useState<OnboardingData | null>(
-    cachedSession?.onboarding || null
-  );
-  const [intelligence, setIntelligence] = useState<UserIntelligence | null>(
-    cachedSession?.intelligence || null
-  );
+  const [score, setScore] = useState<number>(0);
+  const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(null);
+  const [scoreAdvice, setScoreAdvice] = useState<string[]>([]);
+  const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(null);
+  const [gamification, setGamification] = useState<GamificationData | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
+  const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
+  const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
+  const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
+  const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
+  const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [categoryOpportunities, setCategoryOpportunities] =
-    useState<CategoryOpportunityData | null>(cachedSession?.categoryOpportunities || null);
-  const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(
-    cachedSession?.workspaces || null
-  );
-  const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(
-    cachedSession?.legacyOverview || null
-  );
-  const [product, setProduct] = useState<ProductContext | null>(
-    cachedSession?.product || null
-  );
-  const [finance, setFinance] = useState<FinanceData>(
-    cachedSession?.finance || emptyFinance
-  );
-  const [loading, setLoading] = useState(!cachedSession);
+    useState<CategoryOpportunityData | null>(null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
+  const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
+  const [product, setProduct] = useState<ProductContext | null>(null);
+  const [finance, setFinance] = useState<FinanceData>(emptyFinance);
+  const [loading, setLoading] = useState(true);
 
   const applyUserProfile = useCallback((userData: UserProfile | null) => {
     if (!userData) return;
@@ -259,6 +230,28 @@ export function useDashboard() {
     },
     [token]
   );
+
+  const applyDashboardSession = useCallback((snapshot: DashboardSessionSnapshot) => {
+    setUser(snapshot.user);
+    setDashboard(snapshot.dashboard);
+    setScore(snapshot.score);
+    setScoreDetails(snapshot.scoreDetails);
+    setScoreAdvice(snapshot.scoreAdvice);
+    setCommandCenter(snapshot.commandCenter);
+    setGamification(snapshot.gamification);
+    setPortfolio(snapshot.portfolio);
+    setHistory(snapshot.history);
+    setRealEstate(snapshot.realEstate);
+    setYieldAssets(snapshot.yieldAssets);
+    setVentureAssets(snapshot.ventureAssets);
+    setOnboarding(snapshot.onboarding);
+    setIntelligence(snapshot.intelligence);
+    setCategoryOpportunities(snapshot.categoryOpportunities);
+    setWorkspaces(snapshot.workspaces);
+    setLegacyOverview(snapshot.legacyOverview);
+    setProduct(snapshot.product);
+    setFinance(snapshot.finance);
+  }, []);
 
   const loadUserProfile = useCallback(async () => {
     const userData = await safeFetch<UserProfile>("/auth/me");
@@ -485,6 +478,15 @@ export function useDashboard() {
       return;
     }
 
+    let cacheHydrationTimeout: ReturnType<typeof setTimeout> | null = null;
+    const cachedSession = readCachedDashboardSession(token);
+    if (cachedSession) {
+      cacheHydrationTimeout = setTimeout(() => {
+        applyDashboardSession(cachedSession);
+        setLoading(false);
+      }, 0);
+    }
+
     const loadAll = async () => {
       try {
         await refreshAll();
@@ -507,8 +509,11 @@ export function useDashboard() {
       });
     }, DASHBOARD_LIVE_REFRESH_MS);
 
-    return () => clearInterval(interval);
-  }, [refreshAll, refreshLive, token]);
+    return () => {
+      if (cacheHydrationTimeout) clearTimeout(cacheHydrationTimeout);
+      clearInterval(interval);
+    };
+  }, [applyDashboardSession, refreshAll, refreshLive, token]);
 
   useEffect(() => {
     if (loading) return;

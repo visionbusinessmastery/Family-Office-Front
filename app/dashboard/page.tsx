@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -292,6 +292,21 @@ export default function Dashboard() {
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "success") return;
+
+    const timeoutId = window.setTimeout(() => {
+      setToast({
+        message: "Paiement confirme. Ton abonnement est en cours de synchronisation.",
+        type: "success",
+      });
+      router.replace("/dashboard", { scroll: false });
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [router]);
 
   const updateModalValue = (key: string, value: string) => {
     setFormModal((current) =>
