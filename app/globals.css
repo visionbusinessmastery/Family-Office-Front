@@ -37,44 +37,86 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+:root[data-theme="light"] {
+  --wr-surface: #ffffff;
+  --wr-surface-soft: rgba(255, 255, 255, 0.88);
+  --wr-surface-muted: #f6f8fb;
+  --wr-surface-blue: #eef6ff;
+  --wr-ink: #111827;
+  --wr-muted: #475467;
+  --wr-subtle: #667085;
+  --wr-border: rgba(17, 24, 39, 0.12);
+  --wr-blue: #0f86d9;
+  --wr-amber: #c2410c;
+}
+
 :root[data-theme="light"] .bg-black,
-:root[data-theme="light"] .bg-zinc-950 {
-  background-color: #f6f8fb !important;
+:root[data-theme="light"] .bg-zinc-950,
+:root[data-theme="light"] .bg-zinc-900 {
+  background-color: var(--wr-surface-muted) !important;
 }
 
-:root[data-theme="light"] .bg-zinc-950\/70 {
-  background-color: rgba(246, 248, 251, 0.88) !important;
-}
-
+:root[data-theme="light"] .bg-black\/92,
+:root[data-theme="light"] .bg-black\/80,
+:root[data-theme="light"] .bg-black\/75,
+:root[data-theme="light"] .bg-black\/70,
+:root[data-theme="light"] .bg-black\/60,
+:root[data-theme="light"] .bg-black\/55,
+:root[data-theme="light"] .bg-black\/50,
+:root[data-theme="light"] .bg-black\/45,
+:root[data-theme="light"] .bg-black\/40,
+:root[data-theme="light"] .bg-black\/35,
+:root[data-theme="light"] .bg-black\/30,
+:root[data-theme="light"] .bg-black\/25,
+:root[data-theme="light"] .bg-black\/20,
+:root[data-theme="light"] .bg-zinc-950\/90,
+:root[data-theme="light"] .bg-zinc-950\/70,
+:root[data-theme="light"] .bg-white\/10,
 :root[data-theme="light"] .bg-white\/5,
 :root[data-theme="light"] .bg-white\/\[0\.03\],
 :root[data-theme="light"] .bg-white\/\[0\.04\],
-:root[data-theme="light"] .bg-black\/30,
-:root[data-theme="light"] .bg-black\/40,
-:root[data-theme="light"] .bg-black\/50 {
-  background-color: rgba(255, 255, 255, 0.82) !important;
-}
-
-:root[data-theme="light"] .text-white {
-  color: #111827 !important;
-}
-
-:root[data-theme="light"] .text-gray-300,
-:root[data-theme="light"] .text-gray-400,
-:root[data-theme="light"] .text-gray-500 {
-  color: #475467 !important;
-}
-
-:root[data-theme="light"] .border-white\/10 {
-  border-color: rgba(17, 24, 39, 0.12) !important;
+:root[data-theme="light"] .bg-white\/\[0\.05\],
+:root[data-theme="light"] .bg-white\/\[0\.06\],
+:root[data-theme="light"] .bg-white\/\[0\.07\] {
+  background-color: var(--wr-surface-soft) !important;
 }
 
 :root[data-theme="light"] .bg-gradient-to-br {
-  background-image: linear-gradient(135deg, #ffffff, #f6f8fb 52%, #edf4ff) !important;
+  background-image: linear-gradient(135deg, #ffffff, #f7fbff 54%, #edf4ff) !important;
 }
 
 :root[data-theme="light"] .bg-gradient-to-r {
-  background-image: linear-gradient(90deg, #f8fafc, #fff7ed) !important;
+  background-image: linear-gradient(90deg, #ffffff, #f7fbff 55%, #fff7ed) !important;
+}
+
+:root[data-theme="light"] .border-white\/10,
+:root[data-theme="light"] .border-white\/15,
+:root[data-theme="light"] .border-gray-700,
+:root[data-theme="light"] .border-gray-800 {
+  border-color: var(--wr-border) !important;
+}
+
+:root[data-theme="light"] .text-white,
+:root[data-theme="light"] .text-gray-100,
+:root[data-theme="light"] .text-gray-200,
+:root[data-theme="light"] .text-gray-300 {
+  color: var(--wr-ink) !important;
+}
+
+:root[data-theme="light"] .text-gray-400,
+:root[data-theme="light"] .text-gray-500,
+:root[data-theme="light"] .text-white\/45,
+:root[data-theme="light"] .text-white\/50,
+:root[data-theme="light"] .text-white\/60,
+:root[data-theme="light"] .text-white\/40 {
+  color: var(--wr-muted) !important;
+}
+
+:root[data-theme="light"] .text-\[\#3fa9f5\],
+:root[data-theme="light"] .text-\[\#8bd0ff\],
+:root[data-theme="light"] .text-blue-100,
+:root[data-theme="light"] .text-blue-400 {
+  color: var(--wr-blue) !important;
 }
 
 :root[data-theme="light"] .text-yellow-200,
@@ -83,32 +125,66 @@ body {
 :root[data-theme="light"] .text-amber-100,
 :root[data-theme="light"] .text-amber-200,
 :root[data-theme="light"] .text-amber-300 {
-  color: #c2410c !important;
+  color: var(--wr-amber) !important;
 }
 
 :root[data-theme="light"] .bg-yellow-500\/10,
 :root[data-theme="light"] .bg-amber-300\/10 {
-  background-color: rgba(255, 237, 213, 0.86) !important;
+  background-color: rgba(255, 237, 213, 0.9) !important;
 }
 
 :root[data-theme="light"] .border-yellow-500\/30,
 :root[data-theme="light"] .border-amber-300\/20,
+:root[data-theme="light"] .border-amber-300\/25,
 :root[data-theme="light"] .border-amber-300\/30,
 :root[data-theme="light"] .border-amber-300\/35,
 :root[data-theme="light"] .border-amber-300\/40 {
-  border-color: rgba(234, 88, 12, 0.28) !important;
+  border-color: rgba(194, 65, 12, 0.28) !important;
+}
+
+:root[data-theme="light"] .bg-\[\#3fa9f5\],
+:root[data-theme="light"] .bg-\[\#2588d2\] {
+  background-color: var(--wr-blue) !important;
+}
+
+:root[data-theme="light"] .bg-\[\#3fa9f5\].text-white,
+:root[data-theme="light"] .bg-\[\#2588d2\].text-white,
+:root[data-theme="light"] button.bg-\[\#3fa9f5\],
+:root[data-theme="light"] button.bg-\[\#2588d2\] {
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .bg-\[\#3fa9f5\]\/10,
+:root[data-theme="light"] .bg-blue-500\/10 {
+  background-color: rgba(15, 134, 217, 0.09) !important;
+}
+
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/20,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/25,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/30,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/35,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/40,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/50,
+:root[data-theme="light"] .border-\[\#3fa9f5\]\/60 {
+  border-color: rgba(15, 134, 217, 0.26) !important;
 }
 
 :root[data-theme="light"] input,
 :root[data-theme="light"] select,
 :root[data-theme="light"] textarea {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  color: #111827 !important;
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  color: var(--wr-ink) !important;
 }
 
 :root[data-theme="light"] input::placeholder,
 :root[data-theme="light"] textarea::placeholder {
-  color: #667085 !important;
+  color: var(--wr-subtle) !important;
+}
+
+:root[data-theme="light"] .shadow-black\/10,
+:root[data-theme="light"] .shadow-black\/20,
+:root[data-theme="light"] .shadow-black\/30 {
+  --tw-shadow-color: rgba(16, 24, 40, 0.12) !important;
 }
 
 .wealth-line {
