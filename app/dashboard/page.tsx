@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
 import BrandMark from "@/components/BrandMark";
@@ -256,6 +257,7 @@ const buildStructuredNotes = (
 };
 
 export default function Dashboard() {
+  const router = useRouter();
   const {
     dashboard,
     portfolio,
@@ -1389,7 +1391,7 @@ export default function Dashboard() {
                     <button
                       key={mission.key}
                       onClick={() => {
-                        window.location.href = "/progression/challenges";
+                        router.push("/progression/challenges");
                       }}
                       className={`rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left ${interactiveCard}`}
                     >
@@ -1635,7 +1637,7 @@ export default function Dashboard() {
 
               <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
 
-              <section className={`rounded-2xl border border-white/10 bg-zinc-950 p-5 ${interactiveCard}`} onClick={() => { window.location.href = "/progression/challenges"; }}>
+              <section className={`rounded-2xl border border-white/10 bg-zinc-950 p-5 ${interactiveCard}`} onClick={() => { router.push("/progression/challenges"); }}>
                 <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
                   Missions
                 </p>
@@ -1709,7 +1711,7 @@ export default function Dashboard() {
                   <ActionButton
                     variant="secondary"
                     onClick={() => {
-                      window.location.href = "/privacy-center";
+                      router.push("/privacy-center");
                     }}
                   >
                     Ouvrir
@@ -1725,7 +1727,7 @@ export default function Dashboard() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     onClick={() => {
-                      window.location.href = "/plans/standard";
+                      router.push("/plans/standard");
                     }}
                     className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"
                   >
@@ -1733,7 +1735,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => {
-                      window.location.href = "/plans/founder";
+                      router.push("/plans/founder");
                     }}
                     className="rounded-xl border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-semibold text-orange-200"
                   >

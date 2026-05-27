@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import CockpitBackLink from "@/components/CockpitBackLink";
 import { apiRequest } from "@/lib/api";
-import { ActionButton, MetricCard, WealthToast } from "@/components/ui/WealthUI";
+import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 
 type SecuritySummary = {
   events: Array<{ event_type: string; severity: string; count: number }>;
@@ -52,9 +53,7 @@ export default function SecurityAdminPage() {
               Vue interne des signaux de securite, abus, limites et evenements sensibles.
             </p>
           </div>
-          <ActionButton variant="secondary" onClick={() => (window.location.href = "/dashboard")}>
-            Retour cockpit
-          </ActionButton>
+          <CockpitBackLink />
         </div>
 
         {!data ? (

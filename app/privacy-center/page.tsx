@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import CockpitBackLink from "@/components/CockpitBackLink";
 import { API_BASE_URL, apiRequest } from "@/lib/api";
 import {
   ActionButton,
@@ -259,9 +260,7 @@ export default function PrivacyCenterPage() {
               confidentialite depuis un espace clair et securise.
             </p>
           </div>
-          <ActionButton variant="secondary" onClick={() => (window.location.href = "/dashboard")}>
-            Retour cockpit
-          </ActionButton>
+          <CockpitBackLink />
         </div>
 
         {loading ? (

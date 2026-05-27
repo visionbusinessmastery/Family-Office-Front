@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CockpitBackLink from "@/components/CockpitBackLink";
 import { apiRequest } from "@/lib/api";
 
 type BillingInterval = "monthly" | "yearly";
@@ -123,6 +124,10 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   return (
     <main className="min-h-screen bg-black px-4 py-8 text-white">
       <section className="mx-auto max-w-6xl">
+        <div className="mb-4 flex justify-end">
+          <CockpitBackLink />
+        </div>
+
         <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#07111f] via-black to-[#101923] p-6 shadow-2xl sm:p-8">
           <p className="text-xs uppercase tracking-[0.35em] text-[#3fa9f5]">
             WHITE ROCK Billing

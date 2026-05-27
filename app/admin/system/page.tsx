@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import CockpitBackLink from "@/components/CockpitBackLink";
 import { apiRequest } from "@/lib/api";
-import { ActionButton, MetricCard, WealthToast } from "@/components/ui/WealthUI";
+import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 
 type Diagnostics = {
   health: {
@@ -68,9 +69,7 @@ export default function SystemAdminPage() {
               Sante des dependances, feature flags, cache, Stripe, OpenAI et couts Ethan.
             </p>
           </div>
-          <ActionButton variant="secondary" onClick={() => (window.location.href = "/dashboard")}>
-            Retour cockpit
-          </ActionButton>
+          <CockpitBackLink />
         </div>
 
         {!data ? (
