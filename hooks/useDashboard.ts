@@ -30,6 +30,7 @@ const emptyFinance: FinanceData = {
 };
 
 const DASHBOARD_LIVE_REFRESH_MS = 60_000;
+const DASHBOARD_SESSION_CACHE_PREFIX = "whiteRockDashboardSession:";
 
 type BillingSubscription = {
   plan?: string;
@@ -50,6 +51,28 @@ type PortfolioResponse =
       items?: PortfolioAsset[];
       results?: PortfolioAsset[];
     };
+
+type DashboardSessionSnapshot = {
+  user: UserProfile | null;
+  dashboard: DashboardSummary | null;
+  score: number;
+  scoreDetails: ScoreDetails | null;
+  scoreAdvice: string[];
+  commandCenter: CommandCenter | null;
+  gamification: GamificationData | null;
+  portfolio: PortfolioAsset[];
+  history: PortfolioHistoryPoint[];
+  realEstate: RealEstateData | null;
+  yieldAssets: YieldAssetData | null;
+  ventureAssets: VentureAssetData | null;
+  onboarding: OnboardingData | null;
+  intelligence: UserIntelligence | null;
+  categoryOpportunities: CategoryOpportunityData | null;
+  workspaces: WorkspaceData | null;
+  legacyOverview: LegacyOverview | null;
+  product: ProductContext | null;
+  finance: FinanceData;
+};
 
 const extractPortfolio = (data: PortfolioResponse | null) => {
   if (Array.isArray(data)) return data;
@@ -89,6 +112,41 @@ const readCachedDashboard = (): DashboardSummary | null => {
   }
 };
 
+const getDashboardSessionCacheKey = (token: string | null) =>
+  token ? `${DASHBOARD_SESSION_CACHE_PREFIX}${token.slice(-24)}` : null;
+
+const readCachedDashboardSession = (
+  token: string | null
+): DashboardSessionSnapshot | null => {
+  if (typeof window === "undefined") return null;
+
+  const cacheKey = getDashboardSessionCacheKey(token);
+  if (!cacheKey) return null;
+
+  try {
+    const cached = sessionStorage.getItem(cacheKey);
+    return cached ? (JSON.parse(cached) as DashboardSessionSnapshot) : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheDashboardSession = (
+  token: string | null,
+  snapshot: DashboardSessionSnapshot
+) => {
+  if (typeof window === "undefined") return;
+
+  const cacheKey = getDashboardSessionCacheKey(token);
+  if (!cacheKey) return;
+
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify(snapshot));
+  } catch {
+    // Session cache is a UX acceleration only. Backend data remains authoritative.
+  }
+};
+
 const cacheDashboard = (dashboardData: DashboardSummary) => {
   if (typeof window === "undefined") return;
   localStorage.setItem("whiteRockDashboard", JSON.stringify(dashboardData));
@@ -111,30 +169,59 @@ const preserveHighestDashboard = (
 export function useDashboard() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const cachedSession = readCachedDashboardSession(token);
 
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(cachedSession?.user || null);
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(
-    readCachedDashboard
+    cachedSession?.dashboard || readCachedDashboard
   );
-  const [score, setScore] = useState<number>(0);
-  const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(null);
-  const [scoreAdvice, setScoreAdvice] = useState<string[]>([]);
-  const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(null);
-  const [gamification, setGamification] = useState<GamificationData | null>(null);
-  const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
-  const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
-  const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
-  const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
-  const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
-  const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
-  const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
+  const [score, setScore] = useState<number>(cachedSession?.score || 0);
+  const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(
+    cachedSession?.scoreDetails || null
+  );
+  const [scoreAdvice, setScoreAdvice] = useState<string[]>(cachedSession?.scoreAdvice || []);
+  const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(
+    cachedSession?.commandCenter || null
+  );
+  const [gamification, setGamification] = useState<GamificationData | null>(
+    cachedSession?.gamification || null
+  );
+  const [portfolio, setPortfolio] = useState<PortfolioAsset[]>(
+    cachedSession?.portfolio || []
+  );
+  const [history, setHistory] = useState<PortfolioHistoryPoint[]>(
+    cachedSession?.history || []
+  );
+  const [realEstate, setRealEstate] = useState<RealEstateData | null>(
+    cachedSession?.realEstate || null
+  );
+  const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(
+    cachedSession?.yieldAssets || null
+  );
+  const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(
+    cachedSession?.ventureAssets || null
+  );
+  const [onboarding, setOnboarding] = useState<OnboardingData | null>(
+    cachedSession?.onboarding || null
+  );
+  const [intelligence, setIntelligence] = useState<UserIntelligence | null>(
+    cachedSession?.intelligence || null
+  );
   const [categoryOpportunities, setCategoryOpportunities] =
-    useState<CategoryOpportunityData | null>(null);
-  const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
-  const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
-  const [product, setProduct] = useState<ProductContext | null>(null);
-  const [finance, setFinance] = useState<FinanceData>(emptyFinance);
-  const [loading, setLoading] = useState(true);
+    useState<CategoryOpportunityData | null>(cachedSession?.categoryOpportunities || null);
+  const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(
+    cachedSession?.workspaces || null
+  );
+  const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(
+    cachedSession?.legacyOverview || null
+  );
+  const [product, setProduct] = useState<ProductContext | null>(
+    cachedSession?.product || null
+  );
+  const [finance, setFinance] = useState<FinanceData>(
+    cachedSession?.finance || emptyFinance
+  );
+  const [loading, setLoading] = useState(!cachedSession);
 
   const applyUserProfile = useCallback((userData: UserProfile | null) => {
     if (!userData) return;
@@ -422,6 +509,54 @@ export function useDashboard() {
 
     return () => clearInterval(interval);
   }, [refreshAll, refreshLive, token]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    cacheDashboardSession(token, {
+      user,
+      dashboard,
+      score,
+      scoreDetails,
+      scoreAdvice,
+      commandCenter,
+      gamification,
+      portfolio,
+      history,
+      realEstate,
+      yieldAssets,
+      ventureAssets,
+      onboarding,
+      intelligence,
+      categoryOpportunities,
+      workspaces,
+      legacyOverview,
+      product,
+      finance,
+    });
+  }, [
+    categoryOpportunities,
+    commandCenter,
+    dashboard,
+    finance,
+    gamification,
+    history,
+    intelligence,
+    legacyOverview,
+    loading,
+    onboarding,
+    portfolio,
+    product,
+    realEstate,
+    score,
+    scoreAdvice,
+    scoreDetails,
+    token,
+    user,
+    ventureAssets,
+    workspaces,
+    yieldAssets,
+  ]);
 
   return {
     user,

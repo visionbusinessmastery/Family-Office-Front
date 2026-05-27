@@ -9,9 +9,10 @@ export default function CockpitBackLink({ className = "" }: CockpitBackLinkProps
     <Link
       href="/dashboard"
       prefetch
-      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-bold text-gray-100 transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/10 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-[#3fa9f5]/45 bg-[#3fa9f5]/10 px-4 py-2.5 text-sm font-black text-[#8bd0ff] shadow-lg shadow-[#3fa9f5]/10 transition hover:-translate-y-0.5 hover:border-[#3fa9f5]/70 hover:bg-[#3fa9f5]/20 hover:text-white ${className}`}
     >
-      Retour cockpit
+      <span aria-hidden="true">←</span>
+      <span>Retour cockpit</span>
     </Link>
   );
 }
