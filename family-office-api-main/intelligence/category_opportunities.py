@@ -70,7 +70,6 @@ def build_profile(conn, user_id: int):
     """), {"user_id": user_id}).scalar()
 
     return {
-        "score": 60,
         "capital": float(portfolio_value or 0) + totals.get("epargne", 0),
         "risk_profile": "medium",
         "level": "FREE",
@@ -123,7 +122,7 @@ def get_category_opportunities(user=Depends(get_current_user)):
                     count=int(row.count or 0),
                     analysis=(
                         f"Cette poche represente {round(float(row.total or 0), 2)} EUR. "
-                        "Ethan surveille surtout concentration, volatilite et liquidite."
+                        "Donnees disponibles: concentration, volatilite et liquidite."
                     ),
                     quick_action=quick_action,
                     opportunity=first_opportunity(engine_items),
@@ -148,7 +147,7 @@ def get_category_opportunities(user=Depends(get_current_user)):
                 count=int(real_estate_rows.count or 0),
                 analysis=(
                     f"Plus-value latente estimee: {round(gain, 2)} EUR. "
-                    "Ethan compare rendement, liquidite et potentiel de revente."
+                    "Donnees disponibles: rendement, liquidite et potentiel de revente."
                 ),
                 quick_action="Mettre a jour la valeur estimee avec un prix de marche recent.",
                 opportunity=first_opportunity(get_real_estate_opportunities(profile)),
@@ -207,7 +206,7 @@ def get_category_opportunities(user=Depends(get_current_user)):
                 count=int(row.count or 0),
                 analysis=(
                     f"Resultat cumule: {round(float(row.result or 0), 2)} EUR. "
-                    "Ethan priorise marge, dette, levee et valorisation."
+                    "Donnees disponibles: marge, dette, levee et valorisation."
                 ),
                 quick_action="Identifier une action qui augmente le resultat dans les 30 prochains jours.",
                 opportunity=first_opportunity(engines.get(asset_type, get_business_opportunities)(profile)),

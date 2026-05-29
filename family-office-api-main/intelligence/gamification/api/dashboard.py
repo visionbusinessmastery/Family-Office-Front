@@ -68,96 +68,51 @@ def stamp_state(payload: dict) -> dict:
 
 
 def build_affiliations(conn, user_id: int):
-    suggestions = []
-
-    finance = conn.execute(
-        text("""
-            SELECT type, COALESCE(SUM(amount), 0) AS total
-            FROM finance_items
-            WHERE user_id = :user_id
-            GROUP BY type
-        """),
-        {"user_id": user_id}
-    ).fetchall()
-
-    totals = {row.type: float(row.total or 0) for row in finance}
-
-    if totals.get("epargne", 0) < max(totals.get("charges", 0), 1):
-        suggestions.append({
-            "title": "Compte epargne ou cash management",
-            "reason": "Renforcer le matelas de securite avant de prendre plus de risque.",
-            "priority": "high",
-        })
-
-    if totals.get("dettes", 0) > totals.get("epargne", 0):
-        suggestions.append({
-            "title": "Courtier credit / restructuration",
-            "reason": "Optimiser le cout de la dette peut liberer du cashflow.",
-            "priority": "medium",
-        })
-
-    suggestions.append({
-        "title": "Plateforme d'investissement adaptee au profil",
-        "reason": "Comparer les frais, la liquidite et les supports avant allocation.",
-        "priority": "medium",
-    })
-
-    return suggestions[:3]
+    return []
 
 
 def build_gamification_actions(score: float, level):
-    actions = []
-
-    if score >= 70:
-        actions.append({
-            "title": "Mission Advanced",
-            "description": "Choisir une opportunite prioritaire et definir une action executable en 7 jours.",
-            "xp": 150,
-        })
-        actions.append({
-            "title": "Optimisation portefeuille",
-            "description": "Verifier la plus forte exposition et reduire le risque si elle depasse ton seuil.",
-            "xp": 120,
-        })
-    else:
-        actions.append({
-            "title": "Base financiere",
-            "description": "Completer revenus, charges, dettes et epargne pour debloquer plus de signaux.",
-            "xp": 100,
-        })
-
-    return actions
+    return [
+        {
+            "title": "Mettre a jour le cockpit",
+            "description": "Completer une donnee manquante ou confirmer une information existante.",
+            "xp": 80,
+        },
+        {
+            "title": "Verifier une mission",
+            "description": "Ouvrir une mission en attente et verifier si sa condition backend est remplie.",
+            "xp": 60,
+        },
+    ]
 
 
 def build_upgrade(score: float, level, plan: str = "FREE"):
-    level_text = str(level or "").upper()
-
-    if plan_allows(plan, "LEGACY") or level_text in ["LEGACY", "DYNASTY ARCHITECT"]:
+    if plan_allows(plan, "LEGACY"):
         return {
             "recommended_plan": "legacy",
             "title": "Legacy - Dynasty Office",
-            "description": "Construire est difficile. Preserver l'est encore plus.",
+            "description": "Plan actuel actif.",
         }
 
     if plan_allows(plan, "LIBERTY"):
         return {
             "recommended_plan": "legacy",
             "title": "Legacy - Dynasty Office",
-            "description": "Le prochain seuil concerne la transmission, la gouvernance et la protection familiale.",
+            "description": "Palier produit disponible au-dessus du plan actuel.",
         }
 
-    if level_text in ["LIBERTY"] or score >= 85:
+    if plan_allows(plan, "ELITE"):
         return {
             "recommended_plan": "liberty",
             "title": "Liberty - Financial Freedom",
-            "description": "Le vrai luxe est la stabilite. Ethan peut t'aider a structurer une liberte plus durable.",
+            "description": "Palier produit disponible au-dessus du plan actuel.",
         }
 
-    if score >= 70 or level_text in ["ADVANCED", "ELITE"]:
+    if plan_allows(plan, "GOLD"):
         return {
             "recommended_plan": "elite",
             "title": "Passer au plan Elite - Wealth OS",
-            "description": "Ton niveau justifie multi-user, gouvernance, guidance premium et consolidation patrimoniale.",
+            "description": "Palier produit disponible au-dessus du plan actuel.",
         }
 
     return {
@@ -230,7 +185,7 @@ def get_gamification(user=Depends(get_current_user)):
             "actions": build_gamification_actions(0, "FREE"),
             "upgrade": build_upgrade(0, "FREE", plan),
             "ai_coach": {
-                "message": "Ajoute tes donnees pour recevoir des affiliations pertinentes.",
+                "message": "Progression initialisee. Les missions affichent uniquement l'avancement produit.",
                 "affiliations": [],
             },
         }
@@ -281,10 +236,7 @@ def get_gamification(user=Depends(get_current_user)):
             "actions": build_gamification_actions(row.xp or 0, row.level or 1),
             "upgrade": build_upgrade(row.xp or 0, row.level or 1, plan),
             "ai_coach": {
-                "message": (
-                    "Je te propose les prochaines actions et affiliations en "
-                    "fonction de ta situation, de ton score et de tes objectifs."
-                ),
+                "message": "Progression synchronisee. Cette zone suit XP, badges et missions uniquement.",
                 "affiliations": build_affiliations(conn, user_id),
             }
         }

@@ -898,14 +898,7 @@ def advisor_logic(user_email, message, level=None):
             "complexity": complexity,
             "soft_budget_active": soft_budget_active,
             "cache_hit": llm_cache_hit,
-            "autopilot": run_autopilot_safely(
-                user_email=user_email,
-                portfolio=compact_portfolio(portfolio),
-                market={},
-                context=compact_context(context),
-                llm_text=llm_text[:900],
-                level=plan,
-            ) if complexity == "high" and plan_allows(plan, "ELITE") else None,
+            "autopilot": None,
         }
 
         set_cache(cache_key, result, ttl=900 if complexity != "high" else 300)
@@ -934,29 +927,6 @@ def get_context_score(context):
         return score.get("score", 0)
 
     return score
-
-
-def build_legacy_fallback_response_disabled(context, opportunities, tier="ESSENTIALS"):
-    score = get_context_score(context)
-    opportunity_count = (
-        len(opportunities)
-        if isinstance(opportunities, list)
-        else opportunities.get("count", 0)
-        if isinstance(opportunities, dict)
-        else 0
-    )
-
-    return {
-        "analysis": (
-            "Je garde une lecture simple: il faut partir de la situation reelle avant de chercher une optimisation. "
-            f"{opportunity_count} opportunité(s) ressortent. "
-            "Le plus utile est de choisir une seule decision compatible avec ton temps disponible, "
-            "puis mesure son effet avant d'ajouter une nouvelle piste."
-        ),
-        "context_score": score,
-        "tier": tier,
-        "autopilot": None,
-    }
 
 
 def _fallback_focus(message: str) -> str:
@@ -1154,6 +1124,6 @@ def portfolio_autopilot(user_email, message):
         portfolio=compact_portfolio(get_user_portfolio(user_id) if user_id else {}),
         market={},
         context={},
-        llm_text=message[:900],
+        llm_text=None,
         level="free",
     )

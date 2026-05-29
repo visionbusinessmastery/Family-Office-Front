@@ -1584,7 +1584,7 @@ export default function Dashboard() {
               <OpportunityDiscoveryPanel
                 universe="investments"
                 title="Investment Discovery"
-                description="Ethan identifie des pistes d'allocation selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
+                description="Pistes d'allocation fournies par le backend selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
                 plan={currentPlan}
                 token={token}
               />
@@ -1626,7 +1626,7 @@ export default function Dashboard() {
               <OpportunityDiscoveryPanel
                 universe="real_estate"
                 title="Recherche immobiliere patrimoniale"
-                description="Residence principale, locatif, achat/revente ou commercial: Ethan priorise rendement, cashflow, risque local et prochaine verification."
+                description="Residence principale, locatif, achat/revente ou commercial: donnees de rendement, risque local et prochaine verification."
                 plan={currentPlan}
                 token={token}
               />
@@ -1652,7 +1652,7 @@ export default function Dashboard() {
               <OpportunityDiscoveryPanel
                 universe="business"
                 title="Business Opportunity Engine"
-                description="Ethan compare business digital, startup, franchise, reprise, crowdfunding et private equity selon ton budget, ton risque et ton ambition."
+                description="Donnees business digital, startup, franchise, reprise, crowdfunding et private equity selon ton budget, ton risque et ton ambition."
                 plan={currentPlan}
                 token={token}
               />

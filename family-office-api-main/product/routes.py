@@ -130,19 +130,19 @@ def get_score(email: str) -> int:
 
 
 def compute_level(score: int, xp: int):
-    if score >= 95 or xp >= 9000:
+    if xp >= 9000:
         return "Dynasty Architect"
-    if score >= 88 or xp >= 6500:
+    if xp >= 6500:
         return "Legacy Builder"
-    if score >= 85 or xp >= 5000:
+    if xp >= 5000:
         return "Family Office Operator"
-    if score >= 75 or xp >= 3000:
+    if xp >= 3000:
         return "Elite Investor"
-    if score >= 60 or xp >= 1800:
+    if xp >= 1800:
         return "Investor"
-    if score >= 45 or xp >= 900:
+    if xp >= 900:
         return "Advanced"
-    if score >= 25 or xp >= 300:
+    if xp >= 300:
         return "Builder"
     return "Beginner"
 
@@ -154,9 +154,7 @@ def compute_status(score: int, plan: str):
         return "Sovereign Wealth"
     if plan_allows(plan, "ELITE"):
         return "Wealth OS"
-    if score >= 70:
-        return "Acceleration"
-    if score >= 40:
+    if plan_allows(plan, "GOLD"):
         return "Growth"
     return "Foundation"
 
@@ -289,7 +287,7 @@ def build_modules(plan: str, score: int):
                 "reason": (
                     "Profondeur limitee sur ton plan actuel"
                     if not plan_allows(plan, module["min_plan"])
-                    else f"Score {module['min_score']} requis pour les analyses avancees"
+                    else "Contexte supplementaire requis pour les analyses avancees"
                 ),
             })
 
@@ -324,12 +322,12 @@ def build_missions(data_profile: dict, score: int, plan: str):
     if data_profile["finance_count"] == 0:
         missions.append({
             "key": "complete_finance",
-            "title": "Completer ton cashflow",
-            "description": "Ajoute au moins un revenu et une charge. Ethan validera la mission des que le module finances contient une ligne.",
+            "title": "Completer les donnees finances",
+            "description": "Ajoute au moins un revenu et une charge pour enrichir le contexte financier.",
             "xp": 100,
             "module": "finance",
             "validation": "finance_count > 0",
-            "ethan_reason": "Sans cashflow fiable, les arbitrages portefeuille restent fragiles.",
+            "ethan_reason": "Cette mission alimente le contexte backend utilise par Ethan.",
         })
 
     if data_profile["portfolio_count"] == 0:
@@ -340,7 +338,7 @@ def build_missions(data_profile: dict, score: int, plan: str):
             "xp": 120,
             "module": "portfolio",
             "validation": "portfolio_count > 0",
-            "ethan_reason": "Ethan a besoin d'un premier actif pour mesurer exposition, valeur et diversification.",
+            "ethan_reason": "Cette mission rend le portefeuille lisible par le backend.",
         })
 
     if data_profile["portfolio_count"] > 0 and data_profile["portfolio_count"] < 3:
@@ -351,55 +349,7 @@ def build_missions(data_profile: dict, score: int, plan: str):
             "xp": 90,
             "module": "portfolio",
             "validation": "portfolio_count >= 3",
-            "ethan_reason": "Une seule ligne ne permet pas encore d'arbitrer concentration et role de chaque poche.",
-        })
-
-    if score >= 45 and normalize_plan(plan) == "FREE":
-        missions.append({
-            "key": "unlock_growth",
-            "title": "Debloquer la phase Growth",
-            "description": "Ton profil commence a justifier diversification, immobilier et analytics.",
-            "xp": 0,
-            "module": "billing",
-            "recommended_plan": "gold",
-            "validation": "plan >= GOLD",
-            "ethan_reason": "Le plan Gold debloque historique portfolio, contexte Ethan global et opportunites plus profondes.",
-        })
-
-    if score >= 70 and not plan_allows(plan, "ELITE"):
-        missions.append({
-            "key": "unlock_wealth_os",
-            "title": "Passer en pilotage Wealth OS",
-            "description": "Ton niveau devient compatible avec multi-user, gouvernance et guidance premium.",
-            "xp": 0,
-            "module": "billing",
-            "recommended_plan": "elite",
-            "validation": "plan >= ELITE",
-            "ethan_reason": "Ton niveau justifie une consolidation multi-modules et une guidance plus executive.",
-        })
-
-    if score >= 85 and not plan_allows(plan, "LIBERTY"):
-        missions.append({
-            "key": "unlock_liberty",
-            "title": "Debloquer Liberty",
-            "description": "Ton profil devient compatible avec une architecture patrimoniale souveraine.",
-            "xp": 0,
-            "module": "billing",
-            "recommended_plan": "liberty",
-            "validation": "plan >= LIBERTY",
-            "ethan_reason": "Liberty sert les arbitrages cashflow, diversification et scenarios plus avances.",
-        })
-
-    if score >= 92 and not plan_allows(plan, "LEGACY"):
-        missions.append({
-            "key": "unlock_legacy",
-            "title": "Preparer Legacy",
-            "description": "Le vrai luxe est la stabilite: transmission, gouvernance et protection familiale.",
-            "xp": 0,
-            "module": "billing",
-            "recommended_plan": "legacy",
-            "validation": "plan >= LEGACY",
-            "ethan_reason": "Legacy ajoute la logique familiale, la protection et la transmission.",
+            "ethan_reason": "Cette mission donne plus de matiere au suivi de progression.",
         })
 
     visible_missions = []
@@ -483,26 +433,23 @@ def build_strategic_brief(data_profile: dict, score: int, plan: str, life_profil
         priority = "Relier patrimoine et protection familiale"
         action = "Documenter une decision de transmission ou de protection familiale cette semaine."
     elif finance_count == 0:
-        priority = "Stabiliser la lecture cashflow"
-        action = "Ajouter une ligne revenu et une ligne charge avant toute nouvelle allocation."
+        priority = "Completer le contexte financier"
+        action = "Ajouter une ligne revenu et une ligne charge pour fiabiliser le contexte backend."
     elif portfolio_count == 0:
         priority = "Créer la premiere ligne patrimoniale mesurable"
         action = "Ajouter un actif financier avec quantite et prix d'achat."
-    elif score < 45:
-        priority = "Renforcer les fondations avant l'acceleration"
-        action = "Completer les donnees manquantes puis verifier le score apres refresh."
     else:
-        priority = "Arbitrer la prochaine allocation utile"
-        action = "Comparer une nouvelle opportunite a son role: diversifier, stabiliser ou produire du cashflow."
+        priority = "Qualifier le prochain signal utile"
+        action = "Comparer une nouvelle opportunite aux objectifs, au temps disponible et au risque accepte."
 
     if plan_allows(normalized, "LEGACY"):
         opportunity = "Formaliser une premiere regle de transmission ou de gouvernance familiale."
         risk = "Dependance excessive au fondateur ou absence de roles familiaux explicites."
     elif plan_allows(normalized, "LIBERTY"):
-        opportunity = "Construire un scenario cashflow / patrimoine sur 12 mois."
-        risk = "Accumuler des actifs sans these d'arbitrage claire."
+        opportunity = "Construire un scenario patrimoine sur 12 mois."
+        risk = "Accumuler des actifs sans intention explicite."
     elif plan_allows(normalized, "GOLD"):
-        opportunity = "Utiliser Ethan globalement pour prioriser score, portefeuille et opportunites."
+        opportunity = "Utiliser Ethan globalement pour relier portefeuille, objectifs et opportunites."
         risk = "Multiplier les lignes sans verifier la concentration."
     else:
         opportunity = "Passer d'une guidance simple a une base de donnees fiable."

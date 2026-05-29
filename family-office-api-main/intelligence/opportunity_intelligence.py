@@ -34,13 +34,13 @@ OPPORTUNITY_CACHE_VERSION = "v4-multi-objective-deal-flow"
 
 DISCOVERY_DEPTH = {
     "FREE": {
-        "max_results": 2,
+        "max_results": 3,
         "depth": "discovery",
         "advanced": False,
-        "message": "Vue decouverte: Ethan garde les signaux simples et actionnables.",
+        "message": "Vue decouverte: signaux simples et actionnables.",
     },
     "GOLD": {
-        "max_results": 4,
+        "max_results": 8,
         "depth": "growth",
         "advanced": True,
         "message": "Vue Growth: analyses enrichies, rendement et points de vigilance.",
@@ -52,13 +52,13 @@ DISCOVERY_DEPTH = {
         "message": "Vue strategique: scoring patrimonial et coherence portefeuille.",
     },
     "LIBERTY": {
-        "max_results": 6,
+        "max_results": 15,
         "depth": "global",
         "advanced": True,
         "message": "Vue globale: structuration, optimisation et opportunites internationales.",
     },
     "LEGACY": {
-        "max_results": 6,
+        "max_results": 20,
         "depth": "dynasty",
         "advanced": True,
         "message": "Vue Legacy: protection, transmission et stabilite long terme.",

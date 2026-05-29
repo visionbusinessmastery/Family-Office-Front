@@ -168,7 +168,7 @@ def build_weekly_report_payload(conn, user_id: int, email: str) -> dict:
         "main_opportunity": main_opportunity,
         "risk_alerts": risk_alerts[:3],
         "challenge": mission,
-        "ethan_tip": "Je regarde d'abord tes contraintes de vie et ton objectif prioritaire, puis seulement ensuite le score et l'allocation.",
+        "ethan_tip": "Synthese basee sur le contexte renseigne cette semaine.",
         "generated_at": datetime.utcnow().isoformat(),
     }
 
@@ -190,7 +190,7 @@ def _render_report_html(payload: dict) -> str:
       <div style="max-width:640px;margin:auto;background:#090d14;border:1px solid #1f2937;border-radius:18px;padding:24px;">
         <p style="letter-spacing:3px;color:#3fa9f5;font-size:11px;">WHITE ROCK</p>
         <h1 style="margin:8px 0 0;">Ton rapport patrimonial hebdomadaire</h1>
-        <p style="color:#a1a1aa;">Ethan a resume ta progression, tes signaux et ton action prioritaire.</p>
+        <p style="color:#a1a1aa;">Synthese de ta progression, de tes signaux et de ton contexte de la semaine.</p>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0;">
           <div><small>Plan</small><br><strong>{payload.get('plan')}</strong></div>
           <div><small>XP</small><br><strong>{payload.get('xp')}</strong></div>

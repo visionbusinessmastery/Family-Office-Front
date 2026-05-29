@@ -169,7 +169,7 @@ export default function AdvisorChat({
           role: "assistant",
           content:
             data.result?.analysis ||
-            "Je n'ai pas encore assez de contexte pour te guider clairement, mais on peut deja clarifier une prochaine action.",
+            "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment.",
         },
       ]);
     } catch (err) {
@@ -238,7 +238,7 @@ export default function AdvisorChat({
               title: "Guidance du jour",
               body:
                 aiCoach?.message ||
-                "Complète ton cockpit avec une donnée utile, puis reviens vérifier l'impact sur ton score et tes prochaines actions.",
+                "Complete ton cockpit avec une donnee utile pour enrichir le contexte backend.",
               tone: "cyan",
             })
           }

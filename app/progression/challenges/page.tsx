@@ -11,7 +11,7 @@ const fallbackMissions: ProductMission[] = [
   {
     key: "complete_finances",
     title: "Clarifier les fondations",
-    description: "Ajoute revenus, charges, épargne et dettes pour fiabiliser ton score.",
+    description: "Ajoute revenus, charges, epargne et dettes pour enrichir le contexte backend.",
     xp: 120,
     module: "Finances",
   },
