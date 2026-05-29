@@ -25,7 +25,7 @@ const initialMessages: ChatMessage[] = [
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHED_MESSAGES = 40;
-const CONVERSATION_CACHE_VERSION = "v4-core-only-chat";
+const CONVERSATION_CACHE_VERSION = "v5-core-contract";
 const LEGACY_RESPONSE_PATTERNS = [
   "ton score est",
   "score 39/100",
@@ -220,7 +220,7 @@ export default function AdvisorChat() {
 
       const safeAnalysis =
         !analysis || isLegacyAssistantText(analysis)
-          ? "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment."
+          ? "Je n'ai pas assez de contexte exploitable pour produire une reponse fiable maintenant. Repose ta question en une phrase simple."
           : analysis;
 
       setMessages((current) => [

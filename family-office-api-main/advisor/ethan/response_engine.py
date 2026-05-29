@@ -1,4 +1,12 @@
+import json
+import unicodedata
+
+
 ETHAN_CORE_SYSTEM = "ETHAN_CORE_V4"
+CORE_UNAVAILABLE_ANALYSIS = (
+    "Je n'ai pas assez de contexte exploitable pour produire une reponse fiable maintenant. "
+    "Repose ta question en une phrase simple: je repartirai du contexte backend actuel."
+)
 
 LEGACY_ETHAN_RESPONSE_PATTERNS = [
     "ton score est",
@@ -17,9 +25,14 @@ LEGACY_ETHAN_RESPONSE_PATTERNS = [
 
 def with_core_contract(result, mode: str):
     if not isinstance(result, dict):
-        return result
+        result = {"analysis": str(result or CORE_UNAVAILABLE_ANALYSIS)}
 
     next_result = dict(result)
+    analysis = str(next_result.get("analysis") or "").strip()
+    if not analysis or is_legacy_ethan_response(analysis):
+        analysis = CORE_UNAVAILABLE_ANALYSIS
+
+    next_result["analysis"] = analysis
     next_result["source"] = "ethan_core"
     next_result["mode"] = mode
     next_result["system"] = ETHAN_CORE_SYSTEM
@@ -28,14 +41,17 @@ def with_core_contract(result, mode: str):
 
 def normalize_legacy_text(value) -> str:
     if isinstance(value, (dict, list)):
-        import json
-
         raw = json.dumps(value, ensure_ascii=False, default=str)
     else:
         raw = str(value or "")
 
+    normalized = unicodedata.normalize("NFD", raw.lower())
+    normalized = "".join(
+        char for char in normalized if unicodedata.category(char) != "Mn"
+    )
+
     return (
-        raw.lower()
+        normalized
         .replace("é", "e")
         .replace("è", "e")
         .replace("ê", "e")
