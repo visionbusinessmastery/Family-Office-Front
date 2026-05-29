@@ -1,7 +1,7 @@
 from advisor.ethan.context_engine import compact_context, compact_portfolio
-from advisor.ethan.cognitive_output_layer import apply_cognitive_output_layer
 from advisor.ethan.memory_engine import build_life_context, get_memory, update_memory
 from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
+from advisor.ethan.output_renderer import render_ethan_output
 from advisor.ethan.persistence_engine import (
     ensure_ethan_ai_tables,
     get_cache,
@@ -11,6 +11,7 @@ from advisor.ethan.persistence_engine import (
 )
 from advisor.ethan.prompt_engine import build_advisor_messages
 from advisor.ethan.response_engine import (
+    build_llm_response_data as response_build_llm_response_data,
     build_fallback_response as response_build_fallback_response,
     get_context_score as response_get_context_score,
     get_llm_response as response_get_llm_response,
@@ -71,13 +72,6 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
 
         cached = None if bypass_cache else get_cache(cache_key)
         if cached and not response_is_legacy_ethan_response(cached):
-            cached["analysis"] = apply_cognitive_output_layer(
-                cached.get("analysis"),
-                context=context,
-                message=message,
-                response_strategy=response_strategy,
-                tier=tier,
-            )
             record_usage(conn, user_id, user_email, plan, tier, task_type, complexity, model, True)
             cached["cache_hit"] = True
             return cached
@@ -107,8 +101,8 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
             fallback_model=MODEL_FALLBACK,
         )
 
-        if not llm_text or response_is_legacy_ethan_response(llm_text):
-            result = response_build_fallback_response(
+        if not llm_text:
+            response_data = response_build_fallback_response(
                 context,
                 opportunities,
                 tier,
@@ -118,24 +112,18 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
                 compact_portfolio_fn=compact_portfolio,
                 build_response_strategy_fn=build_response_strategy,
             )
-            update_memory(
-                conn,
-                user_id,
-                message,
-                result.get("analysis"),
+        else:
+            response_data = response_build_llm_response_data(
+                llm_text,
                 context,
-                memory,
-                response_strategy,
-                classify_task_fn=classify_task,
-                classify_request_fn=classify_request,
+                tier,
+                complexity=complexity,
+                soft_budget_active=soft_budget_active,
+                cache_hit=llm_cache_hit,
             )
-            record_usage(conn, user_id, user_email, plan, tier, task_type, complexity, actual_model, False, input_tokens, 0)
-            if not bypass_cache:
-                set_cache(cache_key, result, ttl=180)
-            return result
 
-        llm_text = apply_cognitive_output_layer(
-            llm_text,
+        rendered_text = render_ethan_output(
+            response_data,
             context=context,
             message=message,
             response_strategy=response_strategy,
@@ -146,7 +134,7 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
             conn,
             user_id,
             message,
-            llm_text,
+            rendered_text,
             context,
             memory,
             response_strategy,
@@ -168,7 +156,8 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
         )
 
         result = {
-            "analysis": llm_text,
+            "status": response_data.get("status", "empty"),
+            "analysis": rendered_text,
             "context_score": response_get_context_score(context),
             "tier": tier,
             "complexity": complexity,

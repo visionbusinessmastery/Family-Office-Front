@@ -7,7 +7,7 @@ Backend source of truth rule:
 - Satellite modules may compute or simulate, but they do not decide.
 """
 
-from advisor.ethan.response_engine import CORE_UNAVAILABLE_ANALYSIS, with_core_contract
+from advisor.ethan.response_engine import CORE_EMPTY_STATUS, with_core_contract
 from advisor.service import advisor_logic
 
 
@@ -20,7 +20,7 @@ def run_ethan_core(user_email: str, message: str, *, mode: str = "chat", bypass_
     """
     cleaned_message = (message or "").strip()
     if not cleaned_message:
-        return with_core_contract({"analysis": CORE_UNAVAILABLE_ANALYSIS}, mode)
+        return with_core_contract({"status": CORE_EMPTY_STATUS, "analysis": ""}, mode)
 
     if mode == "portfolio":
         cleaned_message = f"Analyse portefeuille: {cleaned_message}"

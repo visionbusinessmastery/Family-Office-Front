@@ -5,7 +5,7 @@ import os
 from product.entitlements import normalize_plan, plan_allows
 
 
-ADVISOR_CACHE_VERSION = "v14-runtime-engine"
+ADVISOR_CACHE_VERSION = "v15-output-renderer"
 
 MODEL_LIGHT = os.getenv("ETHAN_MODEL_LIGHT", "gpt-5-nano")
 MODEL_STANDARD = os.getenv("ETHAN_MODEL_STANDARD", "gpt-5-mini")

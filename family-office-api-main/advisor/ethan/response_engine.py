@@ -1,13 +1,9 @@
 import json
 import unicodedata
 
-from advisor.ethan.cognitive_output_layer import build_cognitive_fallback
-
 
 ETHAN_CORE_SYSTEM = "ETHAN_CORE_V4"
-CORE_UNAVAILABLE_ANALYSIS = (
-    "Je prefere rester prudent ici. Avec le contexte disponible, avance sur une seule petite decision claire, puis reviens vers moi avec le resultat."
-)
+CORE_EMPTY_STATUS = "empty"
 
 LEGACY_ETHAN_RESPONSE_PATTERNS = [
     "ton score est",
@@ -26,13 +22,10 @@ LEGACY_ETHAN_RESPONSE_PATTERNS = [
 
 def with_core_contract(result, mode: str):
     if not isinstance(result, dict):
-        result = {"analysis": str(result or CORE_UNAVAILABLE_ANALYSIS)}
+        result = {"status": CORE_EMPTY_STATUS}
 
     next_result = dict(result)
     analysis = str(next_result.get("analysis") or "").strip()
-    if not analysis:
-        analysis = CORE_UNAVAILABLE_ANALYSIS
-
     next_result["analysis"] = analysis
     next_result["source"] = "ethan_core"
     next_result["mode"] = mode
@@ -79,6 +72,19 @@ def get_context_score(context):
         return score.get("score", 0)
 
     return score
+
+
+def build_llm_response_data(raw_llm_output, context, tier="ESSENTIALS", *, complexity=None, soft_budget_active=False, cache_hit=False):
+    return {
+        "status": "ready" if raw_llm_output else CORE_EMPTY_STATUS,
+        "raw_llm_output": raw_llm_output or "",
+        "context_score": get_context_score(context or {}),
+        "tier": tier,
+        "complexity": complexity,
+        "soft_budget_active": soft_budget_active,
+        "cache_hit": cache_hit,
+        "autopilot": None,
+    }
 
 
 def get_llm_response(
@@ -151,19 +157,4 @@ def build_fallback_response(
     compact_portfolio_fn=None,
     build_response_strategy_fn=None,
 ):
-    if not response_strategy and build_response_strategy_fn:
-        response_strategy = build_response_strategy_fn(message or "", {})
-    analysis = build_cognitive_fallback(
-        context or {},
-        message=message,
-        response_strategy=response_strategy,
-        tier=tier,
-    )
-
-    return {
-        "analysis": analysis,
-        "context_score": get_context_score(context or {}),
-        "tier": tier,
-        "focus": "cognitive_fallback",
-        "autopilot": None,
-    }
+    return {"status": CORE_EMPTY_STATUS}
