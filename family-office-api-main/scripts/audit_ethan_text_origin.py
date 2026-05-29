@@ -24,15 +24,14 @@ def main():
     routes = read("family-office-api-main/advisor/routes.py")
     service = read("family-office-api-main/advisor/service.py")
     response_engine = read("family-office-api-main/advisor/ethan/response_engine.py")
-    variation_engine = read("family-office-api-main/advisor/ethan/cognitive_variation_engine.py")
     output_renderer = read("family-office-api-main/advisor/ethan/output_renderer.py")
     runtime_engine = read("family-office-api-main/advisor/ethan/runtime_engine.py")
     advisor_chat = read("components/dashboard/AdvisorChat.tsx")
 
-    if 'ETHAN_GLOBAL_CACHE_VERSION = "v17-variation-layer"' in read("family-office-api-main/advisor/ethan/cache_policy.py"):
-        ok(passes, "global cache version is v17-variation-layer")
+    if 'ETHAN_GLOBAL_CACHE_VERSION = "v18-freeze-pipeline"' in read("family-office-api-main/advisor/ethan/cache_policy.py"):
+        ok(passes, "global cache version is v18-freeze-pipeline")
     else:
-        fail(issues, "cache", "ETHAN_GLOBAL_CACHE_VERSION must be v17-variation-layer")
+        fail(issues, "cache", "ETHAN_GLOBAL_CACHE_VERSION must be v18-freeze-pipeline")
 
     advisor_core_block = routes.split("def advisor_core", 1)[1].split("def advisor_legacy_route", 1)[0]
     if (
@@ -49,28 +48,20 @@ def main():
     else:
         fail(issues, "service_renderer", "service.py must assign analysis from render_ethan_output")
 
-    if "build_cognitive_variation(" in service and "render_ethan_output(" in service:
-        if service.index("build_cognitive_variation(") < service.index("render_ethan_output("):
-            ok(passes, "cognitive variation runs before output renderer")
-        else:
-            fail(issues, "variation_order", "variation must be built before render_ethan_output")
+    if "cognitive_variation" not in service and "output_variation" not in service:
+        ok(passes, "no active variation layer in frozen pipeline")
     else:
-        fail(issues, "variation_engine", "service.py must use build_cognitive_variation before rendering")
+        fail(issues, "variation_engine", "freeze pipeline forbids active variation layers")
 
     if 'return {"status": CORE_EMPTY_STATUS}' in response_engine and "Je " not in response_engine and "Tu " not in response_engine:
         ok(passes, "response engine fallback is data-only")
     else:
         fail(issues, "response_engine", "response_engine.py must not compose human fallback text")
 
-    if (
-        "def build_cognitive_variation" in variation_engine
-        and "Je " not in variation_engine
-        and "Tu " not in variation_engine
-        and "return {" in variation_engine
-    ):
-        ok(passes, "cognitive variation engine is data-only")
+    if not (REPO / "family-office-api-main/advisor/ethan/cognitive_variation_engine.py").exists():
+        ok(passes, "cognitive variation engine removed during freeze")
     else:
-        fail(issues, "variation_text", "cognitive_variation_engine.py must not produce user-facing text")
+        fail(issues, "variation_engine_file", "cognitive_variation_engine.py must stay removed in freeze phase")
 
     if "ETHAN_TEXT_ORIGIN" in output_renderer and "def render_ethan_output" in output_renderer:
         ok(passes, "output renderer is the sole Ethan text renderer")
@@ -82,10 +73,10 @@ def main():
     else:
         fail(issues, "advisor_cache", "ADVISOR_CACHE_VERSION must point to ETHAN_GLOBAL_CACHE_VERSION")
 
-    if 'const CONVERSATION_CACHE_VERSION = "v17-variation-layer"' in advisor_chat:
+    if 'const CONVERSATION_CACHE_VERSION = "v18-freeze-pipeline"' in advisor_chat:
         ok(passes, "frontend conversation cache follows global cache version")
     else:
-        fail(issues, "frontend_cache", "AdvisorChat cache version must be v17-variation-layer")
+        fail(issues, "frontend_cache", "AdvisorChat cache version must be v18-freeze-pipeline")
 
     frontend_calls = []
     for relative in ["app", "components", "hooks", "lib"]:

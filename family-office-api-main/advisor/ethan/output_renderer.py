@@ -105,7 +105,7 @@ def _sentence_from_signal(signal):
     return sentence
 
 
-def render_ethan_output(response_data, context=None, message=None, response_strategy=None, output_variation=None, tier=None):
+def render_ethan_output(response_data, context=None, message=None, response_strategy=None, tier=None):
     """
     Single authorized human-text renderer for Ethan.
 
@@ -115,17 +115,22 @@ def render_ethan_output(response_data, context=None, message=None, response_stra
     """
     context = context or {}
     strategy = response_strategy or {}
-    variation = output_variation or strategy.get("output_variation") or {}
     lens = strategy.get("cognitive_lens") or "human_context"
     counter = strategy.get("diversity_counter") or 0
     status = response_data.get("status") if isinstance(response_data, dict) else "empty"
     phrase = _context_phrase(context)
     signal = _sentence_from_signal(_raw_signal(response_data))
     premium = tier not in ["ESSENTIALS", "FREE", "BASIC", None]
-    entry_mode = variation.get("entry_mode") or "observation_first"
-    density = variation.get("density") or "medium"
-    transition = variation.get("transition") or "direct"
-    rhythm = variation.get("rhythm") or "two_step"
+    entry_mode = {
+        "human_context": "observation_first",
+        "insight": "insight_first",
+        "question": "question_first",
+        "risk": "risk_first",
+        "action": "action_first",
+        "financial": "observation_first",
+    }.get(lens, "observation_first")
+    density = "dense" if premium and status != "empty" else "medium"
+    transition = "direct"
 
     if signal and status != "empty":
         variants = {
@@ -193,7 +198,6 @@ def render_ethan_output(response_data, context=None, message=None, response_stra
             "entry": entry_mode,
             "density": density,
             "transition": transition,
-            "rhythm": rhythm,
         },
         len(selected_variants),
     )
@@ -207,13 +211,7 @@ def render_ethan_output(response_data, context=None, message=None, response_stra
         "quiet_challenge": "La discipline ici est de ne pas surconstruire.",
     }.get(transition)
 
-    if density == "short":
-        short_rendered = _sentence_from_signal(rendered) or rendered
-        if transition_tail and transition != "direct":
-            return f"{short_rendered} {transition_tail}"
-        return short_rendered
-
-    if transition_tail and (density == "medium" or rhythm == "compact_detail"):
+    if transition_tail and density == "medium":
         return f"{rendered} {transition_tail}"
 
     return rendered
