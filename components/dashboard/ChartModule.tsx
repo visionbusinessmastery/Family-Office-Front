@@ -26,6 +26,12 @@ const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
+const chartLabels: Record<string, string> = {
+  value: "Valeur du portefeuille",
+  invested: "Capital investi",
+  gain: "Plus / moins-value",
+};
+
 export default function ChartModule({
   history,
   initialInvestment = 0,
@@ -72,7 +78,7 @@ export default function ChartModule({
 
   const latest = cleanData[cleanData.length - 1];
   const latestGain = latest?.gain || 0;
-  const gainClass = latestGain >= 0 ? "text-emerald-400" : "text-red-400";
+  const gainClass = latestGain >= 0 ? "text-[#3fa9f5]" : "text-red-400";
 
   return (
     <div className="bg-white/10 p-6 rounded-xl">
@@ -106,13 +112,9 @@ export default function ChartModule({
               width={42}
             />
             <Tooltip
-              formatter={(value, name) => [
+              formatter={(value, name, item) => [
                 `${money.format(Number(value))} EUR`,
-                name === "gain"
-                  ? "Plus / moins-value"
-                  : name === "invested"
-                    ? "Investissement initial"
-                    : "Valeur totale",
+                chartLabels[String(item.dataKey || name)] || String(name),
               ]}
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -126,7 +128,7 @@ export default function ChartModule({
               {cleanData.map((entry) => (
                 <Cell
                   key={`${entry.date}-${entry.gain}`}
-                  fill={entry.gain >= 0 ? "#3fa9f5" : "#ef4444"}
+                  fill={entry.gain >= 0 ? "#8bd0ff" : "#ef4444"}
                 />
               ))}
             </Bar>
@@ -134,8 +136,8 @@ export default function ChartModule({
               yAxisId="value"
               type="monotone"
               dataKey="value"
-              name="Valeur totale"
-              stroke="#1DA2CF"
+              name="Valeur du portefeuille"
+              stroke="#3fa9f5"
               strokeWidth={3}
               dot={false}
             />
@@ -143,8 +145,8 @@ export default function ChartModule({
               yAxisId="value"
               type="monotone"
               dataKey="invested"
-              name="Investissement initial"
-              stroke="#e5e7eb"
+              name="Capital investi"
+              stroke="#94a3b8"
               strokeDasharray="6 6"
               strokeWidth={2}
               dot={false}

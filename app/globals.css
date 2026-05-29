@@ -37,6 +37,14 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 :root[data-theme="light"] {
   --wr-surface: #ffffff;
   --wr-surface-soft: rgba(255, 255, 255, 0.88);

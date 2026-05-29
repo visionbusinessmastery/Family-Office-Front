@@ -41,6 +41,7 @@ import PortfolioModule from "@/components/dashboard/PortfolioModule";
 import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
 import ProfileReferralPanel from "@/components/dashboard/ProfileReferralPanel";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
+import RubricBreakdownChart from "@/components/dashboard/RubricBreakdownChart";
 import ThemeSwitcher from "@/components/dashboard/ThemeSwitcher";
 import VentureAssetsModule from "@/components/dashboard/VentureAssetsModule";
 import YieldInvestmentsModule from "@/components/dashboard/YieldInvestmentsModule";
@@ -74,6 +75,7 @@ const planAllows = (plan: string | undefined | null, required: string) =>
 
 type DashboardSection =
   | "home"
+  | "opportunities"
   | "finances"
   | "investments"
   | "real_estate"
@@ -428,6 +430,47 @@ export default function Dashboard() {
     portfolioGain + realEstateGain + yieldGain + ventureGain;
   const globalPortfolioGainClass =
     globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
+  const businessFinal = yieldFinal + ventureFinal;
+  const businessGain = yieldGain + ventureGain;
+  const realEstateSummary = {
+    label: "Immobilier",
+    count: realEstateAssets.length,
+    value: realEstateFinal,
+    gain: realEstateGain,
+  };
+  const investmentSummary = {
+    label: "Investissements",
+    count: portfolio.length,
+    value: totalValue,
+    gain: portfolioGain,
+  };
+  const businessSummary = {
+    label: "Business",
+    count: (yieldAssets?.assets || []).length + (ventureAssets?.assets || []).length,
+    value: businessFinal,
+    gain: businessGain,
+  };
+  const investmentRubrics = portfolio.map((asset) => ({
+    label: String(asset.asset_type || asset.type || "Autre").replace(/_/g, " ").toUpperCase(),
+    value: getAssetValue(asset),
+  }));
+  const realEstateRubrics = realEstateAssets.map((asset) => ({
+    label: String(asset.property_type || "Immobilier").replace(/_/g, " ").toUpperCase(),
+    value: Number(asset.estimated_value || asset.resale_price || asset.purchase_price || 0),
+  }));
+  const businessRubrics = [
+    ...(yieldAssets?.assets || []).map((asset) => ({
+      label:
+        asset.asset_type === "private_equity"
+          ? "PRIVATE EQUITY"
+          : "CROWDFUNDING",
+      value: Number(asset.final_value || asset.principal || 0),
+    })),
+    ...(ventureAssets?.assets || []).map((asset) => ({
+      label: String(asset.asset_type || "Business").replace(/_/g, " ").toUpperCase(),
+      value: Number(asset.final_value || asset.computed_value || asset.valuation || 0),
+    })),
+  ];
   const categoryCounts = [
     { label: "Assets financiers", value: portfolio.length },
     {
@@ -464,6 +507,7 @@ export default function Dashboard() {
       .map((module) => module.key) || []
   );
   const currentPlan = product?.plan || dashboard?.plan;
+  const eliteChartsEnabled = planAllows(currentPlan, "ELITE");
   const hasModule = (key: string) =>
     visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
@@ -485,14 +529,14 @@ export default function Dashboard() {
       description: "Vue globale",
     },
     {
+      key: "opportunities",
+      label: "Opportunites",
+      description: "Signaux",
+    },
+    {
       key: "ai",
       label: "Conseiller",
       description: "Conseiller",
-    },
-    {
-      key: "progression",
-      label: "Progression",
-      description: "Statut",
     },
     {
       key: "finances",
@@ -520,12 +564,16 @@ export default function Dashboard() {
       description: "Transmission",
     },
     {
+      key: "progression",
+      label: "Progression",
+      description: "Statut",
+    },
+    {
       key: "settings",
       label: "Family Office",
       description: "Identité",
     },
   ];
-  const activeNavigation = navigation.find((item) => item.key === activeSection);
   const opportunitiesCount =
     typeof commandCenter?.opportunities_count === "number"
       ? commandCenter.opportunities_count
@@ -1326,7 +1374,7 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <nav className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+            <nav className="no-scrollbar flex gap-2 overflow-x-auto pb-1 lg:max-h-[calc(100vh-12rem)] lg:flex-col lg:overflow-y-auto lg:pr-1">
               {navigation.map((item) => {
                 const active = item.key === activeSection;
 
@@ -1359,15 +1407,6 @@ export default function Dashboard() {
         </aside>
 
         <div className="min-w-0 space-y-6">
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/70 p-4">
-            <p className="text-xs uppercase tracking-widest text-gray-500">
-              Wealth OS / {activeNavigation?.label || "Home"}
-            </p>
-            <p className="mt-1 text-sm text-gray-400">
-              Une vue simple d&apos;abord, les details seulement quand ils aident la decision.
-            </p>
-          </div>
-
           {activeSection === "home" && (
             <div className="space-y-6">
               <SectionHeader
@@ -1383,7 +1422,7 @@ export default function Dashboard() {
                 opportunitiesCount={opportunitiesCount}
                 onOpenStatus={() => goToSection("progression")}
                 onOpenAction={() => goToSection("progression")}
-                onOpenOpportunities={() => goToSection("ai")}
+                onOpenOpportunities={() => goToSection("opportunities")}
               />
 
               <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
@@ -1441,6 +1480,50 @@ export default function Dashboard() {
                     ))}
                   </div>
                 )}
+              </section>
+
+              <section className="grid grid-cols-1 gap-3">
+                {[realEstateSummary, investmentSummary, businessSummary].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={() =>
+                      goToSection(
+                        item.label === "Immobilier"
+                          ? "real_estate"
+                          : item.label === "Investissements"
+                            ? "investments"
+                            : "ventures"
+                      )
+                    }
+                    className={`rounded-2xl border border-white/10 bg-zinc-950 p-4 text-left ${interactiveCard}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-400">
+                          {item.count} element{item.count > 1 ? "s" : ""} suivi{item.count > 1 ? "s" : ""}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-right sm:min-w-[320px]">
+                        <div>
+                          <p className="text-xs text-gray-500">Valeur</p>
+                          <p className="text-lg font-black text-white">
+                            {money.format(item.value)} EUR
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Resultat</p>
+                          <p className={`text-lg font-black ${item.gain >= 0 ? "text-[#3fa9f5]" : "text-red-400"}`}>
+                            {item.gain >= 0 ? "+" : ""}
+                            {money.format(item.gain)} EUR
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </section>
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
@@ -1590,7 +1673,20 @@ export default function Dashboard() {
 
               {hasModule("diversification") ? (
                 <section className="grid grid-cols-1 gap-5">
-                  <ExposureBreakdown portfolio={portfolio} realEstate={realEstate} yieldAssets={yieldAssets} ventureAssets={ventureAssets} finance={finance} />
+                  {eliteChartsEnabled ? (
+                    <RubricBreakdownChart
+                      title="Repartition investissements"
+                      description="Vue limitee aux rubriques de l'onglet Investments."
+                      items={investmentRubrics}
+                    />
+                  ) : (
+                    <LockedSection
+                      title="Graphique Investments"
+                      description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                      onUpgrade={handleUpgradePlan}
+                      plan="elite"
+                    />
+                  )}
                 </section>
               ) : (
                 <LockedSection
@@ -1630,6 +1726,21 @@ export default function Dashboard() {
                 token={token}
               />
 
+              {eliteChartsEnabled ? (
+                <RubricBreakdownChart
+                  title="Repartition immobilier"
+                  description="Vue limitee aux rubriques de l'onglet Immobilier."
+                  items={realEstateRubrics}
+                />
+              ) : (
+                <LockedSection
+                  title="Graphique immobilier"
+                  description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                  onUpgrade={handleUpgradePlan}
+                  plan="elite"
+                />
+              )}
+
               <RealEstateModule
                 data={realEstate}
                 onAdd={handleAddRealEstate}
@@ -1656,6 +1767,21 @@ export default function Dashboard() {
                 token={token}
               />
 
+              {eliteChartsEnabled ? (
+                <RubricBreakdownChart
+                  title="Repartition business"
+                  description="Vue limitee aux rubriques de l'onglet Business."
+                  items={businessRubrics}
+                />
+              ) : (
+                <LockedSection
+                  title="Graphique business"
+                  description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                  onUpgrade={handleUpgradePlan}
+                  plan="elite"
+                />
+              )}
+
               <YieldInvestmentsModule
                 data={yieldAssets}
                 onAdd={handleAddYieldAsset}
@@ -1680,15 +1806,97 @@ export default function Dashboard() {
             </div>
           )}
 
+          {activeSection === "opportunities" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Opportunites"
+                title="Opportunity Center"
+                description="Toutes les opportunites fournies par le backend, separees du chat Ethan pour garder une lecture claire."
+              />
+
+              <OpportunitiesModule commandCenter={commandCenter} />
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="mb-4">
+                  <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                    Signaux supplementaires
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold">Lecture par rubrique</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Ces signaux reprennent les champs fournis par le backend:
+                    analyse, opportunite detectee, signal marche et action rapide.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {categoryOpportunityItems.length > 0 ? (
+                    categoryOpportunityItems.map((item) => (
+                      <article
+                        key={item.key || item.title}
+                        className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                      >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="text-xs uppercase tracking-widest text-gray-500">
+                              {item.key || "signal"}
+                            </p>
+                            <h3 className="mt-1 text-lg font-bold text-white">
+                              {item.title || item.detected_opportunity?.title || "Signal disponible"}
+                            </h3>
+                            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                              {item.analysis ||
+                                item.market_signal?.headline ||
+                                "Signal backend disponible, sans analyse detaillee pour le moment."}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 px-3 py-2 text-sm text-[#bfe8ff] lg:max-w-xs">
+                            {item.quick_action ||
+                              item.detected_opportunity?.potential ||
+                              "Consulter la rubrique associee pour l'action suivante."}
+                          </div>
+                        </div>
+
+                        {(item.detected_opportunity || item.market_signal) && (
+                          <div className="mt-4 grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
+                            {item.detected_opportunity?.type && (
+                              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                                <p className="text-gray-500">Type</p>
+                                <p className="mt-1 font-bold text-white">{item.detected_opportunity.type}</p>
+                              </div>
+                            )}
+                            {item.detected_opportunity?.risk && (
+                              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                                <p className="text-gray-500">Risque</p>
+                                <p className="mt-1 font-bold text-white">{item.detected_opportunity.risk}</p>
+                              </div>
+                            )}
+                            {item.market_signal?.sentiment && (
+                              <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+                                <p className="text-gray-500">Marche</p>
+                                <p className="mt-1 font-bold text-white">{item.market_signal.sentiment}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </article>
+                    ))
+                  ) : (
+                    <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
+                      Aucun signal supplementaire renvoye par le backend pour le moment.
+                    </p>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
           {activeSection === "ai" && (
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Conseiller patrimonial"
                 title="ETHAN"
-                description="Ton Conseiller exclusif"
+                description="Conversation uniquement. Les opportunites vivent dans leur page dediee."
               />
-
-              <OpportunitiesModule commandCenter={commandCenter} />
 
               <AdvisorChat />
             </div>
@@ -1710,16 +1918,52 @@ export default function Dashboard() {
                 onUpgrade={handleUpgradePlan}
               />
 
-              <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
-
-              <section className={`rounded-2xl border border-white/10 bg-zinc-950 p-5 ${interactiveCard}`} onClick={() => { router.push("/progression/challenges"); }}>
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                  Missions
+                  Missions et defis
                 </p>
-                <h2 className="mt-2 text-2xl font-bold">Défis, badges et récompenses</h2>
+                <h2 className="mt-2 text-2xl font-bold">Defis, badges et recompenses</h2>
                 <p className="mt-2 text-sm text-gray-400">
-                  Ouvre le centre de progression pour comprendre les XP, les bonus et les prochains déblocages.
+                  Suivi direct dans l&apos;onglet Progression. Les validations restent gerees par le backend.
                 </p>
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                  {(product?.missions || []).map((mission) => (
+                    <article
+                      key={mission.key}
+                      className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-bold text-white">{mission.title}</h3>
+                        <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase text-gray-400">
+                          {mission.status || (mission.completed ? "completed" : "pending")}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                        {mission.description}
+                      </p>
+                      {mission.context_reason && (
+                        <p className="mt-3 text-xs leading-relaxed text-[#8bd0ff]">
+                          {mission.context_reason}
+                        </p>
+                      )}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-emerald-300">
+                          {mission.xp ? `+${mission.xp} XP` : "Progression"}
+                        </span>
+                        {mission.recommended_plan && (
+                          <span className="text-xs text-[#3fa9f5]">
+                            {mission.recommended_plan}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {(product?.missions || []).length === 0 && (
+                    <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
+                      Aucune mission supplementaire renvoyee par le backend pour le moment.
+                    </p>
+                  )}
+                </div>
               </section>
             </div>
           )}
@@ -1748,28 +1992,54 @@ export default function Dashboard() {
                 description="Ton centre premium pour le profil, l'abonnement, les preferences et la gouvernance patrimoniale."
               />
 
-              <ProfileReferralPanel
-                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
-              />
-
-              <WorkspacePanel
-                data={workspaces}
-                onCreate={handleCreateWorkspace}
-                onInvite={handleInviteWorkspaceMember}
-                onSwitch={handleSwitchWorkspace}
-              />
+              <ProfileReferralPanel mode="referral" />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold">Préférences</h2>
+                    <h2 className="text-2xl font-bold">Theme</h2>
                     <p className="mt-2 text-sm text-gray-400">
-                      Changer le thème
+                      Choisissez la couleur de votre theme.
                     </p>
                   </div>
                   <ThemeSwitcher />
                 </div>
               </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <h2 className="text-2xl font-bold">Abonnement</h2>
+                <p className="mt-2 text-sm text-gray-400">
+                  Plan actuel: {product?.plan || dashboard?.plan || "charge"}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
+                    Standard Plans
+                  </button>
+                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-semibold text-orange-200">
+                    Founder Plans
+                  </button>
+                  <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
+                    Gold - Growth
+                  </button>
+                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white">
+                    Elite - Wealth OS
+                  </button>
+                  <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black">
+                    Liberty - Sovereign Wealth
+                  </button>
+                  <button onClick={() => handleUpgradePlan("legacy")} className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200">
+                    Legacy - Dynasty Office
+                  </button>
+                  <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
+                    Gerer mon abonnement
+                  </button>
+                </div>
+              </section>
+
+              <ProfileReferralPanel
+                mode="identity"
+                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
+              />
 
               <section className={`rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-5 ${interactiveCard}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1783,74 +2053,35 @@ export default function Dashboard() {
                       cookies et demandes de suppression depuis un espace dedie.
                     </p>
                   </div>
-                  <ActionButton
-                    variant="secondary"
-                    onClick={() => {
-                      router.push("/privacy-center");
-                    }}
-                  >
+                  <ActionButton variant="secondary" onClick={() => router.push("/privacy-center")}>
                     Ouvrir
                   </ActionButton>
                 </div>
               </section>
 
+              <WorkspacePanel
+                data={workspaces}
+                onCreate={handleCreateWorkspace}
+                onInvite={handleInviteWorkspaceMember}
+                onSwitch={handleSwitchWorkspace}
+              />
+
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <h2 className="text-2xl font-bold">Abonnement</h2>
-                <p className="mt-2 text-sm text-gray-400">
-                  Plan actuel: {product?.plan || dashboard?.plan || "charge"}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    onClick={() => {
-                      router.push("/plans/standard");
-                    }}
-                    className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"
-                  >
-                    Standard Plans
-                  </button>
-                  <button
-                    onClick={() => {
-                      router.push("/plans/founder");
-                    }}
-                    className="rounded-xl border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-semibold text-orange-200"
-                  >
-                    Founder Plans
-                  </button>
-                  <button
-                    onClick={() => handleUpgradePlan("gold")}
-                    className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]"
-                  >
-                    Gold - Growth
-                  </button>
-                  <button
-                    onClick={() => handleUpgradePlan("elite")}
-                    className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Elite - Wealth OS
-                  </button>
-                  <button
-                    onClick={() => handleUpgradePlan("liberty")}
-                    className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black"
-                  >
-                    Liberty - Sovereign Wealth
-                  </button>
-                  <button
-                    onClick={() => handleUpgradePlan("legacy")}
-                    className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200"
-                  >
-                    Legacy - Dynasty Office
-                  </button>
-                  <button
-                    onClick={handleOpenBillingPortal}
-                    className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Gerer mon abonnement
-                  </button>
+                <h2 className="text-2xl font-bold">Espaces ouverts</h2>
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                  {(product?.modules?.visible || []).slice(0, 6).map((module) => (
+                    <div key={module.key} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+                      <p className="text-sm font-semibold text-white">{module.label}</p>
+                      <p className="text-xs text-gray-500">Stage {module.stage || "-"}</p>
+                    </div>
+                  ))}
+                  {(product?.modules?.visible || []).length === 0 && (
+                    <p className="text-sm text-gray-400">Aucun espace actif pour le moment.</p>
+                  )}
                 </div>
               </section>
             </div>
-          )}
-        </div>
+          )}        </div>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-1.5 shadow-2xl backdrop-blur-xl lg:hidden">
@@ -1884,3 +2115,6 @@ export default function Dashboard() {
     </main>
   );
 }
+
+
+

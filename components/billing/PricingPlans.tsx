@@ -34,11 +34,11 @@ type PricingPlansProps = {
 };
 
 const ladder = [
-  { label: "FREE", role: "Découverte" },
-  { label: "GOLD", role: "Structuration" },
-  { label: "ELITE", role: "Pilotage" },
-  { label: "LIBERTY", role: "Liberté" },
-  { label: "LEGACY", role: "Dynastie" },
+  { label: "FREE", role: "Découverte", tone: "border-white/10 bg-white/[0.03] text-gray-500" },
+  { label: "GOLD", role: "Structuration", tone: "border-[#3fa9f5]/25 bg-[#3fa9f5]/10 text-[#8bd0ff]" },
+  { label: "ELITE", role: "Pilotage", tone: "border-amber-200/35 bg-amber-200/[0.08] text-amber-100" },
+  { label: "LIBERTY", role: "Liberté", tone: "border-amber-300/50 bg-amber-300/[0.12] text-amber-100" },
+  { label: "LEGACY", role: "Dynastie", tone: "border-yellow-300/60 bg-yellow-300/[0.16] text-yellow-100" },
 ];
 
 const plans: Plan[] = [
@@ -74,11 +74,11 @@ const plans: Plan[] = [
     capabilityGroups: [
       {
         label: "Wealth Intelligence",
-        items: ["Score patrimonial lisible", "20 assets maximum", "Signaux d'amélioration"],
+        items: ["Score patrimonial lisible", "20 assets maximum", "Signaux d'amelioration"],
       },
       {
         label: "Opportunity Engine",
-        items: ["Opportunités guidées", "Allocation de départ", "Lecture immobilier/investissements"],
+        items: ["Opportunites guidees", "Allocation de depart", "Lecture immobilier/investissements"],
       },
     ],
   },
@@ -88,7 +88,7 @@ const plans: Plan[] = [
     subtitle: "Wealth Operating System",
     rank: "Niveau 2",
     badge: "Wealth OS",
-    altBadge: "Most Popular",
+    altBadge: "Wealth OS",
     transformation: "Piloter votre Wealth OS",
     unlock: "Unlock Wealth Intelligence",
     includes: "Tout GOLD inclus",
@@ -108,17 +108,17 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-white/20 bg-white/[0.06]",
-    glow: "from-white/16 via-[#3fa9f5]/10 to-transparent",
+    tone: "border-amber-200/25 bg-amber-200/[0.07]",
+    glow: "from-amber-200/20 via-[#3fa9f5]/10 to-transparent",
     cta: "Passer Elite",
     capabilityGroups: [
       {
         label: "Investment Operating System",
-        items: ["Cockpit Family Office", "Limite historique: assets illimites", "Priorités patrimoniales"],
+        items: ["Cockpit Family Office", "30 assets maximum", "Priorites patrimoniales", "Graphiques par rubrique"],
       },
       {
         label: "AI Strategic Guidance",
-        items: ["Copilote avance", "Guidance contextuelle", "Syntheses executives"],
+        items: ["Copilote avance", "Guidance contextuelle", "Syntheses executives", "Multi-user Family Office"],
       },
     ],
   },
@@ -128,7 +128,7 @@ const plans: Plan[] = [
     subtitle: "Freedom Engine",
     rank: "Niveau 3",
     badge: "Freedom Tier",
-    altBadge: "Private Access",
+    altBadge: "Sovereign Access",
     transformation: "Construire votre liberté financière",
     unlock: "Unlock Freedom Systems",
     includes: "Tout ELITE inclus",
@@ -148,17 +148,17 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-orange-300/40 bg-orange-300/10",
-    glow: "from-orange-300/22 via-transparent to-[#3fa9f5]/8",
+    tone: "border-amber-300/45 bg-amber-300/12",
+    glow: "from-amber-300/30 via-orange-300/12 to-transparent",
     cta: "Activer Liberty",
     capabilityGroups: [
       {
         label: "Freedom Systems",
-        items: ["Pilotage liberté financière", "50 assets maximum", "Trajectoire d'indépendance"],
+        items: ["Pilotage liberte financiere", "50 assets maximum", "Trajectoire d'independance", "Comptes enfants", "Architecture patrimoniale"],
       },
       {
         label: "Business Command Center",
-        items: ["Opportunités premium", "Business assets", "Stratégie de croissance"],
+        items: ["Opportunites premium", "Business assets", "Strategie de croissance", "Automation", "Legacy planning"],
       },
     ],
   },
@@ -188,17 +188,17 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-amber-300/45 bg-amber-300/10",
-    glow: "from-amber-300/24 via-orange-300/10 to-transparent",
+    tone: "border-yellow-300/55 bg-yellow-300/14",
+    glow: "from-yellow-300/36 via-amber-300/20 to-orange-300/8",
     cta: "Entrer Legacy",
     capabilityGroups: [
       {
         label: "Dynasty Layer",
-        items: ["Transmission familiale", "Assets illimites", "Vision générationnelle"],
+        items: ["Transmission familiale", "Assets illimites", "Vision generationnelle", "Family Vault", "Heirs mode", "Protection layer"],
       },
       {
         label: "Family Office Infrastructure",
-        items: ["Dynasty Office", "Protection et continuité", "Architecture institutionnelle"],
+        items: ["Dynasty Office", "Protection et continuite", "Architecture institutionnelle", "Global strategy", "Legacy timeline", "Governance familiale"],
       },
     ],
   },
@@ -211,6 +211,13 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   const founder = mode === "founder";
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const parsePrice = (value: string) => Number(value.replace(/[^\d]/g, ""));
+  const yearlySaving = (plan: Plan) => {
+    const monthly = parsePrice(founder ? plan.founderPrice.monthly : plan.price.monthly);
+    const yearly = parsePrice(founder ? plan.founderPrice.yearly : plan.price.yearly);
+    return monthly * 12 - yearly;
+  };
+  const intervalLabel = interval === "monthly" ? "/ mois" : "/ an";
 
   const startCheckout = async (plan: Plan) => {
     if (!token) {
@@ -294,7 +301,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                           : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
                       }`}
                     >
-                      {item === "monthly" ? "Monthly" : "Yearly"}
+                      {item === "monthly" ? "Monthly" : "Yearly - 2 mois offerts"}
                     </button>
                   ))}
                 </div>
@@ -302,16 +309,12 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
             </div>
 
             <div className="mt-7 grid gap-2 sm:grid-cols-5">
-              {ladder.map((step, index) => (
+              {ladder.map((step) => (
                 <div
                   key={step.label}
-                  className={`rounded-2xl border px-4 py-3 ${
-                    index === 0
-                      ? "border-white/10 bg-white/[0.03]"
-                      : "border-[#3fa9f5]/20 bg-[#3fa9f5]/8"
-                  }`}
+                  className={`rounded-2xl border px-4 py-3 ${step.tone}`}
                 >
-                  <p className="text-xs font-black tracking-widest text-gray-500">{step.label}</p>
+                  <p className="text-xs font-black tracking-widest">{step.label}</p>
                   <p className="mt-1 text-sm font-bold text-gray-200">{step.role}</p>
                 </div>
               ))}
@@ -332,10 +335,36 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
           </div>
         )}
 
+        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#3fa9f5]">
+            Lecture de valeur
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Chaque niveau inclut le precedent</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                La montee en gamme se lit comme une progression, pas comme une liste de cartes separees.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Chaque niveau debloque un univers</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Analytics, Wealth OS, Freedom Engine puis Dynasty Office apparaissent comme des couches.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Le statut devient visible</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Les badges et la pyramide rendent la valeur plus emotionnelle, premium et aspirationnelle.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
-          {plans.map((plan, index) => {
+          {plans.map((plan) => {
             const displayPrice = founder ? plan.founderPrice[interval] : plan.price[interval];
-            const displayNote = founder ? plan.founderNote[interval] : plan.priceNote[interval];
+            const saving = yearlySaving(plan);
 
             return (
               <article
@@ -365,8 +394,13 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                     </p>
                     <div className="mt-3 flex items-end gap-2">
                       <p className="text-3xl font-black tracking-tight">{displayPrice}</p>
-                      <p className="pb-1 text-xs font-bold text-gray-500">{displayNote}</p>
+                      <p className="pb-1 text-base font-black text-gray-300">{intervalLabel}</p>
                     </div>
+                    {interval === "yearly" && saving > 0 && (
+                      <p className="mt-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-100">
+                        2 mois offerts - economie {saving} EUR
+                      </p>
+                    )}
                     <p className="mt-3 text-sm font-semibold text-gray-200">
                       {plan.transformation}
                     </p>
@@ -401,11 +435,6 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-gray-300">
                       {plan.altBadge}
                     </span>
-                    {index > 1 && (
-                      <span className="rounded-full border border-orange-300/25 bg-orange-300/10 px-3 py-1 text-[11px] font-bold text-orange-200">
-                        Private Office
-                      </span>
-                    )}
                   </div>
 
                   <button
@@ -425,51 +454,8 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
           })}
         </div>
 
-        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#3fa9f5]">
-            Lecture de valeur
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-black">Chaque niveau inclut le précédent</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                La montée en gamme se lit comme une progression, pas comme une liste de cartes séparées.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-black">Chaque niveau débloque un univers</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                Analytics, Wealth OS, Freedom Engine puis Dynasty Office apparaissent comme des couches.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-black">Le statut devient visible</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                Les badges et la pyramide rendent la valeur plus émotionnelle, premium et aspirationnelle.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#3fa9f5]">
-            Limites assets
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-4">
-            {[
-              ["FREE", "10 assets"],
-              ["GOLD", "20 assets"],
-              ["LIBERTY", "50 assets"],
-              ["LEGACY", "Illimite"],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-white/10 bg-black/25 p-4">
-                <p className="text-xs font-black tracking-widest text-gray-500">{label}</p>
-                <p className="mt-1 text-sm font-bold text-white">{value}</p>
-              </div>
-            ))}
-          </div>
-        </section>
       </section>
     </main>
   );
 }
+

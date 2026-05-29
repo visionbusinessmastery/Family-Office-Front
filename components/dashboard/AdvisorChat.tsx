@@ -156,7 +156,7 @@ async function requestAdvisorResponse(
   });
 }
 
-export default function AdvisorChat() {
+export default function AdvisorChat({ compact = false }: { compact?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -249,7 +249,11 @@ export default function AdvisorChat() {
         </p>
       </div>
 
-      <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">
+      <div
+        className={`overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:p-4 ${
+          compact ? "h-72 sm:h-80" : "h-[58vh] min-h-[460px]"
+        }`}
+      >
         {messages.length === 0 && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-400">
             Pose une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.
