@@ -333,41 +333,6 @@ def compute_family_office_score(
             level = "BEGINNER"
 
         # =====================================================
-        # ADVICE ENGINE
-        # =====================================================
-        advice = []
-
-        if diversification < 40:
-            advice.append(
-                "Diversifie davantage tes actifs"
-            )
-
-        if debt_score < 50:
-            advice.append(
-                "Réduis ton niveau d'endettement"
-            )
-
-        if wealth < 40:
-            advice.append(
-                "Augmente ton patrimoine net"
-            )
-
-        if cashflow < 0:
-            advice.append(
-                "Ton cashflow est négatif"
-            )
-
-        if savings_velocity_score < 20:
-            advice.append(
-                "Augmente ton taux d'épargne"
-            )
-
-        if risk_score < 60:
-            advice.append(
-                "Rééquilibre ton exposition au risque"
-            )
-
-        # =====================================================
         # RESULT
         # =====================================================
         result = {
@@ -451,7 +416,7 @@ def compute_family_office_score(
                 ),
             },
 
-            "advice": advice,
+            "advice": [],
         }
 
         # =====================================================
@@ -475,7 +440,5 @@ def compute_family_office_score(
             "score": 10,
             "level": "BEGINNER",
             "details": {},
-            "advice": [
-                "Erreur de calcul du score"
-            ]
+            "advice": []
         }

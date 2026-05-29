@@ -166,7 +166,7 @@ def compute_user_intelligence(user_email: str):
             user.subscription_plan,
             user.subscription_status,
         )
-        cache_key = f"intel:v5-life-context-opps:{user_email}:{effective_plan}"
+        cache_key = f"intel:v6-data-signals:{user_email}:{effective_plan}"
         context_cache_key = f"context:v2-life:{user_email}:{effective_plan}"
 
         cached = get_cache(cache_key)
@@ -199,7 +199,8 @@ def compute_user_intelligence(user_email: str):
                     "advice": [],
                 },
                 "modules": {},
-               "advice": [],
+                "module_signals": [],
+                "advice": [],
             }
 
             set_cache(cache_key, result, ttl=30)
@@ -390,7 +391,9 @@ def compute_user_intelligence(user_email: str):
 
             "modules": command_center.get("modules") or score_result.get("details", {}),
 
-            "advice": command_center.get("advice") or score_result.get("advice", []),
+            "module_signals": command_center.get("module_signals", []),
+
+            "advice": command_center.get("advice", []),
 
             "upgrade": upgrade,
             "features": features,

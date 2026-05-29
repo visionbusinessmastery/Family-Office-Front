@@ -25,7 +25,7 @@ def compact_context(context):
         "cashflow": financial.get("cashflow_score"),
         "debt_risk": financial.get("debt_risk_score"),
         "savings_velocity": financial.get("savings_velocity_score"),
-        "top_advice": (context.get("advice") or [])[:3],
+        "module_signals": (context.get("module_signals") or [])[:5],
     }
 
 

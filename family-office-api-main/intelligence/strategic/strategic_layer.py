@@ -11,7 +11,7 @@ from intelligence.engines.allocation_engine import compute_allocation_strategy
 from intelligence.engines.diversification_engine import compute_diversification
 from intelligence.engines.prediction_engine import compute_predictions
 from intelligence.engines.macro_engine import compute_macro_exposure
-from intelligence.engines.recommendation_engine import generate_recommendations
+from intelligence.engines.recommendation_engine import generate_data_signals
 
 from core.cache import redis_client
 import json
@@ -82,7 +82,7 @@ def compute_strategic_layer(
     prediction = compute_predictions(context)
     macro = compute_macro_exposure(context)
 
-    recommendations = generate_recommendations(
+    data_signals = generate_data_signals(
         context=context,
         risk=risk,
         wealth=wealth,
@@ -102,7 +102,8 @@ def compute_strategic_layer(
         "diversification_engine": diversification,
         "prediction_engine": prediction,
         "macro_engine": macro,
-        "recommendations": recommendations,
+        "data_signals": data_signals,
+        "recommendations": [],
     }
 
     # =========================

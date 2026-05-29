@@ -53,11 +53,11 @@ def build_dashboard(user, intelligence):
         dashboard["features"] += [
             "full_portfolio",
             "market_insights",
-            "ethan_recommendations"
+            "ethan_core_access"
         ]
         dashboard["ethan_blocks"] += [
             "market_signals",
-            "recommendation_engine"
+            "data_signals"
         ]
 
     if level_rank >= 2:

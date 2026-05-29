@@ -1,8 +1,9 @@
 # =========================
-# AI RECOMMENDATION ENGINE
+# DATA SIGNAL ENGINE
 # =========================
 
-def generate_recommendations(
+
+def generate_data_signals(
     context: dict,
     risk=None,
     wealth=None,
@@ -11,12 +12,14 @@ def generate_recommendations(
     prediction=None,
     macro=None,
 ):
+    """Return structured signals only.
 
-    recommendations = []
+    This satellite must not generate Ethan-like financial advice. Ethan Core is
+    the only component allowed to interpret these signals into guidance.
+    """
 
-    # =========================
-    # SAFE CONTEXT
-    # =========================
+    signals = []
+
     profile = context.get("profile", {}) or {}
     financial = context.get("financial", {}) or {}
 
@@ -48,58 +51,44 @@ def generate_recommendations(
         )
     )
 
-    # =========================
-    # SAVINGS
-    # =========================
     if savings < 5000:
+        signals.append({
+            "domain": "savings",
+            "signal": "low_savings_buffer",
+            "severity": "medium",
+        })
 
-        recommendations.append(
-            "Construire une épargne de sécurité"
-        )
-
-    # =========================
-    # INCOME
-    # =========================
     if income < 3000:
+        signals.append({
+            "domain": "income",
+            "signal": "low_income_capacity",
+            "severity": "medium",
+        })
 
-        recommendations.append(
-            "Développer des revenus complémentaires"
-        )
-
-    # =========================
-    # CRYPTO EXPOSURE
-    # =========================
     if crypto_ratio > 0.5:
+        signals.append({
+            "domain": "crypto",
+            "signal": "high_crypto_concentration",
+            "severity": "medium",
+        })
 
-        recommendations.append(
-            "Réduire la concentration crypto"
-        )
-
-    # =========================
-    # RISK
-    # =========================
     if risk_score > 75:
+        signals.append({
+            "domain": "risk",
+            "signal": "high_risk_score",
+            "severity": "high",
+        })
 
-        recommendations.append(
-            "Réduire le niveau de risque global"
-        )
-
-    # =========================
-    # DIVERSIFICATION
-    # =========================
     if diversification_score < 40:
+        signals.append({
+            "domain": "diversification",
+            "signal": "low_diversification",
+            "severity": "medium",
+        })
 
-        recommendations.append(
-            "Diversifier davantage les actifs"
-        )
+    return signals
 
-    # =========================
-    # EMPTY STATE
-    # =========================
-    if not recommendations:
 
-        recommendations.append(
-            "Structure financière équilibrée"
-        )
-
-    return recommendations
+def generate_recommendations(*args, **kwargs):
+    """Backward-compatible no-op: Ethan Core owns recommendation wording."""
+    return []

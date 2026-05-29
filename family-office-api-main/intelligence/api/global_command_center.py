@@ -20,7 +20,7 @@ from intelligence.scoring.scoring_context_builder import (
 )
 
 logger = logging.getLogger(__name__)
-COMMAND_CENTER_VERSION = "gcc-v1"
+COMMAND_CENTER_VERSION = "gcc-v2-data-signals"
 
 router = APIRouter(
     prefix="/global-command-center",
@@ -157,7 +157,7 @@ def compute_global_command_center(
         )
 
         cache_key = (
-            f"gcc:{cache_hash}"
+            f"gcc:{COMMAND_CENTER_VERSION}:{cache_hash}"
         )
 
         # =========================
@@ -233,54 +233,49 @@ def compute_global_command_center(
         )
 
         # =========================
-        # AI ADVICE
+        # DATA SIGNALS ONLY
         # =========================
-        advice = []
+        module_signals = []
 
-        if modules.get(
-            "crypto",
-            {}
-        ).get("score", 0) < 40:
+        if modules.get("crypto", {}).get("score", 0) < 40:
+            module_signals.append({
+                "module": "crypto",
+                "signal": "low_module_score",
+                "severity": "medium",
+                "label": "Exposition crypto peu structuree",
+            })
 
-            advice.append(
-                "Développe tes connaissances crypto"
-            )
+        if modules.get("real_estate", {}).get("score", 0) < 50:
+            module_signals.append({
+                "module": "real_estate",
+                "signal": "low_module_score",
+                "severity": "medium",
+                "label": "Poche immobiliere peu developpee",
+            })
 
-        if modules.get(
-            "real_estate",
-            {}
-        ).get("score", 0) < 50:
+        if modules.get("business", {}).get("score", 0) < 50:
+            module_signals.append({
+                "module": "business",
+                "signal": "low_module_score",
+                "severity": "medium",
+                "label": "Revenus business peu structures",
+            })
 
-            advice.append(
-                "Augmente ton exposition immobilière"
-            )
+        if modules.get("banking", {}).get("score", 0) < 50:
+            module_signals.append({
+                "module": "banking",
+                "signal": "low_module_score",
+                "severity": "medium",
+                "label": "Base de securite bancaire a renforcer",
+            })
 
-        if modules.get(
-            "business",
-            {}
-        ).get("score", 0) < 50:
-
-            advice.append(
-                "Développe des revenus business"
-            )
-
-        if modules.get(
-            "banking",
-            {}
-        ).get("score", 0) < 50:
-
-            advice.append(
-                "Renforce ton épargne de sécurité"
-            )
-
-        if modules.get(
-            "entrepreneurship",
-            {}
-        ).get("score", 0) > 80:
-
-            advice.append(
-                "Excellent potentiel entrepreneurial"
-            )
+        if modules.get("entrepreneurship", {}).get("score", 0) > 80:
+            module_signals.append({
+                "module": "entrepreneurship",
+                "signal": "high_module_score",
+                "severity": "positive",
+                "label": "Potentiel entrepreneurial visible",
+            })
 
         # =========================
         # FINAL PAYLOAD
@@ -296,8 +291,11 @@ def compute_global_command_center(
             "modules":
                 modules,
 
+            "module_signals":
+                module_signals,
+
             "advice":
-                advice,
+                [],
 
             "context": {
 
@@ -341,6 +339,8 @@ def compute_global_command_center(
             "level": "BEGINNER",
 
             "modules": {},
+
+            "module_signals": [],
 
             "advice": [],
 

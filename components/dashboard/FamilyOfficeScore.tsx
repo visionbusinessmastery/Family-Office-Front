@@ -8,7 +8,6 @@ type UserIntelligenceResponse = {
   score?: {
     score?: number;
     details?: ScoreDetails;
-    advice?: string[];
   };
   level?: string;
 };
@@ -16,7 +15,6 @@ type UserIntelligenceResponse = {
 type ScoreData = {
   score: number;
   details: ScoreDetails;
-  advice: string[];
   level: string;
 };
 
@@ -42,7 +40,6 @@ export default function FamilyOfficeScore() {
         setData({
           score: json.score?.score || 0,
           details: json.score?.details || {},
-          advice: json.score?.advice || [],
           level: json.level || "N/A",
         });
       } catch (err) {
@@ -85,19 +82,10 @@ export default function FamilyOfficeScore() {
         <ScoreItem label="Activite" value={details.activity || 0} />
       </div>
 
-      <div>
-        <p className="mb-2 text-[#1DA2CF]">Recommandations :</p>
-
-        <ul className="text-sm space-y-1">
-          {data.advice.length > 0 ? (
-            data.advice.map((advice, index) => (
-              <li key={`${advice}-${index}`}>{advice}</li>
-            ))
-          ) : (
-            <li className="text-white/50">Aucune recommandation</li>
-          )}
-        </ul>
-      </div>
+      <p className="text-sm text-white/50">
+        Le score reste un indicateur de lecture. Les decisions et priorites
+        passent par Ethan Core.
+      </p>
     </div>
   );
 }

@@ -108,7 +108,7 @@ def advisor_portfolio(request: Request, data: AdvisorRequest):
 
 
 # =========================
-# 3. AUTOPILOT ENGINE (SIMULATION / DECISION)
+# 3. AUTOPILOT ENGINE (SIMULATION SATELLITE ONLY)
 # =========================
 @router.post("/advisor/autopilot")
 @limiter.limit("10/minute")
@@ -136,8 +136,9 @@ def advisor_autopilot(request: Request, data: AdvisorRequest):
 
         return {
             "user": user_email,
-            "system": "AUTOPILOT_ENGINE_V4",
+            "system": "AUTOPILOT_SIMULATION_SATELLITE_V4",
             "mode": "SIMULATION",
+            "authority": "no_decision_authority",
             "input": message,
             "result": result
         }

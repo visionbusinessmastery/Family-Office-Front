@@ -445,6 +445,13 @@ export type CommandCenter = {
     details?: ScoreDetails;
   };
   advice?: string[];
+  module_signals?: Array<{
+    module?: string;
+    domain?: string;
+    signal?: string;
+    severity?: string;
+    label?: string;
+  }>;
   opportunities?: OpportunityData | Opportunity[];
   opportunities_count?: number;
   modules?: Record<string, { score?: number }>;

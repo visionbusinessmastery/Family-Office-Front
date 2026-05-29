@@ -64,7 +64,6 @@ type DashboardSessionSnapshot = {
   dashboard: DashboardSummary | null;
   score: number;
   scoreDetails: ScoreDetails | null;
-  scoreAdvice: string[];
   commandCenter: CommandCenter | null;
   gamification: GamificationData | null;
   portfolio: PortfolioAsset[];
@@ -194,7 +193,6 @@ export function useDashboard() {
   );
   const [score, setScore] = useState<number>(0);
   const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(null);
-  const [scoreAdvice, setScoreAdvice] = useState<string[]>([]);
   const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(null);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
@@ -254,7 +252,6 @@ export function useDashboard() {
     setDashboard(snapshot.dashboard);
     setScore(snapshot.score);
     setScoreDetails(snapshot.scoreDetails);
-    setScoreAdvice(snapshot.scoreAdvice);
     setCommandCenter(snapshot.commandCenter);
     setGamification(snapshot.gamification);
     setPortfolio(snapshot.portfolio);
@@ -413,14 +410,12 @@ export function useDashboard() {
     const data = await apiRequest<{
       score?: number;
       details?: ScoreDetails;
-      advice?: string[];
     }>("/intelligence/score/recalculate", token, {
       method: "POST",
     });
 
     setScore(Number(data.score) || 0);
     setScoreDetails(data.details || null);
-    setScoreAdvice(data.advice || []);
   }, [token]);
 
   const loadCommandCenter = useCallback(async () => {
@@ -433,7 +428,6 @@ export function useDashboard() {
     setCommandCenter(data);
     setScore(Number(data.global_score || 0));
     setScoreDetails(data.family_office_score?.details || null);
-    setScoreAdvice(data.advice || []);
   }, [safeFetch]);
 
   const refreshAll = useCallback(async () => {
@@ -548,7 +542,6 @@ export function useDashboard() {
       dashboard,
       score,
       scoreDetails,
-      scoreAdvice,
       commandCenter,
       gamification,
       portfolio,
@@ -579,7 +572,6 @@ export function useDashboard() {
     product,
     realEstate,
     score,
-    scoreAdvice,
     scoreDetails,
     token,
     user,
@@ -593,7 +585,6 @@ export function useDashboard() {
     dashboard,
     score,
     scoreDetails,
-    scoreAdvice,
     commandCenter,
     portfolio,
     history,

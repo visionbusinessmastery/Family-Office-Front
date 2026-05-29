@@ -14,6 +14,7 @@ export default function GlobalFinancialCommandCenter({
 
   const modules = data.modules || {};
   const onboarding = data.onboarding || {};
+  const moduleSignals = data.module_signals || [];
   const allocationData = Object.keys(modules).map((key) => ({
     name: key,
     value: modules[key]?.score || 0,
@@ -85,13 +86,19 @@ export default function GlobalFinancialCommandCenter({
 
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
         <h3 className="text-xl font-bold text-[#3fa9f5]">
-          Conseils prioritaires
+          Signaux modules
         </h3>
 
         <ul className="mt-3 space-y-2 text-gray-300">
-          {data.advice?.map((advice, index) => (
-            <li key={`${advice}-${index}`}>{advice}</li>
-          ))}
+          {moduleSignals.length > 0 ? (
+            moduleSignals.map((signal, index) => (
+              <li key={`${signal.module || signal.domain}-${signal.signal}-${index}`}>
+                {signal.label || signal.signal || "Signal disponible"}
+              </li>
+            ))
+          ) : (
+            <li>Aucun signal module prioritaire.</li>
+          )}
         </ul>
       </div>
     </div>

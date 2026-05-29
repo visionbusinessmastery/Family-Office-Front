@@ -41,7 +41,7 @@ def recalculate_score(user=Depends(get_current_user)):
         return {
             "score": score_data.get("score", 0),
             "details": score_data.get("details", {}),
-            "advice": score_data.get("advice", []),
+            "advice": [],
             "level": intel.get("level", "UNKNOWN"),
             "plan": intel.get("plan", "FREE")
         }
