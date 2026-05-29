@@ -1,4 +1,5 @@
 from advisor.ethan.context_engine import compact_context, compact_portfolio
+from advisor.ethan.cognitive_output_layer import apply_cognitive_output_layer
 from advisor.ethan.memory_engine import build_life_context, get_memory, update_memory
 from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
 from advisor.ethan.persistence_engine import (
@@ -70,6 +71,13 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
 
         cached = None if bypass_cache else get_cache(cache_key)
         if cached and not response_is_legacy_ethan_response(cached):
+            cached["analysis"] = apply_cognitive_output_layer(
+                cached.get("analysis"),
+                context=context,
+                message=message,
+                response_strategy=response_strategy,
+                tier=tier,
+            )
             record_usage(conn, user_id, user_email, plan, tier, task_type, complexity, model, True)
             cached["cache_hit"] = True
             return cached
@@ -125,6 +133,14 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
             if not bypass_cache:
                 set_cache(cache_key, result, ttl=180)
             return result
+
+        llm_text = apply_cognitive_output_layer(
+            llm_text,
+            context=context,
+            message=message,
+            response_strategy=response_strategy,
+            tier=tier,
+        )
 
         update_memory(
             conn,
