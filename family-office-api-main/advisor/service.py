@@ -8,7 +8,7 @@ from sqlalchemy import text
 from advisor.autopilot_v4_engine import get_autopilot_v4
 from auth.utils import get_user_id
 from core.cache import redis_client
-from advisor.ethan_openai import ethan_chat_completion, is_ethan_openai_configured
+from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
 from database import engine
 from portfolio.service import get_user_portfolio
 from product.entitlements import normalize_plan, plan_allows, resolve_effective_plan
