@@ -8,7 +8,7 @@ from sqlalchemy import text
 from advisor.autopilot_v4_engine import get_autopilot_v4
 from auth.utils import get_user_id
 from core.cache import redis_client
-from core.openai_gateway import chat_completion, is_openai_configured
+from advisor.ethan_openai import ethan_chat_completion, is_ethan_openai_configured
 from database import engine
 from portfolio.service import get_user_portfolio
 from product.entitlements import normalize_plan, plan_allows, resolve_effective_plan
@@ -792,7 +792,7 @@ def get_llm_response(messages, model, max_output_tokens):
     if cached and not is_legacy_ethan_response(cached):
         return cached, True, estimate_tokens(json.dumps(messages)), estimate_tokens(cached), model
 
-    if not is_openai_configured():
+    if not is_ethan_openai_configured():
         return None, False, estimate_tokens(json.dumps(messages)), 0, model
 
     def _call(selected_model, token_param="max_completion_tokens"):
@@ -801,7 +801,7 @@ def get_llm_response(messages, model, max_output_tokens):
             "messages": messages,
             token_param: max_output_tokens,
         }
-        return chat_completion(**kwargs)
+        return ethan_chat_completion(**kwargs)
 
     response = None
 

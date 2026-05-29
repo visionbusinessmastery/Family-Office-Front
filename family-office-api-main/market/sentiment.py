@@ -1,32 +1,23 @@
-from core.openai_gateway import chat_completion, is_openai_configured
-
 def analyze_sentiment(news_list):
-    if not is_openai_configured():
-        return {
-            "label": "neutral",
-            "score": 50,
-            "summary": "OPENAI_API_KEY non configuree"
-        }
+    titles = " ".join(str(article.get("title", "")) for article in news_list or []).lower()
+    bearish_terms = ["crash", "baisse", "bearish", "recession", "fear", "selloff", "chute", "risk"]
+    bullish_terms = ["bull", "hausse", "record", "rally", "growth", "croissance", "optimism", "gain"]
 
-    text = ""
+    bearish_count = sum(1 for term in bearish_terms if term in titles)
+    bullish_count = sum(1 for term in bullish_terms if term in titles)
 
-    for article in news_list:
-        text += article.get("title", "") + "\n"
+    if bullish_count > bearish_count:
+        label = "bullish"
+        score = min(75, 55 + bullish_count * 5)
+    elif bearish_count > bullish_count:
+        label = "bearish"
+        score = max(25, 45 - bearish_count * 5)
+    else:
+        label = "neutral"
+        score = 50
 
-    prompt = f"""
-    Analyse le sentiment global de ces news financières:
-
-    {text}
-
-    Donne:
-    - sentiment global (bullish / bearish / neutre)
-    - score sur 100
-    - résumé en 3 lignes
-    """
-
-    response = chat_completion(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    return response.choices[0].message.content
+    return {
+        "label": label,
+        "score": score,
+        "summary": "Signal marche calcule localement. Interpretation strategique reservee a Ethan Core.",
+    }
