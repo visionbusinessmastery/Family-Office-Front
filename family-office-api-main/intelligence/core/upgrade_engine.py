@@ -1,18 +1,7 @@
 # =========================
 # IMPORTS (SAFE EXTENSION)
 # =========================
-from sqlalchemy import text
-
-# =========================
-# PLAN HIERARCHY
-# =========================
-PLAN_HIERARCHY = {
-    "FREE": 0,
-    "SILVER": 1,
-    "GOLD": 2,
-    "ELITE": 3,
-    "LIBERTY": 4
-}
+from product.tiers import normalize_plan, plan_rank
 
 # =========================
 # PLAN FROM SCORE (XP SYSTEM)
@@ -20,6 +9,9 @@ PLAN_HIERARCHY = {
 def get_plan_from_score(score: int):
 
     # 🔥 LIBERTY MODE (END GAME)
+    if score >= 22000:
+        return "LEGACY"
+
     if score >= 15000:
         return "LIBERTY"
 
@@ -32,10 +24,6 @@ def get_plan_from_score(score: int):
         return "GOLD"
 
     # SILVER
-    elif score >= 1000:
-        return "SILVER"
-
-    # FREE
     return "FREE"
 
 
@@ -46,19 +34,15 @@ def compute_upgrade_decision(current_plan: str, score: int):
 
     recommended_plan = get_plan_from_score(score)
 
-    current_level = PLAN_HIERARCHY.get(
-        (current_plan or "FREE").upper(), 0
-    )
-
-    recommended_level = PLAN_HIERARCHY.get(
-        recommended_plan, 0
-    )
+    normalized_current_plan = normalize_plan(current_plan)
+    current_level = plan_rank(normalized_current_plan)
+    recommended_level = plan_rank(recommended_plan)
 
     upgrade = recommended_level > current_level
 
     return {
         "upgrade": upgrade,
-        "from": (current_plan or "FREE").upper(),
+        "from": normalized_current_plan,
         "to": recommended_plan,
         "recommended_plan": recommended_plan,
         "reason": "xp_threshold_reached" if upgrade else None
@@ -99,42 +83,8 @@ def process_user_intelligence(user_email, profile, portfolio, conn):
             score=score_value
         )
 
-        # =========================
-        # DB UPDATE SAFE (PLAN EVOLUTION)
-        # =========================
-        if upgrade.get("upgrade"):
-
-            conn.execute(text("""
-                UPDATE users
-                SET plan = :new_plan
-                WHERE email = :email
-            """), {
-                "new_plan": upgrade["to"],
-                "email": user_email
-            })
-
-            conn.execute(text("""
-                INSERT INTO upgrade_events (
-                    user_email,
-                    from_plan,
-                    to_plan,
-                    trigger,
-                    score
-                )
-                VALUES (
-                    :email,
-                    :from_plan,
-                    :to_plan,
-                    :trigger,
-                    :score
-                )
-            """), {
-                "email": user_email,
-                "from_plan": upgrade["from"],
-                "to_plan": upgrade["to"],
-                "trigger": upgrade["reason"],
-                "score": score_value
-            })
+        # Plans payants et features visibles restent deterministes:
+        # cette couche recommande, Stripe/billing synchronise le vrai user.plan.
 
         # =========================
         # RESPONSE

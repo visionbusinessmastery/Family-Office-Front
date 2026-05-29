@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
+import AuthExperienceShell from "@/components/AuthExperienceShell";
+import { ActionButton, WealthToast } from "@/components/ui/WealthUI";
 
 type State = "loading" | "success" | "error";
 
@@ -27,6 +28,10 @@ function VerifyEmailContent() {
   const [message, setMessage] = useState("Verification en cours...");
   const [email, setEmail] = useState<string | null>(initialEmail);
   const [resending, setResending] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -44,8 +49,6 @@ function VerifyEmailContent() {
         );
 
         const data = await res.json().catch(() => null);
-
-        console.log("VERIFY RESPONSE:", data);
 
         if (!res.ok) {
           throw new Error(data?.detail || "Erreur de verification");
@@ -77,7 +80,7 @@ function VerifyEmailContent() {
     const emailToUse = email || localStorage.getItem("verified_email");
 
     if (!emailToUse) {
-      alert("Email introuvable");
+      setToast({ message: "Email introuvable.", type: "error" });
       return;
     }
 
@@ -99,41 +102,33 @@ function VerifyEmailContent() {
 
       const data = await res.json().catch(() => null);
 
-      console.log("RESEND RESPONSE:", data);
-
       if (!res.ok) {
         throw new Error(data?.message || "Erreur resend");
       }
 
-      alert("Email de verification renvoye");
+      setToast({ message: "Email de verification renvoye.", type: "success" });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Erreur lors du renvoi");
+      setToast({
+        message: err instanceof Error ? err.message : "Erreur lors du renvoi",
+        type: "error",
+      });
     } finally {
       setResending(false);
     }
   };
 
   return (
-    <main
-      className="relative min-h-screen flex flex-col items-center px-6 bg-cover bg-center"
-      style={{ backgroundImage: "url('/bg-family-office.jpg')" }}
+    <AuthExperienceShell
+      title="Verification email"
+      subtitle="On securise ton acces avant d'ouvrir ton cockpit patrimonial."
     >
-      <div className="absolute inset-0 bg-black/70" />
-
-      <div className="relative z-10 flex flex-col items-center text-center text-white">
-        <Image
-          src="/logo.png"
-          alt="Vision Business Mastery"
-          width={160}
-          height={160}
-          className="h-40 mt-6"
-        />
-
-        <h1 className="text-[#1DA2CF] text-[34px] mt-6">
-          Verification email
-        </h1>
-
-        <p className="mt-4">{message}</p>
+      <WealthToast
+        message={toast?.message}
+        type={toast?.type}
+        onClose={() => setToast(null)}
+      />
+      <div className="text-center">
+        <p className="text-sm text-gray-300">{message}</p>
 
         {email && <p className="mt-2 text-sm text-gray-300">{email}</p>}
 
@@ -141,20 +136,20 @@ function VerifyEmailContent() {
           <div className="mt-6">
             <p className="text-red-400 mb-4">Verification echouee</p>
 
-            <button
+            <ActionButton
               onClick={resendEmail}
               disabled={resending}
-              className="bg-[#1DA2CF] text-white px-6 py-2 rounded-xl"
             >
               {resending ? "Envoi..." : "Renvoyer email"}
-            </button>
+            </ActionButton>
 
-            <button
+            <ActionButton
               onClick={() => (window.location.href = "/")}
-              className="ml-3 bg-white text-black px-6 py-2 rounded-xl"
+              variant="secondary"
+              className="ml-3"
             >
               Accueil
-            </button>
+            </ActionButton>
           </div>
         )}
 
@@ -164,30 +159,14 @@ function VerifyEmailContent() {
           </div>
         )}
       </div>
-    </main>
+    </AuthExperienceShell>
   );
 }
 
 function VerifyEmailShell({ message }: { message: string }) {
   return (
-    <main
-      className="relative min-h-screen flex flex-col items-center px-6 bg-cover bg-center"
-      style={{ backgroundImage: "url('/bg-family-office.jpg')" }}
-    >
-      <div className="absolute inset-0 bg-black/70" />
-      <div className="relative z-10 flex flex-col items-center text-center text-white">
-        <Image
-          src="/logo.png"
-          alt="Vision Business Mastery"
-          width={160}
-          height={160}
-          className="h-40 mt-6"
-        />
-        <h1 className="text-[#1DA2CF] text-[34px] mt-6">
-          Verification email
-        </h1>
-        <p className="mt-4">{message}</p>
-      </div>
-    </main>
+    <AuthExperienceShell title="Verification email" subtitle={message}>
+      <div className="mx-auto h-12 w-12 rounded-full border-2 border-[#3fa9f5]/30 border-r-amber-300 border-t-[#3fa9f5] animate-spin" />
+    </AuthExperienceShell>
   );
 }

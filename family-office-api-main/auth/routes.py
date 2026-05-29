@@ -4,7 +4,7 @@
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy import text
 
 from database import engine
@@ -16,7 +16,14 @@ from auth.utils import (
     verify_password
 )
 from auth.email_service import send_verification_email
-from core.cache import redis_client
+from core.cache import delete_cache_keys, delete_cache_patterns
+from core.limiter import limiter
+from product.entitlements import normalize_plan, resolve_effective_plan
+from privacy.routes import record_consents
+from security.abuse_engine import assert_ip_rate_limit
+from security.audit import ensure_security_tables, log_security_event
+from analytics.analytics_events import ONBOARDING_COMPLETED
+from analytics.posthog_service import capture_event
 
 router = APIRouter()
 
@@ -24,17 +31,13 @@ router = APIRouter()
 # INVALIDATE USER
 # =========================
 def invalidate_user_intelligence_caches(email: str):
-    try:
-        if not redis_client:
-            return
-
-        redis_client.delete(
-            f"intel:{email}",
-            f"context:{email}",
-            f"score:{email}",
-        )
-    except Exception:
-        pass
+    delete_cache_keys(f"score:{email}")
+    delete_cache_patterns(
+        f"intel:{email}*",
+        f"context:{email}*",
+        f"gamification:{email}*",
+        f"quests:{email}*",
+    )
 
 
 
@@ -42,12 +45,16 @@ def invalidate_user_intelligence_caches(email: str):
 # REGISTER
 # =========================
 @router.post("/register")
-def register(data: UserAuth):
+@limiter.limit("3/hour")
+def register(data: UserAuth, request: Request):
 
     email = data.email.lower()
+    consents = data.model_dump(exclude={"email"}, exclude_none=True)
 
     try:
         with engine.begin() as conn:
+            ensure_security_tables(conn)
+            assert_ip_rate_limit(conn, "auth_register", 3, "hour", request)
 
             existing = conn.execute(text("""
                 SELECT id, is_verified FROM users WHERE email = :email
@@ -56,6 +63,7 @@ def register(data: UserAuth):
             if existing:
 
                 if existing.is_verified:
+                    log_security_event(conn, "register_existing_verified", request, email=email)
                     return {
                         "status": "success",
                         "action": "login"
@@ -73,8 +81,15 @@ def register(data: UserAuth):
                 """), {"email": email, "token": token})
 
                 send_verification_email(email, token)
+                log_security_event(conn, "register_verification_resent", request, email=email)
 
                 return {"status": "success", "action": "resend_verification"}
+
+            if not data.terms_accepted or not data.privacy_policy_accepted:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Les CGU et la politique de confidentialite doivent etre acceptees pour creer un compte.",
+                )
 
             result = conn.execute(text("""
                 INSERT INTO users (email, is_verified, verification_attempts, profile_completed)
@@ -83,6 +98,8 @@ def register(data: UserAuth):
             """), {"email": email})
 
             user_id = result.fetchone()[0]
+            record_consents(conn, user_id, consents, request)
+            log_security_event(conn, "register_created", request, email=email, user_id=user_id)
 
             token = secrets.token_urlsafe(32)
 
@@ -103,6 +120,8 @@ def register(data: UserAuth):
             "user_id": user_id
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -111,9 +130,12 @@ def register(data: UserAuth):
 # VERIFY EMAIL
 # =========================
 @router.get("/verify-email")
-def verify_email(token: str):
+@limiter.limit("10/hour")
+def verify_email(request: Request, token: str):
 
     with engine.begin() as conn:
+        ensure_security_tables(conn)
+        assert_ip_rate_limit(conn, "auth_verify_email", 10, "hour", request)
 
         record = conn.execute(text("""
             SELECT email FROM email_verifications
@@ -123,6 +145,7 @@ def verify_email(token: str):
         """), {"token": token}).fetchone()
 
         if not record:
+            log_security_event(conn, "verify_email_failed", request, severity="warning")
             raise HTTPException(status_code=400, detail="Token invalide")
 
         email = record.email
@@ -137,6 +160,7 @@ def verify_email(token: str):
                 profile_completed = FALSE
             WHERE email = :email
         """), {"email": email})
+        log_security_event(conn, "verify_email_success", request, email=email)
 
     return {"email": email}
 
@@ -175,8 +199,19 @@ def get_me(email: str = Depends(get_current_user)):
     with engine.begin() as conn:
 
         user = conn.execute(text("""
-            SELECT email, plan, profile_completed, revenus_mensuels, charges_mensuelles
+            SELECT
+                users.email,
+                users.plan AS user_plan,
+                users.profile_completed,
+                users.revenus_mensuels,
+                users.charges_mensuelles,
+                users.is_founder,
+                users.founder_tier,
+                users.founder_discount,
+                subscriptions.plan AS subscription_plan,
+                subscriptions.status AS subscription_status
             FROM users
+            LEFT JOIN subscriptions ON subscriptions.user_id = users.id
             WHERE email = :email
         """), {"email": email}).fetchone()
 
@@ -190,10 +225,17 @@ def get_me(email: str = Depends(get_current_user)):
 
         data = {
             "email": user.email,
-            "plan": user.plan,
+            "plan": resolve_effective_plan(
+                user.user_plan,
+                user.subscription_plan,
+                user.subscription_status,
+            ),
             "profile_completed": profile_completed,
             "revenus_mensuels": user.revenus_mensuels or 0,
             "charges_mensuelles": user.charges_mensuelles or 0,
+            "is_founder": bool(user.is_founder),
+            "founder_tier": user.founder_tier,
+            "founder_discount": int(user.founder_discount or 0),
         }
 
         if not profile_completed:
@@ -207,26 +249,34 @@ def get_me(email: str = Depends(get_current_user)):
 # LOGIN
 # =========================
 @router.post("/login")
-def login(data: LoginRequest):
+@limiter.limit("5/minute")
+def login(data: LoginRequest, request: Request):
 
     email = data.email.lower()
 
     with engine.begin() as conn:
+        ensure_security_tables(conn)
+        assert_ip_rate_limit(conn, "auth_login", 5, "minute", request)
 
         user = conn.execute(text("""
             SELECT password_hash FROM users WHERE email = :email
         """), {"email": email}).fetchone()
 
         if not user:
-            raise HTTPException(status_code=400, detail="Utilisateur introuvable")
+            log_security_event(conn, "login_failed", request, email=email, severity="warning")
+            raise HTTPException(status_code=400, detail="Identifiants incorrects")
 
         if user.password_hash is None:
+            log_security_event(conn, "login_set_password_required", request, email=email)
             return {"action": "set_password_required"}
 
         if not verify_password(data.password, user.password_hash):
-            raise HTTPException(status_code=400, detail="Mot de passe incorrect")
+            log_security_event(conn, "login_failed", request, email=email, severity="warning")
+            raise HTTPException(status_code=400, detail="Identifiants incorrects")
 
     token = create_token({"sub": email})
+    with engine.begin() as conn:
+        log_security_event(conn, "login_success", request, email=email)
 
     return {"access_token": token}
 
@@ -269,11 +319,16 @@ def save_onboarding(data: dict, email: str = Depends(get_current_user)):
 # =========================
 @router.post("/plan/update")
 def update_plan(plan: str, email: str = Depends(get_current_user)):
+    normalized_plan = normalize_plan(plan)
 
     with engine.begin() as conn:
         conn.execute(text("""
             UPDATE users SET plan = :plan WHERE email = :email
-        """), {"plan": plan, "email": email})
+        """), {"plan": normalized_plan, "email": email})
+
+        invalidate_user_intelligence_caches(email)
+        user_id = conn.execute(text("SELECT id FROM users WHERE email = :email"), {"email": email}).scalar()
+        capture_event(conn, ONBOARDING_COMPLETED, user_id=user_id, email=email)
 
     return {"status": "updated"}
 
@@ -307,6 +362,8 @@ def complete_onboarding(data: dict, email: str = Depends(get_current_user)):
             return {"error": "onboarding failed"}
 
         invalidate_user_intelligence_caches(email)
+        user_id = conn.execute(text("SELECT id FROM users WHERE email = :email"), {"email": email}).scalar()
+        capture_event(conn, ONBOARDING_COMPLETED, user_id=user_id, email=email)
         
     return {"status": "completed"}
 

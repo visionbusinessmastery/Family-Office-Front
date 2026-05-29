@@ -1,0 +1,136 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { apiRequest } from "@/lib/api";
+import type { ProductContext } from "@/lib/types";
+
+const AdvisorChat = dynamic(() => import("@/components/dashboard/AdvisorChat"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 text-sm text-gray-400">
+      Ethan se prepare...
+    </div>
+  ),
+});
+
+const PLAN_ORDER: Record<string, number> = {
+  FREE: 0,
+  GOLD: 1,
+  ELITE: 2,
+  LIBERTY: 3,
+  LEGACY: 4,
+};
+
+const normalizePlan = (plan?: string | null) => {
+  const value = String(plan || "FREE").trim().toUpperCase();
+  if (value === "GROWTH") return "GOLD";
+  if (value === "PLATINUM" || value === "WEALTH_OS") return "ELITE";
+  if (value === "DYNASTY" || value === "DYNASTY_OFFICE") return "LEGACY";
+  return PLAN_ORDER[value] === undefined ? "FREE" : value;
+};
+
+const planAllows = (plan: string | undefined | null, required: string) =>
+  PLAN_ORDER[normalizePlan(plan)] >= PLAN_ORDER[normalizePlan(required)];
+
+export default function EthanFloatingAdvisor() {
+  const [open, setOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("ethanFloatingOpen") === "true";
+  });
+  const [enabled, setEnabled] = useState(false);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [contextLoaded, setContextLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    apiRequest<Pick<ProductContext, "plan" | "entitlements">>(
+      "/product/entitlements",
+      token
+    )
+      .then((product) => {
+        if (cancelled) return;
+        const features = product?.entitlements?.features || [];
+        setEnabled(
+          planAllows(product?.plan, "GOLD") &&
+            features.includes("ethan_floating_chat")
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setEnabled(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open || !enabled || contextLoaded) return;
+
+    let cancelled = false;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    apiRequest<ProductContext>("/product/context", token)
+      .then((product) => {
+        if (cancelled) return;
+        setRecommendations(
+          product?.strategic_brief?.next_action
+            ? [product.strategic_brief.next_action]
+            : []
+        );
+        setContextLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) setContextLoaded(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [contextLoaded, enabled, open]);
+
+  const toggleOpen = () => {
+    setOpen((value) => {
+      const next = !value;
+      sessionStorage.setItem("ethanFloatingOpen", String(next));
+      return next;
+    });
+  };
+
+  if (!enabled) return null;
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+      {open && (
+        <div className="max-h-[78vh] w-[min(420px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
+          <AdvisorChat recommendations={recommendations} />
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={toggleOpen}
+        className="group relative overflow-hidden rounded-full border border-[#3fa9f5]/60 bg-[#07111f] px-4 py-3 text-left text-white shadow-2xl shadow-[#3fa9f5]/20 transition hover:-translate-y-0.5 hover:border-[#8bd0ff] hover:shadow-[#3fa9f5]/35 sm:px-5"
+        aria-expanded={open}
+      >
+        <span className="absolute inset-0 bg-[#3fa9f5]/15 opacity-70 blur-xl transition group-hover:opacity-100" />
+        <span className="relative flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-full border border-[#8bd0ff]/50 bg-[#3fa9f5] text-sm font-black shadow-lg shadow-[#3fa9f5]/35">
+            AI
+          </span>
+          <span className="hidden leading-tight sm:block">
+            <span className="block text-sm font-black">Ethan</span>
+            <span className="block text-[11px] font-semibold text-[#8bd0ff]">
+              Copilote strategique
+            </span>
+          </span>
+        </span>
+      </button>
+    </div>
+  );
+}

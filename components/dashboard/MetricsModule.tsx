@@ -30,7 +30,7 @@ export default function MetricsModule({
 
         <div className="text-5xl font-bold">{Number(score || 0)}/100</div>
 
-        <div className="mt-2 text-lg">{dashboard?.level || "FREE"}</div>
+        <div className="mt-2 text-lg">{dashboard?.level || "Statut en cours"}</div>
       </div>
 
       <div className="grid grid-cols-3 gap-4">

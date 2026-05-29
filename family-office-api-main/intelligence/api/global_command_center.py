@@ -5,6 +5,7 @@
 import json
 import hashlib
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter
 
@@ -19,6 +20,7 @@ from intelligence.scoring.scoring_context_builder import (
 )
 
 logger = logging.getLogger(__name__)
+COMMAND_CENTER_VERSION = "gcc-v1"
 
 router = APIRouter(
     prefix="/global-command-center",
@@ -309,6 +311,11 @@ def compute_global_command_center(
                     bool(financial_overview),
             }
         }
+        result["version"] = COMMAND_CENTER_VERSION
+        result["timestamp"] = datetime.utcnow().isoformat()
+        result["data_hash"] = hashlib.sha256(
+            json.dumps(result, sort_keys=True, default=str).encode()
+        ).hexdigest()
 
         # =========================
         # CACHE STORE
@@ -336,6 +343,12 @@ def compute_global_command_center(
             "modules": {},
 
             "advice": [],
+
+            "version": COMMAND_CENTER_VERSION,
+
+            "timestamp": datetime.utcnow().isoformat(),
+
+            "data_hash": "error",
 
             "error": str(e)
         }

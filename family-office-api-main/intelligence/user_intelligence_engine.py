@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from core.cache import redis_client
 from database import engine
+from intelligence.api.global_command_center import compute_global_command_center
 from intelligence.core.upgrade_engine import compute_upgrade_decision
 from intelligence.scoring.family_office_score import (
     compute_family_office_score,
@@ -16,8 +17,15 @@ from intelligence.scoring.family_office_score import (
 )
 from intelligence.service import get_user_financial_overview
 from intelligence.strategic.feature_engine import compute_feature_access
-from intelligence.strategic.opportunity_engine import compute_opportunities
+from intelligence.strategic.module_engine import get_all_opportunities
+from intelligence.strategic.opportunity_engine import (
+    compute_opportunities,
+    enrich_opportunity,
+    ensure_plan_opportunity_depth,
+    opportunity_limit_for_plan,
+)
 from intelligence.strategic.strategic_layer import compute_strategic_layer
+from product.entitlements import resolve_effective_plan
 
 
 # =========================
@@ -51,8 +59,12 @@ def set_cache(key, value, ttl=300):
 # LEVEL ENGINE
 # =========================
 def compute_level(score: int, plan: str = "FREE"):
+    if (plan or "").upper() in ["LEGACY", "HERITAGE", "DYNASTY_OFFICE"]:
+        return "LEGACY"
     if (plan or "").upper() == "LIBERTY":
         return "LIBERTY"
+    if score >= 95:
+        return "DYNASTY ARCHITECT"
     if score >= 85:
         return "ELITE"
     if score >= 70:
@@ -126,27 +138,40 @@ def sum_amount(items):
 # =========================
 def compute_user_intelligence(user_email: str):
 
-    cache_key = f"intel:{user_email}"
-    context_cache_key = f"context:{user_email}"
-
-    cached = get_cache(cache_key)
-    if cached:
-        return cached
-
     with engine.begin() as conn:
 
         # =========================
         # USER FETCH
         # =========================
         user = conn.execute(text("""
-            SELECT id, email, plan, profile_completed,
-                   revenus_mensuels, charges_mensuelles
+            SELECT
+                users.id,
+                users.email,
+                users.plan AS user_plan,
+                users.profile_completed,
+                users.revenus_mensuels,
+                users.charges_mensuelles,
+                subscriptions.plan AS subscription_plan,
+                subscriptions.status AS subscription_status
             FROM users
-            WHERE email = :email
+            LEFT JOIN subscriptions ON subscriptions.user_id = users.id
+            WHERE users.email = :email
         """), {"email": user_email}).fetchone()
 
         if not user:
             return {"error": "user not found"}
+
+        effective_plan = resolve_effective_plan(
+            user.user_plan,
+            user.subscription_plan,
+            user.subscription_status,
+        )
+        cache_key = f"intel:v5-life-context-opps:{user_email}:{effective_plan}"
+        context_cache_key = f"context:v2-life:{user_email}:{effective_plan}"
+
+        cached = get_cache(cache_key)
+        if cached:
+            return cached
 
         # =========================
         # ONBOARDING REQUIRED STATE
@@ -163,7 +188,7 @@ def compute_user_intelligence(user_email: str):
             result = {
                 "state": "ONBOARDING_REQUIRED",
                 "user": user.email,
-                "plan": user.plan,
+                "plan": effective_plan,
                 "global_score": 0,
                 "level": "ONBOARDING",
                 "onboarding": onboarding,
@@ -212,8 +237,30 @@ def compute_user_intelligence(user_email: str):
                 "monthly_income": onboarding["monthly_income"],
                 "debt": onboarding["debts"],
                 "email": user.email,
-                "plan": user.plan,
+                "plan": effective_plan,
             }
+
+            wealth_profile = conn.execute(text("""
+                SELECT goals, horizon, investor_profile, risk_level, motivation,
+                       has_children, transmission_goal, governance_need,
+                       confidentiality_need, family_strategy
+                FROM user_wealth_profiles
+                WHERE user_id = :user_id
+            """), {"user_id": user.id}).fetchone()
+
+            if wealth_profile:
+                profile_dict.update({
+                    "goals": [item for item in (wealth_profile.goals or "").split("|") if item],
+                    "horizon": wealth_profile.horizon,
+                    "professional_context": wealth_profile.investor_profile,
+                    "risk_profile": wealth_profile.risk_level or profile_dict["risk_profile"],
+                    "motivation": wealth_profile.motivation,
+                    "has_children": bool(wealth_profile.has_children),
+                    "transmission_goal": wealth_profile.transmission_goal,
+                    "governance_need": wealth_profile.governance_need,
+                    "confidentiality_need": wealth_profile.confidentiality_need,
+                    "family_strategy": wealth_profile.family_strategy,
+                })
 
             set_cache(context_cache_key, {
                 "profile": profile_dict,
@@ -284,13 +331,37 @@ def compute_user_intelligence(user_email: str):
             finance_payload
         ) or {}
 
+        command_center = compute_global_command_center(
+            user=profile_dict,
+            onboarding=onboarding,
+            portfolio=portfolio_list,
+            financial_overview=financial_features,
+        ) or {}
+
         score_value = int(safe_get(score_result, "score", 0))
+        profile_dict["score"] = score_value
 
-        level = compute_level(score_value, user.plan)
+        level = compute_level(score_value, effective_plan)
 
-        upgrade = compute_upgrade_decision(user.plan, score_value)
+        upgrade = compute_upgrade_decision(effective_plan, score_value)
         features = compute_feature_access(profile_dict, {"score": score_value})
-        opportunities = compute_opportunities(profile_dict, portfolio_list)
+        module_opportunities = get_all_opportunities(profile_dict)
+        enriched_module_opportunities = ensure_plan_opportunity_depth(
+            module_opportunities,
+            profile_dict,
+            {"portfolio_value": total_portfolio_value},
+        )
+        enriched_module_opportunities = [
+            enrich_opportunity(item, profile_dict)
+            for item in enriched_module_opportunities
+        ]
+        opportunities = {
+            "count": len(enriched_module_opportunities),
+            "opportunities": enriched_module_opportunities[:opportunity_limit_for_plan(effective_plan)],
+            "analytics": {
+                "source": "command_center",
+            },
+        } if module_opportunities else compute_opportunities(profile_dict, portfolio_list)
 
         strategic_intelligence = compute_strategic_layer(
             profile_dict,
@@ -304,7 +375,7 @@ def compute_user_intelligence(user_email: str):
         # =========================
         result = {
             "user": user.email,
-            "plan": user.plan,
+            "plan": effective_plan,
 
             "global_score": score_value,
             "level": level,
@@ -317,9 +388,9 @@ def compute_user_intelligence(user_email: str):
             "score": score_result,
             "strategic_intelligence": strategic_intelligence,
 
-            "modules": score_result.get("details", {}),
+            "modules": command_center.get("modules") or score_result.get("details", {}),
 
-            "advice": score_result.get("advice", []),
+            "advice": command_center.get("advice") or score_result.get("advice", []),
 
             "upgrade": upgrade,
             "features": features,

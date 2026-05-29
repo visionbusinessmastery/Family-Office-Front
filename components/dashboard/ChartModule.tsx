@@ -3,8 +3,11 @@
 import type { PortfolioHistoryPoint } from "@/lib/types";
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
   Line,
+  Bar,
+  Cell,
+  ReferenceLine,
   XAxis,
   YAxis,
   Tooltip,
@@ -14,10 +17,22 @@ import {
 
 type ChartModuleProps = {
   history: PortfolioHistoryPoint[];
+  initialInvestment?: number;
+  currentValue?: number;
+  currentInvestment?: number;
 };
 
-export default function ChartModule({ history }: ChartModuleProps) {
-  if (history.length === 0) {
+const money = new Intl.NumberFormat("fr-FR", {
+  maximumFractionDigits: 0,
+});
+
+export default function ChartModule({
+  history,
+  initialInvestment = 0,
+  currentValue,
+  currentInvestment,
+}: ChartModuleProps) {
+  if (history.length === 0 && currentValue === undefined) {
     return (
       <div className="bg-white/10 p-6 rounded-xl">
         <h2 className="mb-4">Evolution du Portfolio</h2>
@@ -28,48 +43,113 @@ export default function ChartModule({ history }: ChartModuleProps) {
     );
   }
 
-  const cleanData = history.map((item) => ({
-    date: item.date || item.created_at || "N/A",
-    value: Number(item.value || 0),
-    gain: Number(item.gain || 0),
-  }));
+  const cleanData = history
+    .map((item) => ({
+      date: item.date || item.created_at || "N/A",
+      value: Number(item.value || 0),
+      invested: Number(item.cost ?? initialInvestment ?? 0),
+    }))
+    .map((item) => ({
+      ...item,
+      gain: item.value - item.invested,
+    }));
+
+  if (currentValue !== undefined) {
+    const invested = Number(currentInvestment ?? initialInvestment ?? 0);
+    const currentPoint = {
+      date: "Actuel",
+      value: currentValue,
+      invested,
+      gain: currentValue - invested,
+    };
+    const lastIndex = cleanData.findIndex((item) => item.date === "Actuel");
+    if (lastIndex >= 0) {
+      cleanData[lastIndex] = currentPoint;
+    } else {
+      cleanData.push(currentPoint);
+    }
+  }
+
+  const latest = cleanData[cleanData.length - 1];
+  const latestGain = latest?.gain || 0;
+  const gainClass = latestGain >= 0 ? "text-emerald-400" : "text-red-400";
 
   return (
     <div className="bg-white/10 p-6 rounded-xl">
-      <h2 className="mb-4">Evolution du Portfolio</h2>
+      <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2>Evolution du portefeuille global</h2>
+          <p className="text-sm text-white/50">
+            Valeur actuelle vs investissement initial
+          </p>
+        </div>
 
-      <div className="h-72">
+        <div className="text-left sm:text-right">
+          <p className="text-xs text-white/50">Impact plus / moins-value</p>
+          <p className={`text-xl font-black ${latestGain >= 0 ? "text-[#3fa9f5]" : gainClass}`}>
+            {latestGain >= 0 ? "+" : ""}
+            {money.format(latestGain)} EUR
+          </p>
+        </div>
+      </div>
+
+      <div className="h-56 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={cleanData}>
+          <ComposedChart data={cleanData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis dataKey="date" tick={{ fill: "#aaa", fontSize: 12 }} />
-            <YAxis tick={{ fill: "#aaa" }} />
+            <XAxis dataKey="date" tick={{ fill: "#aaa", fontSize: 11 }} />
+            <YAxis yAxisId="value" tick={{ fill: "#aaa", fontSize: 11 }} width={42} />
+            <YAxis
+              yAxisId="gain"
+              orientation="right"
+              tick={{ fill: "#aaa", fontSize: 11 }}
+              width={42}
+            />
             <Tooltip
               formatter={(value, name) => [
-                `${Number(value).toLocaleString("fr-FR", {
-                  maximumFractionDigits: 0,
-                })} EUR`,
-                name === "gain" ? "Plus-value" : "Valeur",
+                `${money.format(Number(value))} EUR`,
+                name === "gain"
+                  ? "Plus / moins-value"
+                  : name === "invested"
+                    ? "Investissement initial"
+                    : "Valeur totale",
               ]}
             />
-            <Legend />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <ReferenceLine yAxisId="gain" y={0} stroke="#666" />
+            <Bar
+              yAxisId="gain"
+              dataKey="gain"
+              name="Plus / moins-value"
+              radius={[4, 4, 0, 0]}
+            >
+              {cleanData.map((entry) => (
+                <Cell
+                  key={`${entry.date}-${entry.gain}`}
+                  fill={entry.gain >= 0 ? "#3fa9f5" : "#ef4444"}
+                />
+              ))}
+            </Bar>
             <Line
+              yAxisId="value"
               type="monotone"
               dataKey="value"
-              name="Valeur"
+              name="Valeur totale"
               stroke="#1DA2CF"
-              strokeWidth={2}
+              strokeWidth={3}
               dot={false}
             />
             <Line
+              yAxisId="value"
               type="monotone"
-              dataKey="gain"
-              name="Plus-value"
-              stroke="#22c55e"
+              dataKey="invested"
+              name="Investissement initial"
+              stroke="#e5e7eb"
+              strokeDasharray="6 6"
               strokeWidth={2}
               dot={false}
             />
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>

@@ -9,13 +9,19 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 import os
+import logging
+
+from product.entitlements import normalize_plan, plan_allows
+
+
+logger = logging.getLogger(__name__)
 
 # =========================
 # CONFIG
 # =========================
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
 if not SECRET_KEY:
     raise Exception("SECRET_KEY manquante")
@@ -81,7 +87,7 @@ def get_current_user(
         return email
 
     except Exception as e:
-        print("TOKEN ERROR:", e)
+        logger.warning("Token error: %s", e)
         raise HTTPException(status_code=401, detail="Token invalide")
 
 # =========================
@@ -90,18 +96,22 @@ def get_current_user(
 def build_unlocks(plan: str, level: str):
 
     base = ["dashboard"]
+    normalized_plan = normalize_plan(plan)
+    normalized_level = (level or "").upper()
 
-    if plan != "FREE":
-        base.append("portfolio")
+    base.append("portfolio")
 
-    if plan in ["GOLD", "ELITE"]:
+    if plan_allows(normalized_plan, "GOLD"):
         base.append("analytics")
 
-    if level == "Advanced":
-        base.append("ai_insights")
+    if normalized_level in ["ADVANCED", "ELITE", "ELITE INVESTOR", "FAMILY OFFICE OPERATOR", "LIBERTY", "LEGACY", "DYNASTY ARCHITECT"]:
+        base.append("guided_insights")
 
-    if level == "Elite":
-        base.append("family_office_ai")
+    if normalized_level in ["ELITE", "ELITE INVESTOR", "FAMILY OFFICE OPERATOR", "LIBERTY", "LEGACY", "DYNASTY ARCHITECT"]:
+        base.append("family_office_guidance")
+
+    if plan_allows(normalized_plan, "LEGACY"):
+        base.extend(["family_vault", "heirs_mode", "dynasty_office"])
 
     return base
 

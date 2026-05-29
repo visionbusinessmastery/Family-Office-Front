@@ -7,6 +7,123 @@ from stocks.service import get_stock_data, resolve_ticker
 
 from core.cache import redis_client
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
+_portfolio_schema_ready = False
+
+COMMON_CURRENCIES = {
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "CHF",
+    "AUD",
+    "CAD",
+    "NZD",
+    "TRY",
+    "MXN",
+    "SEK",
+    "NOK",
+    "DKK",
+    "SGD",
+    "HKD",
+    "CNH",
+    "ZAR",
+}
+
+
+def ensure_portfolio_schema(conn):
+    global _portfolio_schema_ready
+
+    if _portfolio_schema_ready:
+        return
+
+    conn.execute(text("""
+        ALTER TABLE portfolio
+        ADD COLUMN IF NOT EXISTS pair_name TEXT
+    """))
+    conn.execute(text("""
+        ALTER TABLE portfolio
+        ADD COLUMN IF NOT EXISTS currency_base TEXT
+    """))
+    conn.execute(text("""
+        ALTER TABLE portfolio
+        ADD COLUMN IF NOT EXISTS currency_quote TEXT
+    """))
+
+    _portfolio_schema_ready = True
+
+
+def normalize_asset_type(asset_type: str):
+    value = (asset_type or "").strip().upper().replace(" ", "_")
+    if value in ["STOCKS", "EQUITY", "EQUITIES", "ACTION", "ACTIONS"]:
+        return "STOCK"
+    if value in ["CURRENCY", "CURRENCIES", "FX"]:
+        return "FOREX"
+    return value
+
+
+def parse_forex_pair(asset_name: str):
+    symbol = (asset_name or "").strip().upper()
+    compact = (
+        symbol
+        .replace("/", "")
+        .replace("-", "")
+        .replace("_", "")
+        .replace(" ", "")
+        .replace("=X", "")
+    )
+
+    if len(compact) != 6:
+        return None
+
+    base = compact[:3]
+    quote = compact[3:]
+
+    if base not in COMMON_CURRENCIES or quote not in COMMON_CURRENCIES:
+        return None
+
+    return {
+        "pair_name": f"{base}/{quote}",
+        "currency_base": base,
+        "currency_quote": quote,
+        "symbol": f"{base}{quote}=X",
+    }
+
+
+def build_currency_exposure(portfolio):
+    exposure = {}
+    total = 0
+
+    for asset in portfolio:
+        value = float(asset.get("value") or asset.get("current_value") or 0)
+        if value <= 0:
+            continue
+
+        asset_type = normalize_asset_type(asset.get("asset_type") or asset.get("type"))
+
+        if asset_type == "FOREX":
+            base = asset.get("currency_base")
+            quote = asset.get("currency_quote")
+
+            if base:
+                exposure[base] = exposure.get(base, 0) + value
+                total += value
+
+            if quote:
+                exposure[quote] = exposure.get(quote, 0) + value
+                total += value
+
+    return [
+        {
+            "currency": currency,
+            "value": round(value, 2),
+            "percent": round((value / total * 100) if total > 0 else 0, 2),
+        }
+        for currency, value in sorted(exposure.items(), key=lambda item: item[1], reverse=True)
+    ]
 
 
 # =========================
@@ -58,15 +175,26 @@ def get_stock_cached(ticker: str):
     cache_key = f"stock:{ticker}"
 
     cached = get_cache(cache_key)
-    if cached:
+    if cached and cached.get("price") is not None:
         return cached
 
-    data = get_stock_data(ticker) or {}
+    try:
+        data = get_stock_data(ticker) or {}
+    except Exception:
+        logger.exception("[PORTFOLIO] stock lookup failed for %s", ticker)
+        data = {}
 
-    # cache prix 5 min (market data change souvent)
-    set_cache(cache_key, data, ttl=300)
+    if data.get("price") is not None:
+        set_cache(cache_key, data, ttl=60)
 
     return data
+
+
+def safe_float(value, default=0):
+    try:
+        return float(value or default)
+    except (TypeError, ValueError):
+        return float(default)
 
 
 def build_portfolio_payload(rows):
@@ -77,13 +205,19 @@ def build_portfolio_payload(rows):
     for r in rows:
 
         asset = r.asset_name
-        asset_type = r.category
+        asset_type = normalize_asset_type(r.category)
         quantity = float(r.quantity or 0)
         purchase_price = float(r.purchase_price or 0)
+        forex_pair = parse_forex_pair(asset) if asset_type == "FOREX" else None
 
-        ticker = resolve_ticker(asset)
+        try:
+            ticker = forex_pair["symbol"] if forex_pair else resolve_ticker(asset)
+        except Exception:
+            logger.exception("[PORTFOLIO] ticker resolution failed for %s", asset)
+            ticker = asset
+
         stock_data = get_stock_cached(ticker)
-        current_price = stock_data.get("price") or purchase_price
+        current_price = safe_float(stock_data.get("price"), purchase_price)
 
         value = quantity * current_price
         cost = quantity * purchase_price
@@ -93,10 +227,11 @@ def build_portfolio_payload(rows):
         total_value += value
         total_cost += cost
 
-        portfolio.append({
+        payload = {
             "id": r.id,
-            "asset_name": asset,
+            "asset_name": forex_pair["pair_name"] if forex_pair else asset,
             "asset_type": asset_type,
+            "category": asset_type,
             "quantity": quantity,
             "purchase_price": purchase_price,
             "current_price": current_price,
@@ -104,10 +239,20 @@ def build_portfolio_payload(rows):
             "value": round(value, 2),
             "cost": round(cost, 2),
             "gain": round(gain, 2),
+            "pnl": round(gain, 2),
             "gain_percent": round(gain_percent, 2),
             "ticker": ticker,
             "source": stock_data.get("source", "N/A")
-        })
+        }
+
+        if forex_pair:
+            payload.update({
+                "pair_name": forex_pair["pair_name"],
+                "currency_base": forex_pair["currency_base"],
+                "currency_quote": forex_pair["currency_quote"],
+            })
+
+        portfolio.append(payload)
 
     total_gain = total_value - total_cost
 
@@ -119,28 +264,38 @@ def build_portfolio_payload(rows):
         "total_gain_percent": round(
             (total_gain / total_cost * 100) if total_cost > 0 else 0,
             2
-        )
+        ),
+        "currency_exposure": build_currency_exposure(portfolio),
     }
 
 
 # =========================
 # PORTFOLIO ENGINE (OPTIMIZED + CACHE)
 # =========================
-def get_user_portfolio(user_id: int):
+def get_user_portfolio(user_id: int, use_cache: bool = True):
 
     cache_key = f"portfolio:{user_id}"
 
     # =========================
     # CACHE CHECK
     # =========================
-    cached = get_cache(cache_key)
+    cached = get_cache(cache_key) if use_cache else None
     if cached:
         return cached
 
     with engine.begin() as conn:
+        ensure_portfolio_schema(conn)
 
         rows = conn.execute(text("""
-            SELECT id, asset_name, category, quantity, purchase_price
+            SELECT
+                id,
+                asset_name,
+                category,
+                quantity,
+                purchase_price,
+                pair_name,
+                currency_base,
+                currency_quote
             FROM portfolio
             WHERE user_id = :user_id
         """), {"user_id": user_id}).fetchall()
@@ -150,7 +305,8 @@ def get_user_portfolio(user_id: int):
     # =========================
     # CACHE STORE
     # =========================
-    set_cache(cache_key, result, ttl=900)
+    if use_cache:
+        set_cache(cache_key, result, ttl=60)
 
     return result
 
@@ -160,23 +316,38 @@ def get_user_portfolio(user_id: int):
 # =========================
 def save_portfolio_snapshot(user_id: int):
 
-    with engine.begin() as conn:
+    try:
+        with engine.begin() as conn:
+            ensure_portfolio_schema(conn)
 
-        rows = conn.execute(text("""
-            SELECT id, asset_name, category, quantity, purchase_price
-            FROM portfolio
-            WHERE user_id = :user_id
-        """), {"user_id": user_id}).fetchall()
+            rows = conn.execute(text("""
+                SELECT
+                    id,
+                    asset_name,
+                    category,
+                    quantity,
+                    purchase_price,
+                    pair_name,
+                    currency_base,
+                    currency_quote
+                FROM portfolio
+                WHERE user_id = :user_id
+            """), {"user_id": user_id}).fetchall()
 
-        snapshot = build_portfolio_payload(rows)
+            snapshot = build_portfolio_payload(rows)
 
-        conn.execute(text("""
-            INSERT INTO portfolio_history (user_id, total_value, created_at)
-            VALUES (:user_id, :total, NOW())
-        """), {
-            "user_id": user_id,
-            "total": float(snapshot.get("total_value") or 0)
-        })
+            conn.execute(text("""
+                INSERT INTO portfolio_history (user_id, total_value, created_at)
+                VALUES (:user_id, :total, NOW())
+            """), {
+                "user_id": user_id,
+                "total": float(snapshot.get("total_value") or 0)
+            })
+
+        return True
+    except Exception:
+        logger.exception("[PORTFOLIO] snapshot save failed for user_id=%s", user_id)
+        return False
 
 
 def enrich_portfolio_with_ai(portfolio):

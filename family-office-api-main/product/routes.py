@@ -1,0 +1,685 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
+
+from auth.utils import get_current_user, get_user_id
+from database import engine
+from intelligence.gamification.progress_service import award_xp
+from intelligence.user_intelligence_engine import compute_user_intelligence
+from product.entitlements import (
+    MODULE_REGISTRY,
+    build_entitlements,
+    can_access_module,
+    normalize_plan,
+    plan_allows,
+    resolve_effective_plan,
+)
+from product.asset_limits import count_user_assets
+
+
+router = APIRouter()
+_product_schema_ready = False
+
+MISSION_VERIFY_SPECS = {
+    "complete_finance": {"xp": 100, "validation": "finance_count > 0"},
+    "add_first_asset": {"xp": 120, "validation": "portfolio_count > 0"},
+    "diversify_three_assets": {"xp": 90, "validation": "portfolio_count >= 3"},
+    "unlock_growth": {"xp": 0, "validation": "plan >= GOLD"},
+    "unlock_wealth_os": {"xp": 0, "validation": "plan >= ELITE"},
+    "unlock_liberty": {"xp": 0, "validation": "plan >= LIBERTY"},
+    "unlock_legacy": {"xp": 0, "validation": "plan >= LEGACY"},
+}
+
+
+def ensure_product_tables(conn):
+    global _product_schema_ready
+
+    if _product_schema_ready:
+        return
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS progression_profiles (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL UNIQUE,
+            xp INTEGER NOT NULL DEFAULT 0,
+            level_name TEXT NOT NULL DEFAULT 'Builder',
+            status TEXT NOT NULL DEFAULT 'Foundation',
+            streak INTEGER NOT NULL DEFAULT 0,
+            last_seen_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS xp_events (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            xp INTEGER NOT NULL DEFAULT 0,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS user_module_states (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            module_key TEXT NOT NULL,
+            state TEXT NOT NULL DEFAULT 'locked',
+            completed_at TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE UNIQUE INDEX IF NOT EXISTS user_module_states_unique
+        ON user_module_states(user_id, module_key)
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS product_mission_completions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            mission_key TEXT NOT NULL,
+            xp_awarded INTEGER NOT NULL DEFAULT 0,
+            completed_at TIMESTAMP DEFAULT NOW()
+        )
+    """))
+
+    conn.execute(text("""
+        CREATE UNIQUE INDEX IF NOT EXISTS product_mission_completions_unique
+        ON product_mission_completions(user_id, mission_key)
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            action_label TEXT,
+            action_url TEXT,
+            status TEXT NOT NULL DEFAULT 'unread',
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """))
+
+    conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_founder BOOLEAN DEFAULT FALSE"))
+    conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS founder_tier TEXT"))
+    conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS founder_discount INTEGER DEFAULT 0"))
+    conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS level TEXT DEFAULT 'BEGINNER'"))
+
+    _product_schema_ready = True
+
+
+def safe_count(conn, query: str, params: dict):
+    try:
+        return int(conn.execute(text(query), params).scalar() or 0)
+    except Exception:
+        return 0
+
+
+def get_score(email: str) -> int:
+    try:
+        result = compute_user_intelligence(email) or {}
+        return int(result.get("global_score") or result.get("score") or 0)
+    except Exception:
+        return 0
+
+
+def compute_level(score: int, xp: int):
+    if score >= 95 or xp >= 9000:
+        return "Dynasty Architect"
+    if score >= 88 or xp >= 6500:
+        return "Legacy Builder"
+    if score >= 85 or xp >= 5000:
+        return "Family Office Operator"
+    if score >= 75 or xp >= 3000:
+        return "Elite Investor"
+    if score >= 60 or xp >= 1800:
+        return "Investor"
+    if score >= 45 or xp >= 900:
+        return "Advanced"
+    if score >= 25 or xp >= 300:
+        return "Builder"
+    return "Beginner"
+
+
+def compute_status(score: int, plan: str):
+    if plan_allows(plan, "LEGACY"):
+        return "Dynasty Office"
+    if plan_allows(plan, "LIBERTY"):
+        return "Sovereign Wealth"
+    if plan_allows(plan, "ELITE"):
+        return "Wealth OS"
+    if score >= 70:
+        return "Acceleration"
+    if score >= 40:
+        return "Growth"
+    return "Foundation"
+
+
+def get_next_plan(plan: str):
+    normalized = normalize_plan(plan)
+    if not plan_allows(normalized, "GOLD"):
+        return "gold"
+    if not plan_allows(normalized, "ELITE"):
+        return "elite"
+    if not plan_allows(normalized, "LIBERTY"):
+        return "liberty"
+    if not plan_allows(normalized, "LEGACY"):
+        return "legacy"
+    return None
+
+
+def build_progression(conn, user_id: int, score: int, plan: str):
+    ensure_product_tables(conn)
+
+    row = conn.execute(text("""
+        SELECT xp, streak
+        FROM progression_profiles
+        WHERE user_id = :user_id
+    """), {"user_id": user_id}).fetchone()
+
+    if not row:
+        conn.execute(text("""
+            INSERT INTO progression_profiles (user_id, xp, level_name, status)
+            VALUES (:user_id, 0, 'Beginner', 'Foundation')
+            ON CONFLICT (user_id) DO NOTHING
+        """), {"user_id": user_id})
+        xp = 0
+        streak = 0
+    else:
+        xp = int(row.xp or 0)
+        streak = int(row.streak or 0)
+
+    level_name = compute_level(score, xp)
+    status = compute_status(score, plan)
+    next_threshold = 1000 * (int(xp / 1000) + 1)
+
+    conn.execute(text("""
+        UPDATE progression_profiles
+        SET level_name = :level_name,
+            status = :status,
+            last_seen_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = :user_id
+    """), {
+        "user_id": user_id,
+        "level_name": level_name,
+        "status": status,
+    })
+
+    return {
+        "xp": xp,
+        "streak": streak,
+        "level": level_name,
+        "status": status,
+        "next_level_xp": next_threshold,
+        "progress_percent": min(100, round((xp / next_threshold) * 100, 1)) if next_threshold else 0,
+    }
+
+
+def build_data_profile(conn, user_id: int):
+    finance_count = safe_count(
+        conn,
+        "SELECT COUNT(*) FROM finance_items WHERE user_id = :user_id",
+        {"user_id": user_id},
+    )
+    portfolio_count = safe_count(
+        conn,
+        "SELECT COUNT(*) FROM portfolio WHERE user_id = :user_id",
+        {"user_id": user_id},
+    )
+    real_estate_count = safe_count(
+        conn,
+        "SELECT COUNT(*) FROM real_estate_assets WHERE user_id = :user_id",
+        {"user_id": user_id},
+    )
+    yield_count = safe_count(
+        conn,
+        "SELECT COUNT(*) FROM yield_assets WHERE user_id = :user_id",
+        {"user_id": user_id},
+    )
+    venture_count = safe_count(
+        conn,
+        "SELECT COUNT(*) FROM venture_assets WHERE user_id = :user_id",
+        {"user_id": user_id},
+    )
+    total_assets_count = count_user_assets(conn, user_id)
+
+    completed_steps = sum([
+        finance_count > 0,
+        portfolio_count > 0,
+        real_estate_count > 0,
+        yield_count > 0,
+        venture_count > 0,
+    ])
+
+    return {
+        "finance_count": finance_count,
+        "portfolio_count": portfolio_count,
+        "real_estate_count": real_estate_count,
+        "yield_count": yield_count,
+        "venture_count": venture_count,
+        "total_assets_count": total_assets_count,
+        "completed_steps": completed_steps,
+        "completion_percent": round((completed_steps / 5) * 100),
+    }
+
+
+def build_modules(plan: str, score: int):
+    visible = []
+
+    for module in MODULE_REGISTRY:
+        item = {
+            **module,
+            "required_plan": module["min_plan"],
+            "required_score": module["min_score"],
+        }
+
+        if can_access_module(plan, score, module):
+            visible.append({**item, "state": "active"})
+        else:
+            visible.append({
+                **item,
+                "state": "discovery",
+                "reason": (
+                    "Profondeur limitee sur ton plan actuel"
+                    if not plan_allows(plan, module["min_plan"])
+                    else f"Score {module['min_score']} requis pour les analyses avancees"
+                ),
+            })
+
+    return {"visible": visible, "locked": []}
+
+
+def mission_completed(mission: dict, data_profile: dict, plan: str) -> bool:
+    key = mission.get("key")
+    normalized = normalize_plan(plan)
+
+    if key == "complete_finance":
+        return data_profile.get("finance_count", 0) > 0
+    if key == "add_first_asset":
+        return data_profile.get("portfolio_count", 0) > 0
+    if key == "diversify_three_assets":
+        return data_profile.get("portfolio_count", 0) >= 3
+    if key == "unlock_growth":
+        return plan_allows(normalized, "GOLD")
+    if key == "unlock_wealth_os":
+        return plan_allows(normalized, "ELITE")
+    if key == "unlock_liberty":
+        return plan_allows(normalized, "LIBERTY")
+    if key == "unlock_legacy":
+        return plan_allows(normalized, "LEGACY")
+
+    return False
+
+
+def build_missions(data_profile: dict, score: int, plan: str):
+    missions = []
+
+    if data_profile["finance_count"] == 0:
+        missions.append({
+            "key": "complete_finance",
+            "title": "Completer ton cashflow",
+            "description": "Ajoute au moins un revenu et une charge. Ethan validera la mission des que le module finances contient une ligne.",
+            "xp": 100,
+            "module": "finance",
+            "validation": "finance_count > 0",
+            "ethan_reason": "Sans cashflow fiable, les arbitrages portefeuille restent fragiles.",
+        })
+
+    if data_profile["portfolio_count"] == 0:
+        missions.append({
+            "key": "add_first_asset",
+            "title": "Ajouter ton premier actif",
+            "description": "Ajoute une action, un ETF, une crypto, une devise ou une commodity avec quantite et prix d'achat.",
+            "xp": 120,
+            "module": "portfolio",
+            "validation": "portfolio_count > 0",
+            "ethan_reason": "Ethan a besoin d'un premier actif pour mesurer exposition, valeur et diversification.",
+        })
+
+    if data_profile["portfolio_count"] > 0 and data_profile["portfolio_count"] < 3:
+        missions.append({
+            "key": "diversify_three_assets",
+            "title": "Atteindre trois lignes suivies",
+            "description": "Ajoute jusqu'a trois actifs distincts pour rendre la lecture de concentration mesurable.",
+            "xp": 90,
+            "module": "portfolio",
+            "validation": "portfolio_count >= 3",
+            "ethan_reason": "Une seule ligne ne permet pas encore d'arbitrer concentration et role de chaque poche.",
+        })
+
+    if score >= 45 and normalize_plan(plan) == "FREE":
+        missions.append({
+            "key": "unlock_growth",
+            "title": "Debloquer la phase Growth",
+            "description": "Ton profil commence a justifier diversification, immobilier et analytics.",
+            "xp": 0,
+            "module": "billing",
+            "recommended_plan": "gold",
+            "validation": "plan >= GOLD",
+            "ethan_reason": "Le plan Gold debloque historique portfolio, contexte Ethan global et opportunites plus profondes.",
+        })
+
+    if score >= 70 and not plan_allows(plan, "ELITE"):
+        missions.append({
+            "key": "unlock_wealth_os",
+            "title": "Passer en pilotage Wealth OS",
+            "description": "Ton niveau devient compatible avec multi-user, gouvernance et guidance premium.",
+            "xp": 0,
+            "module": "billing",
+            "recommended_plan": "elite",
+            "validation": "plan >= ELITE",
+            "ethan_reason": "Ton niveau justifie une consolidation multi-modules et une guidance plus executive.",
+        })
+
+    if score >= 85 and not plan_allows(plan, "LIBERTY"):
+        missions.append({
+            "key": "unlock_liberty",
+            "title": "Debloquer Liberty",
+            "description": "Ton profil devient compatible avec une architecture patrimoniale souveraine.",
+            "xp": 0,
+            "module": "billing",
+            "recommended_plan": "liberty",
+            "validation": "plan >= LIBERTY",
+            "ethan_reason": "Liberty sert les arbitrages cashflow, diversification et scenarios plus avances.",
+        })
+
+    if score >= 92 and not plan_allows(plan, "LEGACY"):
+        missions.append({
+            "key": "unlock_legacy",
+            "title": "Preparer Legacy",
+            "description": "Le vrai luxe est la stabilite: transmission, gouvernance et protection familiale.",
+            "xp": 0,
+            "module": "billing",
+            "recommended_plan": "legacy",
+            "validation": "plan >= LEGACY",
+            "ethan_reason": "Legacy ajoute la logique familiale, la protection et la transmission.",
+        })
+
+    visible_missions = []
+    for mission in missions:
+        visible_missions.append({
+            **mission,
+            "completed": mission_completed(mission, data_profile, plan),
+        })
+
+    return visible_missions[:3]
+
+
+def annotate_mission_statuses(conn, user_id: int, missions: list[dict]):
+    ensure_product_tables(conn)
+    rows = conn.execute(text("""
+        SELECT mission_key
+        FROM product_mission_completions
+        WHERE user_id = :user_id
+    """), {"user_id": user_id}).fetchall()
+    verified_keys = {row.mission_key for row in rows}
+
+    annotated = []
+    for mission in missions:
+        key = mission.get("key")
+        if key in verified_keys:
+            status = "verified"
+        elif mission.get("completed"):
+            status = "completed"
+        else:
+            status = "pending"
+        annotated.append({**mission, "status": status})
+
+    return annotated
+
+
+def build_life_profile(conn, user_id: int):
+    try:
+        row = conn.execute(text("""
+            SELECT goals, investor_profile, motivation, has_children,
+                   transmission_goal, governance_need
+            FROM user_wealth_profiles
+            WHERE user_id = :user_id
+        """), {"user_id": user_id}).fetchone()
+    except Exception:
+        row = None
+
+    if not row:
+        return {
+            "goals": [],
+            "professional_context": None,
+            "motivation": None,
+            "has_children": False,
+        }
+
+    return {
+        "goals": [item for item in (row.goals or "").split("|") if item],
+        "professional_context": row.investor_profile,
+        "motivation": row.motivation,
+        "has_children": bool(row.has_children),
+        "transmission_goal": row.transmission_goal,
+        "governance_need": row.governance_need,
+    }
+
+
+def build_strategic_brief(data_profile: dict, score: int, plan: str, life_profile: dict | None = None):
+    normalized = normalize_plan(plan)
+    life_profile = life_profile or {}
+    portfolio_count = data_profile.get("portfolio_count", 0)
+    finance_count = data_profile.get("finance_count", 0)
+    total_assets = data_profile.get("total_assets_count", 0)
+    goals_text = " ".join(life_profile.get("goals") or [])
+    motivation = str(life_profile.get("motivation") or "")
+    wants_income = "revenu" in goals_text.lower() or "revenu" in motivation.lower() or "liberte" in motivation.lower()
+    has_children = bool(life_profile.get("has_children"))
+    professional = str(life_profile.get("professional_context") or "")
+
+    if wants_income and ("marketing" in professional.lower() or data_profile.get("venture_count", 0) > 0):
+        priority = "Monetiser une competence deja presente"
+        action = "Structurer une offre simple, premium et peu chronophage avant d'ajouter de nouvelles allocations."
+    elif has_children and plan_allows(normalized, "LIBERTY"):
+        priority = "Relier patrimoine et protection familiale"
+        action = "Documenter une decision de transmission ou de protection familiale cette semaine."
+    elif finance_count == 0:
+        priority = "Stabiliser la lecture cashflow"
+        action = "Ajouter une ligne revenu et une ligne charge avant toute nouvelle allocation."
+    elif portfolio_count == 0:
+        priority = "Créer la premiere ligne patrimoniale mesurable"
+        action = "Ajouter un actif financier avec quantite et prix d'achat."
+    elif score < 45:
+        priority = "Renforcer les fondations avant l'acceleration"
+        action = "Completer les donnees manquantes puis verifier le score apres refresh."
+    else:
+        priority = "Arbitrer la prochaine allocation utile"
+        action = "Comparer une nouvelle opportunite a son role: diversifier, stabiliser ou produire du cashflow."
+
+    if plan_allows(normalized, "LEGACY"):
+        opportunity = "Formaliser une premiere regle de transmission ou de gouvernance familiale."
+        risk = "Dependance excessive au fondateur ou absence de roles familiaux explicites."
+    elif plan_allows(normalized, "LIBERTY"):
+        opportunity = "Construire un scenario cashflow / patrimoine sur 12 mois."
+        risk = "Accumuler des actifs sans these d'arbitrage claire."
+    elif plan_allows(normalized, "GOLD"):
+        opportunity = "Utiliser Ethan globalement pour prioriser score, portefeuille et opportunites."
+        risk = "Multiplier les lignes sans verifier la concentration."
+    else:
+        opportunity = "Passer d'une guidance simple a une base de donnees fiable."
+        risk = "Decisions prises avec trop peu de contexte mesure."
+
+    return {
+        "priority": priority,
+        "main_lever": f"{total_assets} asset(s) suivis, {data_profile.get('completion_percent', 0)}% de completion.",
+        "main_risk": risk,
+        "opportunity": opportunity,
+        "next_action": action,
+        "context_basis": {
+            "goals": life_profile.get("goals") or [],
+            "has_children": has_children,
+            "professional_context": life_profile.get("professional_context"),
+        },
+    }
+
+
+@router.get("/entitlements")
+def product_entitlements(email: str = Depends(get_current_user)):
+    with engine.begin() as conn:
+        user_id = get_user_id(conn, email)
+
+        if not user_id:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        plan_row = conn.execute(text("""
+            SELECT
+                users.plan AS user_plan,
+                users.is_founder,
+                users.founder_tier,
+                users.founder_discount,
+                subscriptions.plan AS subscription_plan,
+                subscriptions.status AS subscription_status
+            FROM users
+            LEFT JOIN subscriptions ON subscriptions.user_id = users.id
+            WHERE users.id = :user_id
+        """), {"user_id": user_id}).fetchone()
+
+        plan = resolve_effective_plan(
+            plan_row.user_plan if plan_row else "FREE",
+            plan_row.subscription_plan if plan_row else None,
+            plan_row.subscription_status if plan_row else None,
+        )
+
+    return {
+        "plan": plan,
+        "entitlements": build_entitlements(plan),
+        "founder": {
+            "is_founder": bool(plan_row.is_founder) if plan_row else False,
+            "tier": plan_row.founder_tier if plan_row else None,
+            "discount": int(plan_row.founder_discount or 0) if plan_row else 0,
+        },
+    }
+
+
+@router.get("/context")
+def product_context(email: str = Depends(get_current_user)):
+    with engine.begin() as conn:
+        user_id = get_user_id(conn, email)
+
+        if not user_id:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        plan_row = conn.execute(text("""
+            SELECT
+                users.plan AS user_plan,
+                users.is_founder,
+                users.founder_tier,
+                users.founder_discount,
+                subscriptions.plan AS subscription_plan,
+                subscriptions.status AS subscription_status
+            FROM users
+            LEFT JOIN subscriptions ON subscriptions.user_id = users.id
+            WHERE users.id = :user_id
+        """), {"user_id": user_id}).fetchone()
+
+        plan = resolve_effective_plan(
+            plan_row.user_plan if plan_row else "FREE",
+            plan_row.subscription_plan if plan_row else None,
+            plan_row.subscription_status if plan_row else None,
+        )
+        score = get_score(email)
+        entitlements = build_entitlements(plan)
+        data_profile = build_data_profile(conn, user_id)
+        progression = build_progression(conn, user_id, score, plan)
+        modules = build_modules(plan, score)
+        missions = annotate_mission_statuses(
+            conn,
+            user_id,
+            build_missions(data_profile, score, plan),
+        )
+        life_profile = build_life_profile(conn, user_id)
+        strategic_brief = build_strategic_brief(data_profile, score, plan, life_profile)
+
+    return {
+        "plan": plan,
+        "next_plan": get_next_plan(plan),
+        "score": score,
+        "entitlements": entitlements,
+        "progression": progression,
+        "data_profile": data_profile,
+        "life_profile": life_profile,
+        "modules": modules,
+        "missions": missions,
+        "strategic_brief": strategic_brief,
+        "founder": {
+            "is_founder": bool(plan_row.is_founder) if plan_row else False,
+            "tier": plan_row.founder_tier if plan_row else None,
+            "discount": int(plan_row.founder_discount or 0) if plan_row else 0,
+        },
+    }
+
+
+@router.post("/missions/{mission_key}/verify")
+def verify_product_mission(mission_key: str, email: str = Depends(get_current_user)):
+    with engine.begin() as conn:
+        ensure_product_tables(conn)
+        user_id = get_user_id(conn, email)
+
+        if not user_id:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        plan_row = conn.execute(text("""
+            SELECT
+                users.plan AS user_plan,
+                subscriptions.plan AS subscription_plan,
+                subscriptions.status AS subscription_status
+            FROM users
+            LEFT JOIN subscriptions ON subscriptions.user_id = users.id
+            WHERE users.id = :user_id
+        """), {"user_id": user_id}).fetchone()
+
+        plan = resolve_effective_plan(
+            plan_row.user_plan if plan_row else "FREE",
+            plan_row.subscription_plan if plan_row else None,
+            plan_row.subscription_status if plan_row else None,
+        )
+        score = get_score(email)
+        data_profile = build_data_profile(conn, user_id)
+        missions = build_missions(data_profile, score, plan)
+        mission = next((item for item in missions if item.get("key") == mission_key), None)
+
+        if not mission:
+            mission = {"key": mission_key, **MISSION_VERIFY_SPECS.get(mission_key, {})}
+
+        if mission_key not in MISSION_VERIFY_SPECS and not mission.get("validation"):
+            raise HTTPException(status_code=404, detail="Mission not found")
+
+        completed = mission_completed(mission, data_profile, plan)
+        already = conn.execute(text("""
+            SELECT xp_awarded
+            FROM product_mission_completions
+            WHERE user_id = :user_id AND mission_key = :mission_key
+        """), {"user_id": user_id, "mission_key": mission_key}).fetchone()
+
+        xp_awarded = 0
+        if completed and not already:
+            xp_awarded = int(mission.get("xp") or 0)
+            conn.execute(text("""
+                INSERT INTO product_mission_completions (user_id, mission_key, xp_awarded)
+                VALUES (:user_id, :mission_key, :xp_awarded)
+                ON CONFLICT (user_id, mission_key) DO NOTHING
+            """), {
+                "user_id": user_id,
+                "mission_key": mission_key,
+                "xp_awarded": xp_awarded,
+            })
+            if xp_awarded > 0:
+                award_xp(conn, user_id, email, f"mission_{mission_key}_completed", xp_awarded)
+
+    return {
+        "mission_key": mission_key,
+        "completed": completed,
+        "status": "verified" if completed else "pending",
+        "xp_awarded": xp_awarded,
+        "already_completed": bool(already),
+        "validation": mission.get("validation"),
+    }

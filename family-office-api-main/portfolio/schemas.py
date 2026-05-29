@@ -25,10 +25,17 @@ class PortfolioAsset(BaseModel):
     purchase_price: float
 
     value: float
+    current_price: Optional[float] = None
+    current_value: Optional[float] = None
+    cost: Optional[float] = None
 
     ticker: Optional[str] = None
     gain: Optional[float] = None
+    pnl: Optional[float] = None
     gain_percent: Optional[float] = None
+    pair_name: Optional[str] = None
+    currency_base: Optional[str] = None
+    currency_quote: Optional[str] = None
 
     source: Optional[str] = None
 
@@ -43,6 +50,7 @@ class PortfolioResponse(BaseModel):
     total_cost: float
     total_gain: float
     total_gain_percent: float
+    currency_exposure: Optional[list] = None
 
 
 # =========================

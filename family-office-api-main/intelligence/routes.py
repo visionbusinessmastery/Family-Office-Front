@@ -5,6 +5,10 @@
 # =========================
 # IMPORTS
 # =========================
+import hashlib
+import json
+from datetime import datetime
+
 from fastapi import APIRouter, Request
 from core.limiter import limiter
 from core.utils import safe_execute
@@ -17,8 +21,10 @@ from .service import (
 )
 
 from intelligence.user_intelligence_engine import compute_user_intelligence
+from intelligence.affiliate_registry import describe_affiliate_architecture
 
 router = APIRouter()
+COMMAND_CENTER_PAYLOAD_VERSION = "gcc-payload-v1"
 
 
 # =========================
@@ -101,8 +107,16 @@ def build_command_center_payload(user_email: str):
     intelligence = compute_user_intelligence(user_email)
     family_score = intelligence.get("family_office_score") or intelligence.get("score") or {}
     details = family_score.get("details", {})
+    opportunities = intelligence.get("opportunities") or {}
+    opportunities_count = (
+        len(opportunities)
+        if isinstance(opportunities, list)
+        else opportunities.get("count", 0)
+        if isinstance(opportunities, dict)
+        else 0
+    )
 
-    return {
+    payload = {
         "user": intelligence.get("user", user_email),
         "plan": intelligence.get("plan", "FREE"),
         "global_score": intelligence.get("global_score", family_score.get("score", 0)),
@@ -124,8 +138,16 @@ def build_command_center_payload(user_email: str):
         "gamification": intelligence.get("gamification", {}),
         "modules": intelligence.get("modules", {}),
         "advice": intelligence.get("advice", []),
+        "opportunities": opportunities,
+        "opportunities_count": opportunities_count,
         "strategic_intelligence": intelligence.get("strategic_intelligence", {}),
     }
+    payload["version"] = COMMAND_CENTER_PAYLOAD_VERSION
+    payload["timestamp"] = datetime.utcnow().isoformat()
+    payload["data_hash"] = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, default=str).encode()
+    ).hexdigest()
+    return payload
 
 
 # =========================
@@ -140,4 +162,16 @@ def global_command_center(request: Request):
     return safe_execute(
         _run,
         module_name="GLOBAL_COMMAND_CENTER"
+    )
+
+
+@router.get("/affiliate-architecture")
+def affiliate_architecture(request: Request):
+
+    def _run():
+        return describe_affiliate_architecture()
+
+    return safe_execute(
+        _run,
+        module_name="AFFILIATE_ARCHITECTURE"
     )

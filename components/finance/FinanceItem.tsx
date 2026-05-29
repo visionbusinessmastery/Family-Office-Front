@@ -1,4 +1,5 @@
 import type { FinanceEntry } from "@/lib/types";
+import { ActionButton } from "@/components/ui/WealthUI";
 
 type FinanceItemProps = {
   item: FinanceEntry;
@@ -12,7 +13,7 @@ export default function FinanceItem({
   onUpdate,
 }: FinanceItemProps) {
   return (
-    <div className="flex justify-between items-center bg-black/30 p-3 rounded hover:bg-black/40 transition">
+    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-black/30 p-3 transition hover:bg-black/40">
       <div className="flex flex-col">
         <p className="font-semibold text-white">
           {item.name || item.label || "Sans nom"}
@@ -27,22 +28,22 @@ export default function FinanceItem({
         )}
       </div>
 
-      <div className="flex gap-3 text-sm items-center">
-        <button
+      <div className="flex items-center gap-2">
+        <ActionButton
           onClick={() => onUpdate?.(item)}
-          className="text-blue-400 hover:opacity-70"
-          title="Modifier"
+          variant="secondary"
+          className="px-3 py-1.5 text-xs"
         >
-          Editer
-        </button>
+          Modifier
+        </ActionButton>
 
-        <button
+        <ActionButton
           onClick={() => onDelete?.(item.id)}
-          className="text-red-400 hover:opacity-70"
-          title="Supprimer"
+          variant="danger"
+          className="px-3 py-1.5 text-xs"
         >
           Supprimer
-        </button>
+        </ActionButton>
       </div>
     </div>
   );

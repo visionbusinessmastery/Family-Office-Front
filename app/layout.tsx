@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Playfair_Display, Quicksand } from "next/font/google";
+import CookieConsentBanner from "@/components/privacy/CookieConsentBanner";
+import EthanFloatingAdvisor from "@/components/dashboard/EthanFloatingAdvisor";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -49,6 +51,8 @@ export default function RootLayout({
         }}
       >
         {children}
+        <EthanFloatingAdvisor />
+        <CookieConsentBanner />
       </body>
     </html>
   );
