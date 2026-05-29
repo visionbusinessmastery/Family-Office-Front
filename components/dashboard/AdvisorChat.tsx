@@ -166,7 +166,7 @@ async function requestAdvisorResponse(
   question: string,
   bypassCache = false
 ) {
-  return apiRequest<AdvisorResponse>("/advisor/advisor", token, {
+  return apiRequest<AdvisorResponse>("/advisor/core", token, {
     method: "POST",
     headers: {
       "Cache-Control": "no-store",
@@ -243,7 +243,7 @@ export default function AdvisorChat({
       }
 
       const safeAnalysis = isLegacyAssistantText(analysis)
-        ? "Ethan refuse une ancienne reponse non conforme. Le moteur doit finir de se synchroniser avant de repondre proprement."
+        ? "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment."
         : analysis ||
           "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment.";
 

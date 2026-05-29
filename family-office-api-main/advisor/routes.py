@@ -25,10 +25,9 @@ from .security_engine import inspect_advisor_prompt
 from .service import (
     ensure_ethan_ai_tables,
     get_user_plan,
-    get_advisor_free,
     portfolio_autopilot,
-    portfolio_manager,
 )
+from .ethan_core import run_ethan_chat, run_ethan_portfolio
 from analytics.analytics_events import ETHAN_USED
 from analytics.posthog_service import capture_event
 
@@ -37,6 +36,7 @@ router = APIRouter()
 
 @router.post("/")
 @router.post("/advisor")
+@router.post("/core")
 @limiter.limit("10/minute")
 def advisor(request: Request, data: AdvisorRequest):
 
@@ -58,11 +58,11 @@ def advisor(request: Request, data: AdvisorRequest):
             )
             capture_event(conn, ETHAN_USED, user_id=user_id, email=user_email, properties={"endpoint": "advisor", "plan": plan})
 
-        result = get_advisor_free(user_email, message, bypass_cache=data.bypass_cache)
+        result = run_ethan_chat(user_email, message, bypass_cache=data.bypass_cache)
 
         return {
             "user": user_email,
-            "system": "ADVISOR_CHAT_V4",
+            "system": "ETHAN_CORE_V4",
             "input": message,
             "result": result
         }
@@ -95,7 +95,7 @@ def advisor_portfolio(request: Request, data: AdvisorRequest):
             )
             capture_event(conn, ETHAN_USED, user_id=user_id, email=user_email, properties={"endpoint": "advisor_portfolio", "plan": plan})
 
-        result = portfolio_manager(user_email, message)
+        result = run_ethan_portfolio(user_email, message, bypass_cache=data.bypass_cache)
 
         return {
             "user": user_email,
