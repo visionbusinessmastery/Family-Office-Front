@@ -175,6 +175,7 @@ def update_memory(
     next_profile = {**existing_profile, **extract_context_signals(message)}
     next_profile["cache_version"] = ETHAN_GLOBAL_CACHE_VERSION
     if response_strategy:
+        output_variation = response_strategy.get("output_variation") or {}
         next_profile["_last_primary_intent"] = response_strategy.get("primary_intent")
         next_profile["_last_strategic_angle"] = response_strategy.get("strategic_angle")
         next_profile["_last_output_style"] = response_strategy.get("output_style")
@@ -182,6 +183,10 @@ def update_memory(
         next_profile["last_style_used"] = response_strategy.get("output_style")
         next_profile["last_output_type"] = response_strategy.get("output_type") or response_strategy.get("output_style")
         next_profile["last_cognitive_lens"] = response_strategy.get("cognitive_lens")
+        next_profile["last_variation_entry"] = output_variation.get("entry_mode")
+        next_profile["last_variation_density"] = output_variation.get("density")
+        next_profile["last_variation_transition"] = output_variation.get("transition")
+        next_profile["last_variation_rhythm"] = output_variation.get("rhythm")
         next_profile["response_diversity_counter"] = safe_int(next_profile.get("response_diversity_counter"), 0) + 1
     key_signals = summarize_context_profile(next_profile) or summarize_context_profile(context.get("life_context") or {})
     session_summary = (

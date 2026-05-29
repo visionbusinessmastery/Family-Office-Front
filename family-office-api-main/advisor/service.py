@@ -1,5 +1,6 @@
 from advisor.ethan.context_engine import compact_context, compact_portfolio
 from advisor.ethan.cache_policy import ETHAN_GLOBAL_CACHE_VERSION
+from advisor.ethan.cognitive_variation_engine import build_cognitive_variation
 from advisor.ethan.memory_engine import build_life_context, get_memory, update_memory
 from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
 from advisor.ethan.output_renderer import ETHAN_TEXT_ORIGIN, render_ethan_output
@@ -123,11 +124,20 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
                 cache_hit=llm_cache_hit,
             )
 
+        output_variation = build_cognitive_variation(
+            message,
+            memory=memory,
+            response_strategy=response_strategy,
+            response_data=response_data,
+        )
+        response_strategy["output_variation"] = output_variation
+
         rendered_text = render_ethan_output(
             response_data,
             context=context,
             message=message,
             response_strategy=response_strategy,
+            output_variation=output_variation,
             tier=tier,
         )
 
@@ -168,6 +178,7 @@ def advisor_logic(user_email, message, level=None, bypass_cache=False):
                 "cache_hit": llm_cache_hit,
                 "text_origin": ETHAN_TEXT_ORIGIN,
                 "cache_version": ETHAN_GLOBAL_CACHE_VERSION,
+                "variation": output_variation,
             },
         }
 

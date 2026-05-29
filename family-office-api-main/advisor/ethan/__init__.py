@@ -10,6 +10,7 @@ Frontend -> API Routes -> Ethan Core
   -> Persistence Engine
   -> Prompt Engine (LLM context only)
   -> Response Engine (data wrapper only)
+  -> Cognitive Variation Engine (data-only form control)
   -> Output Renderer (only authorized human text source)
   -> Contract Validator (analysis + metadata only before frontend)
   -> OpenAI Gateway

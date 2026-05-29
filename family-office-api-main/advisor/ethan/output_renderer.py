@@ -105,7 +105,7 @@ def _sentence_from_signal(signal):
     return sentence
 
 
-def render_ethan_output(response_data, context=None, message=None, response_strategy=None, tier=None):
+def render_ethan_output(response_data, context=None, message=None, response_strategy=None, output_variation=None, tier=None):
     """
     Single authorized human-text renderer for Ethan.
 
@@ -115,38 +115,105 @@ def render_ethan_output(response_data, context=None, message=None, response_stra
     """
     context = context or {}
     strategy = response_strategy or {}
+    variation = output_variation or strategy.get("output_variation") or {}
     lens = strategy.get("cognitive_lens") or "human_context"
     counter = strategy.get("diversity_counter") or 0
     status = response_data.get("status") if isinstance(response_data, dict) else "empty"
     phrase = _context_phrase(context)
     signal = _sentence_from_signal(_raw_signal(response_data))
     premium = tier not in ["ESSENTIALS", "FREE", "BASIC", None]
+    entry_mode = variation.get("entry_mode") or "observation_first"
+    density = variation.get("density") or "medium"
+    transition = variation.get("transition") or "direct"
+    rhythm = variation.get("rhythm") or "two_step"
 
     if signal and status != "empty":
-        variants = [
-            f"{signal} Dans la pratique, {phrase}, garde une seule avancee concrete avant d'ouvrir un nouveau chantier.",
-            f"{phrase.capitalize()}, je retiendrais surtout ceci: {signal} Le bon mouvement maintenant est de rester simple et executable.",
-            f"{signal} Ce qui compte ici, c'est de transformer ca en un geste court, pas en plan trop lourd.",
-        ]
-        if premium:
-            variants.append(
+        variants = {
+            "insight_first": [
+                f"{signal} Ce qui compte ici, {phrase}, c'est de ne garder qu'une avancee vraiment executable.",
+                f"{phrase.capitalize()}, je retiendrais surtout ceci: {signal} Le reste peut attendre.",
+            ],
+            "action_first": [
+                f"Garde une seule avancee concrete cette semaine. {signal}",
+                f"Commence par le geste le plus simple a terminer, puis utilise ce signal: {signal}",
+            ],
+            "risk_first": [
+                f"Le risque serait de transformer ca en plan trop lourd. {signal}",
+                f"Attention a la surcharge de decision: {signal}",
+            ],
+            "question_first": [
+                f"La bonne question est: qu'est-ce qui devient plus simple apres cette decision ? {signal}",
+                f"Avant d'ajouter une option, demande-toi ce que ce signal allege vraiment: {signal}",
+            ],
+            "observation_first": [
+                f"{phrase.capitalize()}, ce signal merite surtout d'etre simplifie: {signal}",
+                f"Ce que j'observe ici est assez net: {signal}",
+            ],
+        }
+        if premium and density == "dense":
+            variants.setdefault(entry_mode, []).append(
                 f"{signal} Je le lirais comme un arbitrage de charge mentale: avance sur ce qui cree de la clarte sans consommer plus d'energie."
             )
     else:
-        variants = [
-            f"Je ne vais pas forcer une analyse artificielle ici. {phrase}, le mouvement le plus propre est de choisir une avancee tres simple et executable cette semaine.",
-            f"Ce que je peux dire proprement, {phrase}, c'est qu'il vaut mieux reduire la charge de decision. Garde une seule prochaine etape, courte, visible, et facile a verifier.",
-            f"Je prefere rester sobre: {phrase}, la bonne suite n'est pas d'ajouter plus d'analyse. Choisis le petit mouvement qui te rapproche du resultat sans ouvrir un nouveau chantier.",
-            f"Le point utile ici, {phrase}, c'est de ne pas transformer la question en plan trop lourd. Avance sur une action que tu peux terminer avant la fin de semaine.",
-        ]
-        if premium:
-            variants.extend([
-                f"Il y a probablement un arbitrage a garder simple: {phrase}, la meilleure decision est celle qui cree de la clarte sans consommer plus d'energie.",
-                f"Je lirais ca avec prudence: {phrase}, une action courte vaut mieux qu'une strategie brillante mais impossible a tenir. Prends l'option qui demande le moins de friction maintenant.",
-            ])
+        variants = {
+            "insight_first": [
+                f"Le point utile ici, {phrase}, c'est de ne pas transformer la question en plan trop lourd.",
+                f"Je prefere rester sobre: {phrase}, la bonne suite n'est pas d'ajouter plus d'analyse.",
+            ],
+            "action_first": [
+                f"Choisis une avancee tres simple et executable cette semaine, {phrase}.",
+                f"Avance sur une action que tu peux terminer vite, puis reviens au reste apres.",
+            ],
+            "risk_first": [
+                f"Le piege serait d'ouvrir trop de fronts en meme temps. {phrase.capitalize()}, reduis d'abord la charge de decision.",
+                f"Ce qui merite attention, c'est la complexite ajoutee. Garde la prochaine etape courte et verifiable.",
+            ],
+            "question_first": [
+                f"Quelle decision rend la suite plus legere ? {phrase.capitalize()}, c'est le bon filtre maintenant.",
+                f"Demande-toi ce qui peut etre termine avant la fin de semaine, sans ouvrir un nouveau chantier.",
+            ],
+            "observation_first": [
+                f"{phrase.capitalize()}, le mouvement le plus propre est une avancee courte, visible et facile a verifier.",
+                f"Ce que j'observe ici: il vaut mieux reduire la charge de decision que chercher une analyse parfaite.",
+            ],
+        }
+        if premium and density == "dense":
+            variants.setdefault(entry_mode, []).append(
+                f"Il y a probablement un arbitrage a garder simple: {phrase}, la meilleure decision est celle qui cree de la clarte sans consommer plus d'energie."
+            )
 
+    selected_variants = variants.get(entry_mode) or variants["observation_first"]
     index = _stable_index(
-        {"message": message, "lens": lens, "counter": counter, "tier": tier, "status": status},
-        len(variants),
+        {
+            "message": message,
+            "lens": lens,
+            "counter": counter,
+            "tier": tier,
+            "status": status,
+            "entry": entry_mode,
+            "density": density,
+            "transition": transition,
+            "rhythm": rhythm,
+        },
+        len(selected_variants),
     )
-    return variants[index]
+    rendered = selected_variants[index]
+
+    transition_tail = {
+        "direct": "Garde ce filtre simple.",
+        "soft_pivot": "La suite doit rester legere.",
+        "contrast": "Ferme une option avant d'en ouvrir une autre.",
+        "compression": "Moins d'options, plus de nettete.",
+        "quiet_challenge": "La discipline ici est de ne pas surconstruire.",
+    }.get(transition)
+
+    if density == "short":
+        short_rendered = _sentence_from_signal(rendered) or rendered
+        if transition_tail and transition != "direct":
+            return f"{short_rendered} {transition_tail}"
+        return short_rendered
+
+    if transition_tail and (density == "medium" or rhythm == "compact_detail"):
+        return f"{rendered} {transition_tail}"
+
+    return rendered
