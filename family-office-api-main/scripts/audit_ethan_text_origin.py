@@ -78,6 +78,11 @@ def main():
     else:
         fail(issues, "frontend_cache", "AdvisorChat cache version must be v18-freeze-pipeline")
 
+    if "data.result" not in advisor_chat and "result?:" not in advisor_chat:
+        ok(passes, "frontend consumes direct Ethan contract only")
+    else:
+        fail(issues, "frontend_contract", "AdvisorChat must not read legacy result.analysis contract")
+
     frontend_calls = []
     for relative in ["app", "components", "hooks", "lib"]:
         base = REPO / relative

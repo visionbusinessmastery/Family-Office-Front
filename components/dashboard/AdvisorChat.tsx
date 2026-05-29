@@ -9,24 +9,14 @@ type ChatMessage = {
 };
 
 type AdvisorResponse = {
-  analysis?: string;
-  metadata?: {
-    cache_version?: string;
-    text_origin?: string;
-  };
-  result?: {
-    analysis?: string;
-    context_score?: number;
+  analysis: string;
+  metadata: {
+    cache_version: string;
+    text_origin: string;
   };
 };
 
-const initialMessages: ChatMessage[] = [
-  {
-    role: "assistant",
-    content:
-      "Je suis Ethan. Pose-moi une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.",
-  },
-];
+const initialMessages: ChatMessage[] = [];
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHED_MESSAGES = 40;
@@ -109,11 +99,7 @@ function clearConversationCache() {
 function trimMessages(messages: ChatMessage[]) {
   if (messages.length <= MAX_CACHED_MESSAGES) return messages;
 
-  const conversation = messages.filter(
-    (message) => message.content !== initialMessages[0].content
-  );
-
-  return [initialMessages[0], ...conversation.slice(-(MAX_CACHED_MESSAGES - 1))];
+  return messages.slice(-MAX_CACHED_MESSAGES);
 }
 
 function readCachedMessages() {
@@ -175,6 +161,7 @@ export default function AdvisorChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
@@ -192,7 +179,6 @@ export default function AdvisorChat() {
     if (!cacheReady) return;
     if (hasLegacyResponse(messages)) {
       clearConversationCache();
-      setMessages(initialMessages);
       return;
     }
     writeCachedMessages(messages);
@@ -209,18 +195,19 @@ export default function AdvisorChat() {
     const question = input.trim();
     if (!question || loading) return;
 
+    setErrorMessage("");
     setMessages((current) => [...current, { role: "user", content: question }]);
     setInput("");
     setLoading(true);
 
     try {
       const data = await requestAdvisorResponse(token, question);
-      let analysis = data.analysis || data.result?.analysis || "";
+      let analysis = data.analysis || "";
 
       if (isLegacyAssistantText(analysis)) {
         clearConversationCache();
         const refreshed = await requestAdvisorResponse(token, question, true);
-        analysis = refreshed.analysis || refreshed.result?.analysis || "";
+        analysis = refreshed.analysis || "";
       }
 
       if (!analysis || isLegacyAssistantText(analysis)) {
@@ -233,14 +220,7 @@ export default function AdvisorChat() {
       ]);
     } catch (err) {
       console.error(err);
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content:
-            "Je n'arrive pas a joindre Ethan Core pour le moment. Reessaie dans quelques instants.",
-        },
-      ]);
+      setErrorMessage("Connexion au moteur indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
@@ -254,7 +234,7 @@ export default function AdvisorChat() {
         </p>
         <div className="mt-1 flex items-center justify-between gap-3">
           <h2 className="text-2xl font-black">Ethan</h2>
-          {messages.length > 1 && (
+          {messages.length > 0 && (
             <button
               type="button"
               onClick={clearConversation}
@@ -270,6 +250,12 @@ export default function AdvisorChat() {
       </div>
 
       <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">
+        {messages.length === 0 && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-400">
+            Pose une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.
+          </div>
+        )}
+
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -291,6 +277,12 @@ export default function AdvisorChat() {
 
         {loading && (
           <div className="text-sm text-gray-400">Ethan reflechit...</div>
+        )}
+
+        {errorMessage && (
+          <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {errorMessage}
+          </div>
         )}
       </div>
 
