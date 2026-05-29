@@ -6,9 +6,12 @@ from datetime import date
 from sqlalchemy import text
 
 from advisor.autopilot_v4_engine import get_autopilot_v4
+from advisor.ethan.context_engine import compact_context, compact_portfolio
+from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
+from advisor.ethan.prompt_engine import build_advisor_messages
+from advisor.ethan.strategy_engine import build_response_strategy, safe_int
 from auth.utils import get_user_id
 from core.cache import redis_client
-from advisor.ethan.openai_gateway import ethan_chat_completion, is_ethan_openai_configured
 from database import engine
 from portfolio.service import get_user_portfolio
 from product.entitlements import normalize_plan, plan_allows, resolve_effective_plan
@@ -122,33 +125,6 @@ HIGH_KEYWORDS = [
     "architecture patrimoniale",
     "strategie internationale",
 ]
-
-OUTPUT_STYLES = [
-    "quiet_analyst",
-    "strategic_advisor",
-    "human_coach",
-    "risk_lens",
-    "action_trigger",
-]
-
-STRATEGIC_ANGLES = [
-    "observation",
-    "insight",
-    "suggestion",
-    "risk_lens",
-    "question",
-    "action_intuition",
-]
-
-COGNITIVE_LENSES = [
-    "human_context",
-    "insight",
-    "question",
-    "risk",
-    "action",
-    "financial",
-]
-
 
 def ensure_ethan_ai_tables(conn):
     global _ethan_schema_ready
@@ -321,69 +297,6 @@ def choose_model(plan, complexity, deep_sessions_used):
     return model, soft_budget_active
 
 
-def compact_context(context):
-    score = context.get("global_score") or context.get("score") or 0
-    if isinstance(score, dict):
-        score = score.get("score", 0)
-
-    data_profile = context.get("data_profile") or {}
-    financial = context.get("financial_features") or {}
-    opportunities = context.get("opportunities") or {}
-    opportunity_count = (
-        len(opportunities)
-        if isinstance(opportunities, list)
-        else opportunities.get("count", 0)
-        if isinstance(opportunities, dict)
-        else 0
-    )
-
-    return {
-        "score": score,
-        "level": context.get("level"),
-        "plan": context.get("plan"),
-        "status": context.get("state", "READY"),
-        "life_context": context.get("life_context") or {},
-        "opportunity_count": opportunity_count,
-        "completion_percent": data_profile.get("completion_percent"),
-        "cashflow": financial.get("cashflow_score"),
-        "debt_risk": financial.get("debt_risk_score"),
-        "savings_velocity": financial.get("savings_velocity_score"),
-        "top_advice": (context.get("advice") or [])[:3],
-    }
-
-
-def compact_portfolio(portfolio):
-    assets = portfolio.get("portfolio") if isinstance(portfolio, dict) else portfolio
-    if not isinstance(assets, list):
-        assets = portfolio.get("assets", []) if isinstance(portfolio, dict) else []
-
-    total_value = 0
-    exposures = {}
-    top_assets = []
-
-    for asset in assets[:80]:
-        name = asset.get("asset_name") or asset.get("name") or "Asset"
-        category = (asset.get("asset_type") or asset.get("category") or asset.get("type") or "OTHER").upper()
-        value = float(asset.get("value") or asset.get("current_value") or 0)
-        if not value:
-            qty = float(asset.get("quantity") or 0)
-            price = float(asset.get("current_price") or asset.get("purchase_price") or 0)
-            value = qty * price
-
-        total_value += value
-        exposures[category] = exposures.get(category, 0) + value
-        top_assets.append({"name": name, "category": category, "value": round(value, 2)})
-
-    top_assets = sorted(top_assets, key=lambda item: item["value"], reverse=True)[:5]
-
-    return {
-        "asset_count": len(assets),
-        "total_value": round(total_value, 2),
-        "exposures": dict(sorted(exposures.items(), key=lambda item: item[1], reverse=True)[:6]),
-        "top_assets": top_assets,
-    }
-
-
 def get_memory(conn, user_id):
     if not user_id:
         return {}
@@ -482,41 +395,6 @@ def extract_context_signals(message):
     return signals
 
 
-def detect_primary_intent(message):
-    normalized = (message or "").lower()
-
-    if any(word in normalized for word in ["revenu", "gagner", "business", "offre", "vente", "client"]):
-        return "increase_income"
-    if any(word in normalized for word in ["risque", "securite", "proteger", "concentration", "perdre"]):
-        return "reduce_risk"
-    if any(word in normalized for word in ["cashflow", "budget", "charge", "liquidite", "tresorerie"]):
-        return "optimize_cashflow"
-    if any(word in normalized for word in ["investir", "allocation", "portfolio", "portefeuille", "etf", "action", "crypto"]):
-        return "invest"
-    if any(word in normalized for word in ["priorite", "quoi faire", "action", "prochaine", "maintenant"]):
-        return "prioritize_actions"
-    if any(word in normalized for word in ["comprendre", "clarifier", "situation", "diagnostic"]):
-        return "clarify_situation"
-
-    return "prioritize_actions"
-
-
-def _rotate_choice(options, previous, seed):
-    candidates = [item for item in options if item != previous] or list(options)
-    if not candidates:
-        return None
-
-    index = int(stable_hash({"seed": seed})[:8], 16) % len(candidates)
-    return candidates[index]
-
-
-def _safe_int(value, default=0):
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
 def _normalize_legacy_text(value) -> str:
     if isinstance(value, (dict, list)):
         raw = json.dumps(value, ensure_ascii=False, default=str)
@@ -542,75 +420,6 @@ def is_legacy_ethan_response(value) -> bool:
         _normalize_legacy_text(pattern) in normalized
         for pattern in LEGACY_ETHAN_RESPONSE_PATTERNS
     )
-
-
-def _select_cognitive_lens(primary_intent, previous_lens, diversity_counter, message):
-    if previous_lens == "action":
-        candidates = ["insight", "question"]
-    else:
-        candidates = list(COGNITIVE_LENSES)
-        if previous_lens == "financial":
-            candidates = [lens for lens in candidates if lens != "financial"]
-        if primary_intent != "optimize_cashflow":
-            candidates = [lens for lens in candidates if lens != "financial"]
-
-    candidates = [lens for lens in candidates if lens != previous_lens] or list(COGNITIVE_LENSES)
-    seed = f"{message}:{primary_intent}:{diversity_counter}:lens"
-    return candidates[int(stable_hash({"seed": seed})[:8], 16) % len(candidates)]
-
-
-def _style_for_lens(lens, previous_style, diversity_counter, message):
-    preferred = {
-        "human_context": ["human_coach", "quiet_analyst"],
-        "insight": ["quiet_analyst", "strategic_advisor"],
-        "question": ["quiet_analyst", "human_coach"],
-        "risk": ["risk_lens", "quiet_analyst"],
-        "action": ["action_trigger", "strategic_advisor"],
-        "financial": ["strategic_advisor", "quiet_analyst"],
-    }.get(lens, OUTPUT_STYLES)
-
-    candidates = [style for style in preferred if style != previous_style] or [
-        style for style in OUTPUT_STYLES if style != previous_style
-    ] or list(OUTPUT_STYLES)
-    seed = f"{message}:{lens}:{diversity_counter}:style"
-    return candidates[int(stable_hash({"seed": seed})[:8], 16) % len(candidates)]
-
-
-def build_response_strategy(message, memory=None):
-    profile = memory.get("context_profile") if isinstance(memory, dict) else {}
-    profile = profile if isinstance(profile, dict) else {}
-    primary_intent = detect_primary_intent(message)
-    previous_style = profile.get("last_style_used") or profile.get("_last_output_style")
-    previous_angle = profile.get("last_angle_used") or profile.get("_last_strategic_angle")
-    previous_output_type = profile.get("last_output_type")
-    previous_lens = profile.get("last_cognitive_lens")
-    diversity_counter = _safe_int(profile.get("response_diversity_counter"), 0)
-    cognitive_lens = _select_cognitive_lens(primary_intent, previous_lens, diversity_counter, message)
-    output_style = _style_for_lens(cognitive_lens, previous_style, diversity_counter, message)
-    strategic_angle = _rotate_choice(
-        STRATEGIC_ANGLES,
-        previous_angle,
-        f"{message}:{primary_intent}:{cognitive_lens}:{diversity_counter}:angle",
-    )
-    score_requested = "score" in (message or "").lower()
-
-    return {
-        "primary_intent": primary_intent,
-        "cognitive_lens": cognitive_lens,
-        "strategic_angle": strategic_angle,
-        "output_style": output_style,
-        "previous_output_style": previous_style,
-        "previous_strategic_angle": previous_angle,
-        "previous_cognitive_lens": previous_lens,
-        "previous_output_type": previous_output_type,
-        "diversity_counter": diversity_counter,
-        "score_policy": "allowed_if_useful" if score_requested else "avoid_score",
-        "cashflow_policy": (
-            "allowed"
-            if any(word in (message or "").lower() for word in ["cashflow", "budget", "charge", "liquidite", "tresorerie"])
-            else "do_not_default_to_cashflow"
-        ),
-    }
 
 
 def summarize_context_profile(profile):
@@ -654,7 +463,7 @@ def update_memory(conn, user_id, message, answer, context, memory=None, response
         next_profile["last_style_used"] = response_strategy.get("output_style")
         next_profile["last_output_type"] = response_strategy.get("output_type") or response_strategy.get("output_style")
         next_profile["last_cognitive_lens"] = response_strategy.get("cognitive_lens")
-        next_profile["response_diversity_counter"] = _safe_int(next_profile.get("response_diversity_counter"), 0) + 1
+        next_profile["response_diversity_counter"] = safe_int(next_profile.get("response_diversity_counter"), 0) + 1
     key_signals = summarize_context_profile(next_profile) or summarize_context_profile(context.get("life_context") or {})
     session_summary = (
         f"Derniere question: {message[:220]} | "
@@ -727,61 +536,6 @@ def record_usage(
         "output_tokens": output_tokens,
         "estimated_cost_usd": estimate_cost(model, input_tokens, output_tokens),
     })
-
-
-def build_advisor_messages(
-    context,
-    portfolio,
-    opportunities,
-    memory,
-    message,
-    plan,
-    tier,
-    complexity,
-    response_strategy,
-):
-    system_prompt = (
-        "Tu es Ethan, le copilote patrimonial et strategique White Rock. "
-        "Tu parles comme un conseiller prive calme: naturel, precis, discret, jamais comme un chatbot ni comme un moteur de templates. "
-        "Backend first: utilise uniquement le contexte compresse, les entitlements, la memoire, le portefeuille, les missions et les opportunites fournis. Ne fabrique aucune donnee. "
-        "Tu peux raisonner avec response_strategy, mais elle doit rester invisible: ne cite jamais les modes, angles, politiques, et ne montre jamais de structure interne. "
-        "Zero template mode: pas de structure fixe, pas de titres systematiques, pas de format 'priorite/action/step', pas de labels INSIGHT/ACTION/NEXT STEP, pas de bloc NEXT BEST ACTION. "
-        "Varie les ouvertures et les formes a chaque reponse: observation, intuition d'action, nuance, question courte, risque discret, suggestion. "
-        "Respecte response_strategy.cognitive_lens comme point d'entree invisible. Ne repete jamais previous_cognitive_lens; si le lens precedent etait action, privilegie insight ou question; si le lens precedent etait financial, evite le cadrage financier. "
-        "Une meme question utilisateur doit recevoir un cadrage cognitif different lorsque response_strategy.diversity_counter change. "
-        "Ne commence jamais par le score, ne mentionne jamais le score sauf si l'utilisateur le demande explicitement. Si response_strategy.score_policy vaut avoid_score, garde le score totalement silencieux. "
-        "Ne fais jamais du cashflow un diagnostic automatique. N'en parle que si l'utilisateur le demande ou si la liquidite est directement le point bloquant. "
-        "Une seule action maximum, integree naturellement dans une phrase. Evite 'Action simple', 'Priorite', 'Il faut d'abord', et les formulations repetitives. "
-        "Si une information manque, evite de poser une question sauf si elle bloque vraiment la decision; sinon propose le plus petit mouvement utile. "
-        "Adapte le ton sans l'annoncer: stresse = simple, investisseur = analytique, entrepreneur = action, debutant = minimal et rassurant. "
-        "FREE: tres court, une idee et un mouvement. GOLD+: plus fin, mais toujours fluide, humain et non structure comme un rapport. "
-        "LIBERTY: relie investissement, business, immobilier et temps disponible. LEGACY: ajoute protection, continuite, famille et transmission seulement si pertinent. "
-        "Si la reponse ressemble a la precedente dans response_strategy.previous_output_style ou previous_strategic_angle, change l'ordre, le cadrage et la formulation. "
-        "La sensation finale doit etre: Ethan pense comme un systeme, mais parle comme un humain experimente qui ne montre jamais son mecanisme."
-    )
-
-    compressed_context = {
-        "ethan_tier": tier,
-        "plan": plan,
-        "complexity": complexity,
-        "profile": compact_context(context),
-        "portfolio": compact_portfolio(portfolio),
-        "opportunities": opportunities[:3] if isinstance(opportunities, list) else opportunities,
-        "memory": memory,
-        "response_strategy": response_strategy,
-    }
-
-    return [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": (
-                "Contexte compresse WHITE ROCK:\n"
-                f"{json.dumps(compressed_context, separators=(',', ':'), ensure_ascii=False)}\n\n"
-                f"Question utilisateur: {message}"
-            ),
-        },
-    ]
 
 
 def get_llm_response(messages, model, max_output_tokens):
