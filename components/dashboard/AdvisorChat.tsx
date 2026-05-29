@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
-import type { GamificationData } from "@/lib/types";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -16,12 +15,6 @@ type AdvisorResponse = {
   };
 };
 
-type AdvisorChatProps = {
-  recommendations?: string[];
-  aiCoach?: GamificationData["ai_coach"];
-  notification?: GamificationData["notification"];
-};
-
 const initialMessages: ChatMessage[] = [
   {
     role: "assistant",
@@ -32,7 +25,7 @@ const initialMessages: ChatMessage[] = [
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHED_MESSAGES = 40;
-const CONVERSATION_CACHE_VERSION = "v3-retry-clean-response";
+const CONVERSATION_CACHE_VERSION = "v4-core-only-chat";
 const LEGACY_RESPONSE_PATTERNS = [
   "ton score est",
   "score 39/100",
@@ -40,10 +33,9 @@ const LEGACY_RESPONSE_PATTERNS = [
   "action simple",
   "action prioritaire",
   "priorite:",
-  "priorité:",
   "clarifier la capacite",
+  "capacite mensuelle disponible",
   "ethan vient d'ecarter",
-  "capacité mensuelle disponible",
 ];
 
 type CachedConversation = {
@@ -51,6 +43,13 @@ type CachedConversation = {
   updatedAt: number;
   messages: ChatMessage[];
 };
+
+function normalizeConversationText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 function getUserCacheKey() {
   if (typeof window === "undefined") {
@@ -75,13 +74,6 @@ function getUserCacheKey() {
   } catch {
     return `ethanConversation:${CONVERSATION_CACHE_VERSION}:user`;
   }
-}
-
-function normalizeConversationText(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 }
 
 function hasLegacyResponse(messages: ChatMessage[]) {
@@ -116,10 +108,7 @@ function trimMessages(messages: ChatMessage[]) {
     (message) => message.content !== initialMessages[0].content
   );
 
-  return [
-    initialMessages[0],
-    ...conversation.slice(-(MAX_CACHED_MESSAGES - 1)),
-  ];
+  return [initialMessages[0], ...conversation.slice(-(MAX_CACHED_MESSAGES - 1))];
 }
 
 function readCachedMessages() {
@@ -176,24 +165,14 @@ async function requestAdvisorResponse(
   });
 }
 
-export default function AdvisorChat({
-  recommendations = [],
-  aiCoach,
-  notification,
-}: AdvisorChatProps) {
+export default function AdvisorChat() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
-  const [detail, setDetail] = useState<{
-    title: string;
-    body: string;
-    tone?: "blue" | "amber" | "cyan";
-  } | null>(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const affiliations = aiCoach?.affiliations || [];
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -225,10 +204,7 @@ export default function AdvisorChat({
     const question = input.trim();
     if (!question || loading) return;
 
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: question },
-    ]);
+    setMessages((current) => [...current, { role: "user", content: question }]);
     setInput("");
     setLoading(true);
 
@@ -242,17 +218,14 @@ export default function AdvisorChat({
         analysis = refreshed.result?.analysis || "";
       }
 
-      const safeAnalysis = isLegacyAssistantText(analysis)
-        ? "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment."
-        : analysis ||
-          "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment.";
+      const safeAnalysis =
+        !analysis || isLegacyAssistantText(analysis)
+          ? "Le moteur Ethan n'a pas renvoye de reponse exploitable pour le moment."
+          : analysis;
 
       setMessages((current) => [
         ...current,
-        {
-          role: "assistant",
-          content: safeAnalysis,
-        },
+        { role: "assistant", content: safeAnalysis },
       ]);
     } catch (err) {
       console.error(err);
@@ -261,7 +234,7 @@ export default function AdvisorChat({
         {
           role: "assistant",
           content:
-            "Je n'arrive pas a joindre le moteur de conseil pour le moment. Reessaie dans quelques instants.",
+            "Je n'arrive pas a joindre Ethan Core pour le moment. Reessaie dans quelques instants.",
         },
       ]);
     } finally {
@@ -290,140 +263,6 @@ export default function AdvisorChat({
         <p className="text-sm text-gray-400">
           Un regard calme pour transformer ton contexte en decisions simples.
         </p>
-      </div>
-
-      <div className="mb-5 space-y-4">
-        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4 transition hover:border-[#3fa9f5]/35">
-          <h3 className="font-bold text-[#3fa9f5] mb-3">
-            Conseils prioritaires
-          </h3>
-
-          <div className="space-y-2">
-            {recommendations.length > 0 ? (
-              recommendations.map((advice, index) => (
-                <p key={`${advice}-${index}`} className="text-sm text-gray-300">
-                  {advice}
-                </p>
-              ))
-            ) : (
-              <p className="text-sm text-gray-400">
-                Aucun conseil prioritaire pour le moment.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: "Guidance du jour",
-              body:
-                aiCoach?.message ||
-                "Complete ton cockpit avec une donnee utile pour enrichir le contexte backend.",
-              tone: "cyan",
-            })
-          }
-          className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20"
-        >
-          <h3 className="font-bold text-white mb-2">Guidance du jour</h3>
-
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {aiCoach?.message ||
-              "Tu construis une vraie base patrimoniale. Continue a completer ton cockpit, une donnee utile a la fois."}
-          </p>
-
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: "Opportunités partenaires",
-              body:
-                affiliations.length > 0
-                  ? affiliations
-                      .map((item) => `${item.title}: ${item.reason}`)
-                      .join("\n")
-                  : "Aucun partenaire prioritaire pour le moment. Ethan n'affiche cette zone que lorsqu'une proposition est cohérente avec ton profil.",
-              tone: "amber",
-            })
-          }
-          className="w-full rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-left transition hover:border-amber-300/35"
-        >
-          <h3 className="font-bold text-amber-200 mb-3">
-            Opportunités partenaires
-          </h3>
-
-          {affiliations.length > 0 ? (
-            <div className="space-y-2">
-              {affiliations.map((item, index) => (
-                <div
-                  key={`${item.title}-${index}`}
-                  className="rounded-xl border border-white/10 bg-black/30 p-3"
-                >
-                  <p className="text-sm font-semibold text-white">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{item.reason}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">
-              Ethan proposera des partenaires uniquement lorsqu&apos;ils sont coherents avec ton profil.
-            </p>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: notification?.title || "Notifications Ethan",
-              body:
-                notification?.message ||
-                "Aucune alerte urgente pour l'instant. Les notifications apparaîtront ici lorsqu'un signal mérite ton attention.",
-              tone: "blue",
-            })
-          }
-          className="w-full rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left transition hover:border-blue-400/40"
-        >
-          <h3 className="font-bold text-blue-400 mb-2">Notification</h3>
-
-          <p className="text-sm text-white">
-            {notification?.title || "Aucune alerte urgente"}
-          </p>
-
-          {notification?.message && (
-            <p className="text-xs text-gray-400 mt-1">
-              {notification.message}
-            </p>
-          )}
-        </button>
-
-        {detail && (
-          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                  Détail
-                </p>
-                <h3 className="mt-1 font-bold text-white">{detail.title}</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDetail(null)}
-                className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 hover:text-white"
-              >
-                Fermer
-              </button>
-            </div>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-300">
-              {detail.body}
-            </p>
-          </div>
-        )}
       </div>
 
       <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">

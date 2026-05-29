@@ -406,7 +406,6 @@ export default function Dashboard() {
 
   const globalScore =
     Number(commandCenter?.global_score ?? 0) || 0;
-  const scoreAdvice = commandCenter?.advice || [];
   const totalValue = portfolio.reduce(
     (acc, asset) => acc + getAssetValue(asset),
     0
@@ -1691,11 +1690,7 @@ export default function Dashboard() {
 
               <OpportunitiesModule commandCenter={commandCenter} />
 
-              <AdvisorChat
-                recommendations={scoreAdvice}
-                aiCoach={gamification?.ai_coach}
-                notification={gamification?.notification}
-              />
+              <AdvisorChat />
             </div>
           )}
 

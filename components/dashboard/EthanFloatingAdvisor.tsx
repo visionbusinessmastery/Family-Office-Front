@@ -39,8 +39,6 @@ export default function EthanFloatingAdvisor() {
     return sessionStorage.getItem("ethanFloatingOpen") === "true";
   });
   const [enabled, setEnabled] = useState(false);
-  const [recommendations, setRecommendations] = useState<string[]>([]);
-  const [contextLoaded, setContextLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,32 +66,6 @@ export default function EthanFloatingAdvisor() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!open || !enabled || contextLoaded) return;
-
-    let cancelled = false;
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    apiRequest<ProductContext>("/product/context", token)
-      .then((product) => {
-        if (cancelled) return;
-        setRecommendations(
-          product?.strategic_brief?.next_action
-            ? [product.strategic_brief.next_action]
-            : []
-        );
-        setContextLoaded(true);
-      })
-      .catch(() => {
-        if (!cancelled) setContextLoaded(true);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [contextLoaded, enabled, open]);
-
   const toggleOpen = () => {
     setOpen((value) => {
       const next = !value;
@@ -108,7 +80,7 @@ export default function EthanFloatingAdvisor() {
     <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
         <div className="max-h-[78vh] w-[min(420px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
-          <AdvisorChat recommendations={recommendations} />
+          <AdvisorChat />
         </div>
       )}
 
