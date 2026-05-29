@@ -18,14 +18,14 @@ from advisor.observability import (
     ensure_ethan_observability_tables,
     top_expensive_users,
 )
+from .autopilot_service import portfolio_autopilot
 
 from .schemas import AdvisorRequest
 from .security_engine import inspect_advisor_prompt
 
-from .service import (
+from .ethan.persistence_engine import (
     ensure_ethan_ai_tables,
     get_user_plan,
-    portfolio_autopilot,
 )
 from .ethan_core import run_ethan_chat, run_ethan_portfolio
 from analytics.analytics_events import ETHAN_USED

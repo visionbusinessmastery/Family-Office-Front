@@ -6,6 +6,8 @@ Frontend -> API Routes -> Ethan Core
   -> Context Engine
   -> Memory Engine
   -> Strategy Engine
+  -> Runtime Engine
+  -> Persistence Engine
   -> Prompt Engine
   -> Response Engine
   -> OpenAI Gateway
