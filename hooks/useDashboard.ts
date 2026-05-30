@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest, clearAuthSession, isJwtExpired } from "@/lib/api";
 import type {
+  AdvisorContextSummary,
   BusinessIntelligenceData,
   CategoryOpportunityData,
   CommandCenter,
@@ -97,6 +98,7 @@ type DashboardSessionSnapshot = {
   progressionTimeline: ProgressionTimelineData | null;
   finance: FinanceData;
   financeOverview: FinanceOverviewData | null;
+  advisorContext: AdvisorContextSummary | null;
 };
 
 const extractPortfolio = (data: PortfolioResponse | null) => {
@@ -235,6 +237,8 @@ export function useDashboard() {
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [financeOverview, setFinanceOverview] =
     useState<FinanceOverviewData | null>(null);
+  const [advisorContext, setAdvisorContext] =
+    useState<AdvisorContextSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const applyUserProfile = useCallback((userData: UserProfile | null) => {
@@ -299,6 +303,7 @@ export function useDashboard() {
     setProgressionTimeline(snapshot.progressionTimeline || null);
     setFinance(snapshot.finance);
     setFinanceOverview(snapshot.financeOverview || null);
+    setAdvisorContext(snapshot.advisorContext || null);
   }, []);
 
   const loadUserProfile = useCallback(async () => {
@@ -386,6 +391,12 @@ export function useDashboard() {
   const loadFinanceOverview = useCallback(async () => {
     const data = await safeFetch<FinanceOverviewData>("/finance/overview");
     setFinanceOverview(data || null);
+    return data;
+  }, [safeFetch]);
+
+  const loadAdvisorContext = useCallback(async () => {
+    const data = await safeFetch<AdvisorContextSummary>("/advisor/context-summary");
+    setAdvisorContext(data || null);
     return data;
   }, [safeFetch]);
 
@@ -511,11 +522,13 @@ export function useDashboard() {
       loadCategoryOpportunities(),
       loadOnboarding(userData),
       loadCommandCenter(),
+      loadAdvisorContext(),
       loadGamification(),
       loadProgressionTimeline(),
     ]);
   }, [
     loadCommandCenter,
+    loadAdvisorContext,
     loadFinance,
     loadFinanceOverview,
     loadCategoryOpportunities,
@@ -540,6 +553,7 @@ export function useDashboard() {
       loadBillingSubscription(),
       loadProductContext(),
       loadCommandCenter(),
+      loadAdvisorContext(),
       loadCategoryOpportunities(),
       loadBusinessIntelligence(),
       loadFinanceOverview(),
@@ -550,6 +564,7 @@ export function useDashboard() {
     loadBillingSubscription,
     loadCategoryOpportunities,
     loadCommandCenter,
+    loadAdvisorContext,
     loadBusinessIntelligence,
     loadFinanceOverview,
     loadGamification,
@@ -633,8 +648,10 @@ export function useDashboard() {
       progressionTimeline,
       finance,
       financeOverview,
+      advisorContext,
     });
   }, [
+    advisorContext,
     billingSubscription,
     businessIntelligence,
     categoryOpportunities,
@@ -683,7 +700,9 @@ export function useDashboard() {
     progressionTimeline,
     finance,
     financeOverview,
+    advisorContext,
     gamification,
+    loadAdvisorContext,
     loadFinance,
     loadFinanceOverview,
     loadPortfolio,

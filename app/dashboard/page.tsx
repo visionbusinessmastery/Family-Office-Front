@@ -835,6 +835,7 @@ export default function Dashboard() {
     product,
     billingSubscription,
     progressionTimeline,
+    advisorContext,
     refreshAll,
     refreshAfterMutation,
     loading,
@@ -2470,9 +2471,126 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Conseiller patrimonial"
-                title="ETHAN"
-                description="Conversation uniquement. Les opportunites vivent dans leur page dediee."
+                title="Ethan"
+                description="Intelligence patrimoniale active: contexte, decision et conversation dans une seule interface."
               />
+
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                <div className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#07111c] via-black to-[#101923] p-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#8bd0ff]">
+                    Daily Insight
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black text-white">
+                    {compactText(
+                      product?.wealth_narrative?.memorable_insight ||
+                        product?.board_briefing?.headline,
+                      "Ethan garde le cap sur la prochaine decision utile."
+                    )}
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                    {compactText(
+                      product?.wealth_narrative?.why_it_matters ||
+                        product?.decision_intelligence?.why_it_matters,
+                      "La valeur de cette page est d'isoler ce qui merite vraiment ton attention."
+                    )}
+                  </p>
+
+                  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+                    {[
+                      [
+                        "Situation",
+                        product?.decision_intelligence?.risk?.title ||
+                          product?.board_briefing?.main_risk ||
+                          "Lecture du contexte",
+                        product?.decision_intelligence?.risk?.description ||
+                          "Ethan part de ta situation actuelle avant de proposer une direction.",
+                      ],
+                      [
+                        "Analyse",
+                        product?.decision_intelligence?.opportunity?.title ||
+                          product?.board_briefing?.main_opportunity ||
+                          "Signal utile",
+                        product?.decision_intelligence?.opportunity?.description ||
+                          "Les signaux sont priorises pour eviter la dispersion.",
+                      ],
+                      [
+                        "Decision",
+                        product?.decision_intelligence?.decision?.title ||
+                          "Decision du moment",
+                        product?.decision_intelligence?.next_action ||
+                          product?.decision_intelligence?.decision?.action ||
+                          "Choisir une action simple et executable.",
+                      ],
+                    ].map(([label, title, description]) => (
+                      <article
+                        key={label}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
+                      >
+                        <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                          {label}
+                        </p>
+                        <h3 className="mt-2 font-bold text-white">
+                          {compactText(title)}
+                        </h3>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                          {compactText(description)}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">
+                      Mode Ethan
+                    </p>
+                    <h3 className="mt-2 text-2xl font-black text-white">
+                      {compactText(advisorContext?.mode, "Simple")}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                      {compactText(
+                        advisorContext?.depth,
+                        "Un insight clair et une action utile."
+                      )}
+                    </p>
+                  </section>
+
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-[#ffd21a]">
+                      Ce qu'Ethan retient
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                      {compactText(
+                        advisorContext?.memory?.reading,
+                        "Ethan construit progressivement une lecture fiable de ton contexte."
+                      )}
+                    </p>
+                  </section>
+
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                      Acces rapides
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                      {[
+                        ["Finances", "finances"],
+                        ["Business", "ventures"],
+                        ["Opportunites", "opportunities"],
+                      ].map(([label, target]) => (
+                        <button
+                          key={target}
+                          type="button"
+                          onClick={() => setActiveSection(target as DashboardSection)}
+                          className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-bold text-gray-100 transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/10"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+              </section>
 
               <AdvisorChat />
             </div>

@@ -37,6 +37,19 @@ export type FinanceOverviewData = {
   priority?: string;
 };
 
+export type AdvisorContextSummary = {
+  version?: string;
+  plan?: string;
+  mode?: string;
+  depth?: string;
+  memory?: {
+    reading?: string;
+    profile?: Record<string, unknown>;
+    last_topic?: string | null;
+  };
+  decision_framework?: string[];
+};
+
 export type ChildAccount = {
   id: number;
   child_name: string;
