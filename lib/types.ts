@@ -942,11 +942,31 @@ export type CommandCenter = {
 };
 
 export type OnboardingData = {
+  age?: number | null;
+  situation_pro?: string | null;
   revenus_mensuels?: number;
   charges_mensuelles?: number;
   monthly_income?: number;
   monthly_expenses?: number;
   profile_completed?: boolean;
+};
+
+export type WealthProfile = {
+  first_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  goals?: string[];
+  horizon?: string | null;
+  investor_profile?: string | null;
+  risk_level?: string | null;
+  main_currency?: string | null;
+  motivation?: string | null;
+  has_children?: boolean;
+  transmission_goal?: string | null;
+  expatriation_interest?: string | null;
+  governance_need?: string | null;
+  confidentiality_need?: string | null;
+  family_strategy?: string | null;
 };
 
 export type UserProfile = OnboardingData & {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -40,6 +40,7 @@ import type {
   VentureAsset,
   VentureAssetPayload,
   VentureAssetType,
+  WealthProfile,
   YieldAsset,
   YieldAssetPayload,
   YieldAssetType,
@@ -750,6 +751,20 @@ const buildStructuredNotes = (
   return [...details, notes].filter(Boolean).join("\n") || null;
 };
 
+const toNullableNumber = (value?: string) => {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const yesNoLabel = (value?: boolean | null) => (value ? "Oui" : "Non");
+
+const compactText = (value?: string | number | null, fallback = "A renseigner") => {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const {
@@ -781,10 +796,26 @@ export default function Dashboard() {
     type: "success" | "error" | "info";
   } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
+  const [wealthProfile, setWealthProfile] = useState<WealthProfile | null>(null);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
   };
+
+  const loadWealthProfile = useCallback(async () => {
+    if (!token) return null;
+
+    try {
+      const data = await apiRequest<{ profile?: WealthProfile }>("/profile/me", token);
+      const profile = data.profile || {};
+      setWealthProfile(profile);
+      return profile;
+    } catch (err) {
+      console.error(err);
+      setWealthProfile({});
+      return {};
+    }
+  }, [token]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -800,6 +831,11 @@ export default function Dashboard() {
 
     return () => window.clearTimeout(timeoutId);
   }, [router]);
+
+  useEffect(() => {
+    if (activeSection !== "settings" || !token) return;
+    loadWealthProfile();
+  }, [activeSection, loadWealthProfile, token]);
 
   const updateModalValue = (key: string, value: string) => {
     setFormModal((current) =>
@@ -974,17 +1010,33 @@ export default function Dashboard() {
     },
   ];
   const handleUpdateOnboarding = async () => {
+    const profile = (await loadWealthProfile()) || wealthProfile || {};
+
     setFormModal({
       kind: "onboarding",
-      title: "Modifier la situation",
-      description: "Mets a jour revenus et charges avec une saisie claire.",
+      title: "Modifier le profil utilisateur",
+      description: "Mets a jour les informations issues de l'onboarding et enrichis ton profil patrimonial.",
       values: {
+        first_name: profile.first_name || "",
+        bio: profile.bio || "",
+        age: String(onboarding?.age ?? ""),
+        situation_pro: onboarding?.situation_pro || profile.investor_profile || "",
         revenus_mensuels: String(
           onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0
         ),
         charges_mensuelles: String(
           onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0
         ),
+        motivation: profile.motivation || "",
+        horizon: profile.horizon || "5-10 ans",
+        risk_level: profile.risk_level || "equilibre",
+        main_currency: profile.main_currency || "EUR",
+        has_children: profile.has_children ? "true" : "false",
+        transmission_goal: profile.transmission_goal || "",
+        expatriation_interest: profile.expatriation_interest || "",
+        governance_need: profile.governance_need || "",
+        confidentiality_need: profile.confidentiality_need || "",
+        family_strategy: profile.family_strategy || "",
       },
     });
   };
@@ -1311,15 +1363,47 @@ export default function Dashboard() {
       setModalLoading(true);
 
       if (formModal.kind === "onboarding") {
+        const age = toNullableNumber(values.age);
+        const revenusMensuels = toNullableNumber(values.revenus_mensuels) ?? 0;
+        const chargesMensuelles = toNullableNumber(values.charges_mensuelles) ?? 0;
+        const goals = [values.motivation, values.transmission_goal]
+          .map((item) => String(item || "").trim())
+          .filter(Boolean);
+
         await apiRequest("/auth/onboarding/update", token, {
           method: "PUT",
           body: JSON.stringify({
-            revenus_mensuels: Number(values.revenus_mensuels || 0),
-            charges_mensuelles: Number(values.charges_mensuelles || 0),
+            age,
+            situation_pro: values.situation_pro || null,
+            revenus_mensuels: revenusMensuels,
+            charges_mensuelles: chargesMensuelles,
           }),
         });
+
+        await apiRequest("/profile/me", token, {
+          method: "PUT",
+          body: JSON.stringify({
+            first_name: values.first_name || null,
+            bio: values.bio || null,
+            avatar_url: wealthProfile?.avatar_url || null,
+            goals,
+            horizon: values.horizon || null,
+            investor_profile: values.situation_pro || null,
+            risk_level: values.risk_level || null,
+            main_currency: values.main_currency || "EUR",
+            motivation: values.motivation || null,
+            has_children: values.has_children === "true",
+            transmission_goal: values.transmission_goal || null,
+            expatriation_interest: values.expatriation_interest || null,
+            governance_need: values.governance_need || null,
+            confidentiality_need: values.confidentiality_need || null,
+            family_strategy: values.family_strategy || null,
+          }),
+        });
+
+        await loadWealthProfile();
         await refreshAfterMutation();
-        showToast("Situation mise a jour.", "success");
+        showToast("Profil utilisateur mis a jour.", "success");
       }
 
       if (formModal.kind === "workspace") {
@@ -1580,9 +1664,124 @@ export default function Dashboard() {
 
     if (formModal.kind === "onboarding") {
       return (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <TextField label="Revenus mensuels" type="number" value={values.revenus_mensuels || "0"} onChange={(value) => updateModalValue("revenus_mensuels", value)} />
-          <TextField label="Charges mensuelles" type="number" value={values.charges_mensuelles || "0"} onChange={(value) => updateModalValue("charges_mensuelles", value)} />
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Prenom" value={values.first_name || ""} onChange={(value) => updateModalValue("first_name", value)} />
+            <TextField label="Age" type="number" value={values.age || ""} onChange={(value) => updateModalValue("age", value)} />
+            <SelectField
+              label="Situation professionnelle"
+              value={values.situation_pro || ""}
+              onChange={(value) => updateModalValue("situation_pro", value)}
+              options={[
+                { label: "A renseigner", value: "" },
+                { label: "Salarie", value: "salarie" },
+                { label: "Independant", value: "independant" },
+                { label: "Entrepreneur", value: "entrepreneur" },
+                { label: "Investisseur", value: "investisseur" },
+                { label: "Etudiant", value: "etudiant" },
+                { label: "Retraite", value: "retraite" },
+              ]}
+            />
+            <SelectField
+              label="Enfants"
+              value={values.has_children || "false"}
+              onChange={(value) => updateModalValue("has_children", value)}
+              options={[
+                { label: "Non", value: "false" },
+                { label: "Oui", value: "true" },
+              ]}
+            />
+            <TextField label="Revenus mensuels" type="number" value={values.revenus_mensuels || "0"} onChange={(value) => updateModalValue("revenus_mensuels", value)} />
+            <TextField label="Charges mensuelles" type="number" value={values.charges_mensuelles || "0"} onChange={(value) => updateModalValue("charges_mensuelles", value)} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <SelectField
+              label="Objectif principal"
+              value={values.motivation || ""}
+              onChange={(value) => updateModalValue("motivation", value)}
+              options={[
+                { label: "A renseigner", value: "" },
+                { label: "Liberte financiere", value: "liberte financiere" },
+                { label: "Augmenter mes revenus", value: "augmenter mes revenus" },
+                { label: "Consolider mon patrimoine", value: "consolider mon patrimoine" },
+                { label: "Transmission familiale", value: "transmission familiale" },
+                { label: "Revenus passifs", value: "revenus passifs" },
+              ]}
+            />
+            <SelectField
+              label="Horizon"
+              value={values.horizon || "5-10 ans"}
+              onChange={(value) => updateModalValue("horizon", value)}
+              options={[
+                { label: "1 - 3 ans", value: "1-3 ans" },
+                { label: "3 - 5 ans", value: "3-5 ans" },
+                { label: "5 - 10 ans", value: "5-10 ans" },
+                { label: "10 ans et plus", value: "10 ans et plus" },
+              ]}
+            />
+            <SelectField
+              label="Profil de risque"
+              value={values.risk_level || "equilibre"}
+              onChange={(value) => updateModalValue("risk_level", value)}
+              options={[
+                { label: "Prudent", value: "prudent" },
+                { label: "Equilibre", value: "equilibre" },
+                { label: "Dynamique", value: "dynamique" },
+              ]}
+            />
+            <SelectField
+              label="Devise"
+              value={values.main_currency || "EUR"}
+              onChange={(value) => updateModalValue("main_currency", value)}
+              options={[
+                { label: "EUR", value: "EUR" },
+                { label: "USD", value: "USD" },
+                { label: "CAD", value: "CAD" },
+                { label: "CHF", value: "CHF" },
+                { label: "GBP", value: "GBP" },
+              ]}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Bio courte" value={values.bio || ""} onChange={(value) => updateModalValue("bio", value)} />
+            <TextField label="Objectif de transmission" value={values.transmission_goal || ""} onChange={(value) => updateModalValue("transmission_goal", value)} />
+            <SelectField
+              label="Mobilite internationale"
+              value={values.expatriation_interest || ""}
+              onChange={(value) => updateModalValue("expatriation_interest", value)}
+              options={[
+                { label: "A renseigner", value: "" },
+                { label: "Non prioritaire", value: "non prioritaire" },
+                { label: "A etudier", value: "a etudier" },
+                { label: "Prioritaire", value: "prioritaire" },
+              ]}
+            />
+            <SelectField
+              label="Besoin de gouvernance"
+              value={values.governance_need || ""}
+              onChange={(value) => updateModalValue("governance_need", value)}
+              options={[
+                { label: "A renseigner", value: "" },
+                { label: "Simple", value: "simple" },
+                { label: "Structure", value: "structure" },
+                { label: "Familial avance", value: "familial avance" },
+              ]}
+            />
+            <SelectField
+              label="Confidentialite"
+              value={values.confidentiality_need || ""}
+              onChange={(value) => updateModalValue("confidentiality_need", value)}
+              options={[
+                { label: "A renseigner", value: "" },
+                { label: "Standard", value: "standard" },
+                { label: "Renforcee", value: "renforcee" },
+                { label: "Tres elevee", value: "tres elevee" },
+              ]}
+            />
+            <TextField label="Strategie familiale" value={values.family_strategy || ""} onChange={(value) => updateModalValue("family_strategy", value)} />
+          </div>
         </div>
       );
     }
@@ -2158,6 +2357,75 @@ export default function Dashboard() {
                 title="Identite, controle et personnalisation"
                 description="Ton centre premium pour le profil, l'abonnement, les preferences et la gouvernance patrimoniale."
               />
+
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Profil utilisateur
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">
+                      Donnees personnelles et patrimoniales
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
+                      Modifie les informations saisies pendant l'onboarding et
+                      enrichis le contexte utilise par White Rock.
+                    </p>
+                  </div>
+                  <ActionButton onClick={handleUpdateOnboarding}>
+                    Modifier mon profil
+                  </ActionButton>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    ["Situation", compactText(onboarding?.situation_pro || wealthProfile?.investor_profile)],
+                    ["Age", compactText(onboarding?.age)],
+                    ["Revenus", `${money.format(Number(onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0))} EUR / mois`],
+                    ["Charges", `${money.format(Number(onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0))} EUR / mois`],
+                    ["Objectif", compactText(wealthProfile?.motivation)],
+                    ["Horizon", compactText(wealthProfile?.horizon)],
+                    ["Risque", compactText(wealthProfile?.risk_level)],
+                    ["Enfants", yesNoLabel(wealthProfile?.has_children)],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-white">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Transmission
+                    </p>
+                    <p className="mt-2 text-sm text-gray-200">
+                      {compactText(wealthProfile?.transmission_goal)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Gouvernance
+                    </p>
+                    <p className="mt-2 text-sm text-gray-200">
+                      {compactText(wealthProfile?.governance_need)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Strategie familiale
+                    </p>
+                    <p className="mt-2 text-sm text-gray-200">
+                      {compactText(wealthProfile?.family_strategy)}
+                    </p>
+                  </div>
+                </div>
+              </section>
 
               <ProfileReferralPanel mode="referral" />
 

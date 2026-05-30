@@ -2,18 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
-
-type WealthProfile = {
-  first_name?: string | null;
-  bio?: string | null;
-  avatar_url?: string | null;
-  goals?: string[];
-  horizon?: string | null;
-  investor_profile?: string | null;
-  risk_level?: string | null;
-  main_currency?: string | null;
-  motivation?: string | null;
-};
+import type { WealthProfile } from "@/lib/types";
 
 type ReferralData = {
   referral_code?: string;

@@ -216,6 +216,8 @@ export function useDashboard() {
     setUser(userData);
 
     setOnboarding({
+      age: userData?.age ?? null,
+      situation_pro: userData?.situation_pro ?? null,
       revenus_mensuels: userData?.revenus_mensuels || 0,
       charges_mensuelles: userData?.charges_mensuelles || 0,
       profile_completed: userData?.profile_completed || false,
@@ -396,12 +398,17 @@ export function useDashboard() {
   const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
     const intel = await loadIntelligence();
 
-    setOnboarding(
-      intel?.onboarding || {
+    setOnboarding({
+      age: fallbackUser?.age ?? intel?.onboarding?.age ?? null,
+      situation_pro:
+        fallbackUser?.situation_pro ?? intel?.onboarding?.situation_pro ?? null,
+      ...(intel?.onboarding || {
+        age: fallbackUser?.age ?? null,
+        situation_pro: fallbackUser?.situation_pro ?? null,
         revenus_mensuels: fallbackUser?.revenus_mensuels || 0,
         charges_mensuelles: fallbackUser?.charges_mensuelles || 0,
-      }
-    );
+      }),
+    });
   }, [loadIntelligence]);
 
   const recalcScore = useCallback(async () => {
