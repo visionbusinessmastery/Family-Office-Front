@@ -50,7 +50,7 @@ type PrivacyCenterData = {
 const consentLabels: Record<string, string> = {
   terms_accepted: "Conditions generales",
   privacy_policy_accepted: "Politique de confidentialite",
-  ai_processing_accepted: "Accompagnement Ethan",
+  ai_processing_accepted: "Fonctionnement Ethan",
   marketing_emails_accepted: "Emails marketing",
   analytics_accepted: "Mesure d'usage",
   personalized_opportunities_accepted: "Opportunites personnalisees",
@@ -58,9 +58,23 @@ const consentLabels: Record<string, string> = {
   third_party_data_processing_accepted: "Donnees partenaires",
 };
 
+const requiredConsentKeys = [
+  "terms_accepted",
+  "privacy_policy_accepted",
+  "ai_processing_accepted",
+];
+
+const optionalConsentKeys = [
+  "marketing_emails_accepted",
+  "analytics_accepted",
+  "personalized_opportunities_accepted",
+  "weekly_reports_accepted",
+  "third_party_data_processing_accepted",
+];
+
 const emailLabels: Record<string, string> = {
   weekly_reports: "Rapports hebdomadaires",
-  marketing: "Marketing",
+  marketing: "Actualites White Rock",
   product_updates: "Evolutions produit",
   opportunities: "Opportunites",
   challenges: "Challenges",
@@ -75,6 +89,41 @@ const dataLabels: Record<string, string> = {
   notifications: "Notifications",
   legacy: "Elements Dynasty",
   oauth_accounts: "Comptes sociaux",
+};
+
+const aiDisclosureLabels: Record<string, { title: string; intro: string }> = {
+  provider: {
+    title: "Ethan utilise",
+    intro: "Service mobilise pour produire les reponses.",
+  },
+  purpose: {
+    title: "Pourquoi",
+    intro: "Finalite du traitement.",
+  },
+  training: {
+    title: "Entrainement",
+    intro: "Utilisation de tes donnees.",
+  },
+  retention: {
+    title: "Conservation",
+    intro: "Duree ou logique de conservation.",
+  },
+  human_note: {
+    title: "Important",
+    intro: "Limite de responsabilite et cadre d'usage.",
+  },
+};
+
+const formatPrivacyDate = (value?: string | null) => {
+  if (!value) return "Date non precisee";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 };
 
 function ToggleRow({
@@ -253,11 +302,10 @@ export default function PrivacyCenterPage() {
               Privacy Center
             </p>
             <h1 className="mt-2 text-3xl font-black sm:text-5xl">
-              Controle, transparence et confiance.
+              Tes donnees. Tes choix. Ta transparence.
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">
-              Gere tes consentements, tes exports et tes preferences de
-              confidentialite depuis un espace clair et securise.
+              Controle tes donnees, tes consentements et la maniere dont White Rock utilise tes informations.
             </p>
           </div>
           <CockpitBackLink />
@@ -277,9 +325,9 @@ export default function PrivacyCenterPage() {
             <section className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black">Donnees stockees</h2>
+                  <h2 className="text-2xl font-black">Ton empreinte de donnees</h2>
                   <p className="mt-2 text-sm text-gray-400">
-                    Resume operationnel des principales categories rattachees a ton compte.
+                    Une lecture simple de ce qui est rattache a ton compte White Rock.
                   </p>
                 </div>
                 <p className="text-xs uppercase tracking-widest text-gray-500">
@@ -287,9 +335,24 @@ export default function PrivacyCenterPage() {
                 </p>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                {Object.entries(data?.data_summary || {}).map(([key, value]) => (
-                  <MetricCard key={key} label={dataLabels[key] || key} value={value} tone="primary" />
-                ))}
+                {Object.entries(data?.data_summary || {}).map(([key, value]) => {
+                  const label = dataLabels[key] || key;
+                  const displayValue =
+                    key === "ethan_memory"
+                      ? Number(value || 0) > 0
+                        ? "active"
+                        : "inactive"
+                      : value;
+
+                  return (
+                    <MetricCard key={key} label={label} value={displayValue} tone="primary" />
+                  );
+                })}
+                <MetricCard
+                  label="Historique"
+                  value={(data?.consent_history || []).length > 0 ? "disponible" : "a venir"}
+                  tone="primary"
+                />
               </div>
             </section>
 
@@ -297,20 +360,45 @@ export default function PrivacyCenterPage() {
               <div className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
                 <h2 className="text-2xl font-black">Consentements</h2>
                 <p className="mt-2 text-sm text-gray-400">
-                  Les consentements essentiels restent necessaires pour exploiter ton espace en securite.
+                  Les choix essentiels assurent le fonctionnement de ton espace. Les choix optionnels restent modifiables a tout moment.
                 </p>
-                <div className="mt-5 space-y-3">
-                  {Object.entries(consentLabels).map(([key, label]) => (
-                    <ToggleRow
-                      key={key}
-                      label={label}
-                      checked={Boolean(consents[key])}
-                      locked={key === "terms_accepted" || key === "privacy_policy_accepted"}
-                      onChange={(value) =>
-                        setConsents((current) => ({ ...current, [key]: value }))
-                      }
-                    />
-                  ))}
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Obligatoires
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {requiredConsentKeys.map((key) => (
+                        <ToggleRow
+                          key={key}
+                          label={consentLabels[key]}
+                          checked={Boolean(consents[key])}
+                          locked
+                          onChange={(value) =>
+                            setConsents((current) => ({ ...current, [key]: value }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Optionnels
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {optionalConsentKeys.map((key) => (
+                        <ToggleRow
+                          key={key}
+                          label={consentLabels[key]}
+                          checked={Boolean(consents[key])}
+                          onChange={(value) =>
+                            setConsents((current) => ({ ...current, [key]: value }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-5">
                   <ActionButton onClick={saveConsents}>Enregistrer</ActionButton>
@@ -320,19 +408,44 @@ export default function PrivacyCenterPage() {
               <div className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
                 <h2 className="text-2xl font-black">Emails et rapports</h2>
                 <p className="mt-2 text-sm text-gray-400">
-                  Choisis les messages que WHITE ROCK peut t&apos;envoyer.
+                  Choisis les messages que White Rock peut t&apos;envoyer.
                 </p>
-                <div className="mt-5 space-y-3">
-                  {Object.entries(emailLabels).map(([key, label]) => (
-                    <ToggleRow
-                      key={key}
-                      label={label}
-                      checked={Boolean(emailPreferences[key])}
-                      onChange={(value) =>
-                        setEmailPreferences((current) => ({ ...current, [key]: value }))
-                      }
-                    />
-                  ))}
+                <div className="mt-5 space-y-5">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Accompagnement
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {["weekly_reports", "onboarding"].map((key) => (
+                        <ToggleRow
+                          key={key}
+                          label={emailLabels[key]}
+                          checked={Boolean(emailPreferences[key])}
+                          onChange={(value) =>
+                            setEmailPreferences((current) => ({ ...current, [key]: value }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Actualites et opportunites
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {["product_updates", "founder_program", "opportunities", "challenges", "marketing"].map((key) => (
+                        <ToggleRow
+                          key={key}
+                          label={emailLabels[key]}
+                          checked={Boolean(emailPreferences[key])}
+                          onChange={(value) =>
+                            setEmailPreferences((current) => ({ ...current, [key]: value }))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-5">
                   <ActionButton onClick={saveEmailPreferences}>Enregistrer</ActionButton>
@@ -346,6 +459,9 @@ export default function PrivacyCenterPage() {
                 <p className="mt-2 text-sm leading-relaxed text-gray-400">
                   Genere une copie securisee de ton profil, patrimoine, historique,
                   progression, abonnements et memoire Ethan.
+                </p>
+                <p className="mt-3 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3 text-sm leading-relaxed text-[#bfe8ff]">
+                  Les exports sont generes de facon securisee et expirent automatiquement apres leur creation.
                 </p>
                 <div className="mt-5 flex flex-wrap gap-3">
                   <ActionButton onClick={() => requestExport("json")}>Archive complete</ActionButton>
@@ -363,6 +479,9 @@ export default function PrivacyCenterPage() {
                 <p className="mt-2 text-sm leading-relaxed text-red-100/80">
                   Une demande active lance un delai de securite de 7 jours. Les
                   donnees de facturation legalement necessaires sont conservees.
+                </p>
+                <p className="mt-3 rounded-xl border border-red-300/20 bg-red-900/20 p-3 text-sm font-semibold text-red-100">
+                  Cette action est irreversible une fois confirmee et executee.
                 </p>
                 {data?.deletion_request?.status === "pending" ||
                 data?.deletion_request?.status === "confirmed" ? (
@@ -404,21 +523,57 @@ export default function PrivacyCenterPage() {
 
             <section className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
               <h2 className="text-2xl font-black">Ethan et traitement des donnees</h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Une lecture claire de la maniere dont Ethan utilise les informations de ton espace White Rock.
+              </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {data?.ai_disclosure &&
                   Object.entries(data.ai_disclosure).map(([key, value]) => (
                     <div key={key} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-xs uppercase tracking-widest text-gray-500">{key}</p>
+                      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                        {aiDisclosureLabels[key]?.title || key}
+                      </p>
+                      <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                        {aiDisclosureLabels[key]?.intro || "Information de transparence."}
+                      </p>
                       <p className="mt-2 text-sm leading-relaxed text-gray-200">{value}</p>
                     </div>
                   ))}
               </div>
             </section>
 
+            <section className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
+              <h2 className="text-2xl font-black">Historique des actions sensibles</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                Les modifications importantes de confidentialite apparaissent ici lorsque le backend les expose.
+              </p>
+              <div className="mt-5 space-y-3">
+                {(data?.consent_history || []).slice(0, 5).map((item, index) => (
+                  <div key={`${item.consent_key}-${item.created_at || index}`} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm font-semibold text-white">
+                        {consentLabels[item.consent_key] || item.consent_key}
+                      </p>
+                      <p className="text-xs text-gray-500">{formatPrivacyDate(item.created_at)}</p>
+                    </div>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Consentement {item.accepted ? "active" : "desactive"}
+                      {item.policy_version ? ` - version ${item.policy_version}` : ""}.
+                    </p>
+                  </div>
+                ))}
+                {(data?.consent_history || []).length === 0 && (
+                  <p className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-gray-400">
+                    Aucun evenement sensible recent a afficher.
+                  </p>
+                )}
+              </div>
+            </section>
+
             <section id="policy" className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
               <h2 className="text-2xl font-black">Transparence</h2>
               <p className="mt-3 text-sm leading-relaxed text-gray-400">
-                WHITE ROCK applique une logique privacy by design : minimisation
+                White Rock applique une logique privacy by design : minimisation
                 des donnees, consentements historises, audit des actions sensibles,
                 expiration automatique des exports et suppression differee avec
                 delai de securite.
