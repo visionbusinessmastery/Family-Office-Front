@@ -175,28 +175,40 @@ export function IdentityPanel({
 }
 
 export function ReferralPanel({ referral }: { referral: ReferralData | null }) {
+  const [copied, setCopied] = useState(false);
+  const copyReferralUrl = async () => {
+    if (!referral?.referral_url || typeof navigator === "undefined") return;
+
+    await navigator.clipboard.writeText(referral.referral_url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   return (
     <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.1fr] lg:items-center">
         <div>
-          <h2 className="text-2xl font-bold">Inviter des amis</h2>
+          <h2 className="text-2xl font-bold">Parrainage et recompenses</h2>
           <p className="mt-2 text-sm text-gray-400">
-            Invite tes amis a decouvrir l&apos;application et debloque des recompenses.
+            Chaque invitation active peut debloquer des XP, credits ou avantages White Rock selon les regles en vigueur.
           </p>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/40 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">
-            Code referral
+            Lien personnel
           </p>
-          <p className="mt-2 text-2xl font-black text-[#3fa9f5]">
-            {referral?.referral_code || "En preparation"}
+          <button
+            type="button"
+            onClick={copyReferralUrl}
+            disabled={!referral?.referral_url}
+            className="mt-3 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {copied ? "Lien copie" : "Copier mon lien"}
+          </button>
+          <p className="mt-2 text-xs text-gray-500">
+            Code: {referral?.referral_code || "en preparation"}
           </p>
-          {referral?.referral_url && (
-            <p className="mt-2 break-all text-xs text-gray-400">
-              {referral.referral_url}
-            </p>
-          )}
         </div>
       </div>
 

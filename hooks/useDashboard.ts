@@ -42,6 +42,18 @@ const PLAN_ORDER: Record<string, number> = {
 type BillingSubscription = {
   plan?: string;
   status?: string;
+  current_period_end?: string | number | null;
+  renewal_at?: string | number | null;
+  effective_at?: string | number | null;
+  cancel_at?: string | number | null;
+  cancel_at_period_end?: boolean;
+  pending_plan?: string | null;
+  future_plan?: string | null;
+  amount?: number | string | null;
+  price?: string | null;
+  display_amount?: string | null;
+  interval?: string | null;
+  currency?: string | null;
   founder?: {
     is_founder?: boolean;
     tier?: string | null;
@@ -77,6 +89,7 @@ type DashboardSessionSnapshot = {
   workspaces: WorkspaceData | null;
   legacyOverview: LegacyOverview | null;
   product: ProductContext | null;
+  billingSubscription?: BillingSubscription | null;
   finance: FinanceData;
 };
 
@@ -207,6 +220,8 @@ export function useDashboard() {
   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
   const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
   const [product, setProduct] = useState<ProductContext | null>(null);
+  const [billingSubscription, setBillingSubscription] =
+    useState<BillingSubscription | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -267,6 +282,7 @@ export function useDashboard() {
     setWorkspaces(snapshot.workspaces);
     setLegacyOverview(snapshot.legacyOverview);
     setProduct(snapshot.product);
+    setBillingSubscription(snapshot.billingSubscription || null);
     setFinance(snapshot.finance);
   }, []);
 
@@ -305,6 +321,7 @@ export function useDashboard() {
 
   const loadBillingSubscription = useCallback(async () => {
     const data = await safeFetch<BillingSubscription>("/billing/current-subscription");
+    setBillingSubscription(data);
     if (data?.plan) {
       setDashboard((current) => {
         const nextDashboard = preserveHighestDashboard(current, {
@@ -562,9 +579,11 @@ export function useDashboard() {
       workspaces,
       legacyOverview,
       product,
+      billingSubscription,
       finance,
     });
   }, [
+    billingSubscription,
     categoryOpportunities,
     commandCenter,
     dashboard,
@@ -604,6 +623,7 @@ export function useDashboard() {
     workspaces,
     legacyOverview,
     product,
+    billingSubscription,
     finance,
     gamification,
     loadFinance,

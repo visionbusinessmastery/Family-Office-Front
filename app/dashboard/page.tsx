@@ -79,6 +79,39 @@ const planOrder: Record<string, number> = {
   LEGACY: 4,
 };
 
+const planSequence = ["FREE", "GOLD", "ELITE", "LIBERTY", "LEGACY"];
+
+const planExperienceCopy: Record<
+  string,
+  { name: string; promise: string; unlocks: string[] }
+> = {
+  FREE: {
+    name: "Foundation",
+    promise: "Ton patrimoine commence a prendre forme.",
+    unlocks: ["Gold - Growth", "Future Intelligence", "Wealth Narrative", "Patrimoine activable"],
+  },
+  GOLD: {
+    name: "Gold - Growth",
+    promise: "Accelere ta croissance patrimoniale.",
+    unlocks: ["Elite - Wealth OS", "Family Office CEO", "Simulations avancees", "Lecture operationnelle"],
+  },
+  ELITE: {
+    name: "Elite - Wealth OS",
+    promise: "Pilote ton patrimoine comme un systeme.",
+    unlocks: ["Liberty - Sovereign Wealth", "Comptes enfants", "Arbitrages avances", "Objectifs patrimoniaux"],
+  },
+  LIBERTY: {
+    name: "Liberty - Sovereign Wealth",
+    promise: "Prends le controle de ta richesse.",
+    unlocks: ["Dynasty Office", "Transmission Center", "Gouvernance familiale", "Succession"],
+  },
+  LEGACY: {
+    name: "Dynasty Office",
+    promise: "Construis un patrimoine transmissible.",
+    unlocks: ["Tous les espaces", "Gouvernance familiale", "Transmission avancee", "Vision generationnelle"],
+  },
+};
+
 const normalizePlan = (plan?: string | null) => {
   const value = String(plan || "FREE").trim().toUpperCase();
   if (value === "GROWTH") return "GOLD";
@@ -767,6 +800,21 @@ const compactText = (value?: string | number | null, fallback = "A renseigner") 
   return text || fallback;
 };
 
+const formatDate = (value?: string | number | null) => {
+  if (!value) return "";
+  const date =
+    typeof value === "number" && value < 100000000000
+      ? new Date(value * 1000)
+      : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const {
@@ -783,6 +831,7 @@ export default function Dashboard() {
     commandCenter,
     workspaces,
     product,
+    billingSubscription,
     refreshAll,
     refreshAfterMutation,
     loading,
@@ -939,6 +988,40 @@ export default function Dashboard() {
       .map((module) => module.key) || []
   );
   const currentPlan = product?.plan || dashboard?.plan;
+  const currentPlanKey = normalizePlan(currentPlan);
+  const currentPlanCopy =
+    planExperienceCopy[currentPlanKey] || planExperienceCopy.FREE;
+  const backendNextPlan = normalizePlan(product?.next_plan);
+  const currentPlanIndex = planSequence.indexOf(currentPlanKey);
+  const fallbackNextPlan =
+    currentPlanIndex >= 0 && currentPlanIndex < planSequence.length - 1
+      ? planSequence[currentPlanIndex + 1]
+      : "LEGACY";
+  const nextPlanKey =
+    planOrder[backendNextPlan] > planOrder[currentPlanKey]
+      ? backendNextPlan
+      : fallbackNextPlan;
+  const nextPlanCopy = planExperienceCopy[nextPlanKey] || planExperienceCopy.LEGACY;
+  const activeModuleCount = (product?.modules?.visible || []).filter(
+    (module) => module.state === "active"
+  ).length;
+  const lockedModuleCount = (product?.modules?.locked || []).length;
+  const billingRenewalDate =
+    formatDate(
+      billingSubscription?.renewal_at ||
+        billingSubscription?.current_period_end ||
+        billingSubscription?.effective_at ||
+        billingSubscription?.cancel_at
+    ) || "Visible dans le portail";
+  const billingAmount =
+    billingSubscription?.display_amount ||
+    billingSubscription?.price ||
+    product?.entitlements?.copy?.price ||
+    "Visible dans le portail";
+  const futurePlanName = compactText(
+    billingSubscription?.future_plan || billingSubscription?.pending_plan,
+    ""
+  );
   const eliteChartsEnabled = planAllows(currentPlan, "ELITE");
   const legacyNavigationEnabled = planAllows(currentPlan, "LIBERTY");
   const progressionMissions = product?.missions || [];
@@ -2492,7 +2575,7 @@ export default function Dashboard() {
                     <h2 className="mt-1 text-2xl font-bold">Mon Plan</h2>
                   </div>
                   <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
-                    {compactText(product?.entitlements?.copy?.promise || "Progression active")}
+                    {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}
                   </span>
                 </div>
 
@@ -2500,20 +2583,72 @@ export default function Dashboard() {
                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">
                     <p className="text-xs uppercase tracking-widest text-gray-500">Plan actuel</p>
                     <p className="mt-2 text-xl font-black text-white">
-                      {compactText(product?.entitlements?.copy?.name || product?.plan || dashboard?.plan)}
+                      {compactText(product?.entitlements?.copy?.name || currentPlanCopy.name)}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                      {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs uppercase tracking-widest text-gray-500">Modules actifs</p>
+                    <p className="text-xs uppercase tracking-widest text-gray-500">Progression White Rock</p>
                     <p className="mt-2 text-xl font-black text-emerald-300">
-                      {(product?.modules?.visible || []).filter((module) => module.state === "active").length}
+                      {activeModuleCount} espaces debloques
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                      Ton cockpit actif aujourd'hui.
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs uppercase tracking-widest text-gray-500">A debloquer</p>
+                    <p className="text-xs uppercase tracking-widest text-gray-500">Espaces avances</p>
                     <p className="mt-2 text-xl font-black text-amber-200">
-                      {(product?.modules?.locked || []).length}
+                      {lockedModuleCount} a decouvrir
                     </p>
+                    <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                      Des lectures plus profondes selon ton plan.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+                  <div className="rounded-2xl border border-[#ffd21a]/25 bg-[#ffd21a]/5 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Prochain palier
+                    </p>
+                    <h3 className="mt-2 text-xl font-black text-white">
+                      {nextPlanCopy.name}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                      {nextPlanCopy.promise}
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {nextPlanCopy.unlocks.map((unlock) => (
+                        <div key={unlock} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-gray-200">
+                          {unlock}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Facturation
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500">Renouvellement</p>
+                        <p className="text-sm font-semibold text-white">{billingRenewalDate}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Montant</p>
+                        <p className="text-sm font-semibold text-white">{billingAmount}</p>
+                      </div>
+                      {futurePlanName && (
+                        <div>
+                          <p className="text-xs text-gray-500">Plan futur</p>
+                          <p className="text-sm font-semibold text-amber-200">{futurePlanName}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -2539,6 +2674,23 @@ export default function Dashboard() {
                   <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
                     Gerer mon abonnement
                   </button>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Historique de facturation
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Factures et recus</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Les factures restent gerees par le portail de facturation tant que l'historique detaille n'est pas expose ici.
+                    </p>
+                  </div>
+                  <ActionButton variant="secondary" onClick={handleOpenBillingPortal}>
+                    Ouvrir le portail
+                  </ActionButton>
                 </div>
               </section>
 
