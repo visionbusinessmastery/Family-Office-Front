@@ -2234,14 +2234,6 @@ export default function Dashboard() {
                 description="Stocks, ETF, crypto, forex, commodities, diversification et exposition. Pas de trading complexe: uniquement pilotage patrimonial."
               />
 
-              <OpportunityDiscoveryPanel
-                universe="investments"
-                title="Investment Discovery"
-                description="Pistes d'allocation construites selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
-                plan={currentPlan}
-                token={token}
-              />
-
               {hasModule("diversification") ? (
                 <section className="grid grid-cols-1 gap-5">
                   {eliteChartsEnabled ? (
@@ -2287,14 +2279,6 @@ export default function Dashboard() {
                 eyebrow="Immobilier"
                 title="Biens & rendement"
                 description="Residence principale, locatif, achat/revente, valorisation et plus-value potentielle."
-              />
-
-              <OpportunityDiscoveryPanel
-                universe="real_estate"
-                title="Recherche immobiliere patrimoniale"
-                description="Residence principale, locatif, achat/revente ou commercial: donnees de rendement, risque local et prochaine verification."
-                plan={currentPlan}
-                token={token}
               />
 
               {eliteChartsEnabled ? (
@@ -2442,13 +2426,6 @@ export default function Dashboard() {
                 )}
               />
 
-              <OpportunityDiscoveryPanel
-                universe="business"
-                title="Opportunity Engine"
-                description="Exploration separee du portefeuille: business digital, startup, franchise, reprise, crowdfunding et private equity selon ton contexte White Rock."
-                plan={currentPlan}
-                token={token}
-              />
             </div>
           )}
 
@@ -2457,8 +2434,34 @@ export default function Dashboard() {
               <SectionHeader
                 eyebrow="Opportunites"
                 title="Opportunity Center"
-                description="Toutes les opportunites centralisees, separees du chat Ethan pour garder une lecture claire."
+                description="Recherche, exploration et signaux centralises. Les pages metier restent dediees au pilotage."
               />
+
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+                <OpportunityDiscoveryPanel
+                  universe="investments"
+                  title="Investissements"
+                  description="Explorer les pistes d'allocation selon l'horizon, le risque, le portefeuille et les signaux disponibles."
+                  plan={currentPlan}
+                  token={token}
+                />
+
+                <OpportunityDiscoveryPanel
+                  universe="real_estate"
+                  title="Immobilier"
+                  description="Explorer residence principale, locatif, achat-revente ou commercial avec une lecture de rendement et de risque."
+                  plan={currentPlan}
+                  token={token}
+                />
+
+                <OpportunityDiscoveryPanel
+                  universe="business"
+                  title="Business"
+                  description="Explorer business digital, startup, franchise, reprise, crowdfunding et private equity selon ton contexte White Rock."
+                  plan={currentPlan}
+                  token={token}
+                />
+              </section>
 
               <OpportunitiesModule commandCenter={commandCenter} />
             </div>
