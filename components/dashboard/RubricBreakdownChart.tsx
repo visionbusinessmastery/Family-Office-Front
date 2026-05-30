@@ -24,7 +24,7 @@ const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
 
-const colors = ["#3fa9f5", "#20c997", "#ffd21a", "#8bd0ff", "#a78bfa", "#ef4444"];
+const colors = ["#3fa9f5", "#16d99a", "#ffd21a", "#8bd0ff", "#a78bfa", "#ef4444"];
 
 export default function RubricBreakdownChart({
   title,

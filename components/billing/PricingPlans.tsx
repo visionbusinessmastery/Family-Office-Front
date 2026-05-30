@@ -36,7 +36,7 @@ type PricingPlansProps = {
 const ladder = [
   { label: "FREE", role: "Decouverte", tone: "border-white/10 bg-white/[0.03] text-gray-500" },
   { label: "GOLD", role: "Future Intelligence", tone: "border-[#3fa9f5]/25 bg-[#3fa9f5]/10 text-[#8bd0ff]" },
-  { label: "ELITE", role: "Strategic Intelligence", tone: "border-amber-200/35 bg-amber-200/[0.08] text-amber-100" },
+  { label: "ELITE", role: "Strategic Intelligence", tone: "border-emerald-300/45 bg-emerald-300/10 text-emerald-100" },
   { label: "LIBERTY", role: "Family Office", tone: "border-amber-300/50 bg-amber-300/[0.12] text-amber-100" },
   { label: "LEGACY", role: "Dynasty Office", tone: "border-yellow-300/60 bg-yellow-300/[0.16] text-yellow-100" },
 ];
@@ -108,8 +108,8 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-amber-200/25 bg-amber-200/[0.07]",
-    glow: "from-amber-200/20 via-[#3fa9f5]/10 to-transparent",
+    tone: "border-emerald-300/40 bg-emerald-300/10 shadow-lg shadow-emerald-400/10",
+    glow: "from-emerald-300/24 via-[#3fa9f5]/10 to-transparent",
     cta: "Passer Elite",
     capabilityGroups: [
       {
@@ -270,7 +270,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
         <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#07111f] via-black to-[#101923] p-6 shadow-2xl sm:p-8">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#3fa9f5]/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-orange-300/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-emerald-300/18 blur-3xl" />
 
           <div className="relative">
             <p className="text-xs uppercase tracking-[0.35em] text-[#3fa9f5]">
@@ -322,7 +322,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         </div>
 
         {founder && (
-          <div className="mt-5 rounded-2xl border border-orange-300/25 bg-orange-300/10 p-4 text-sm leading-relaxed text-orange-100">
+          <div className="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-sm leading-relaxed text-emerald-100">
             Founder Access est pensé comme une entrée rare : même parcours de paiement,
             même sécurité, mais une présentation plus exclusive pour les premiers membres.
           </div>
@@ -335,17 +335,17 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         )}
 
         <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
-          <p className="text-xs uppercase tracking-[0.3em] text-[#3fa9f5]">
+            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">
             Lecture de valeur
           </p>
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-4">
               <p className="text-sm font-black">Chaque niveau inclut le precedent</p>
               <p className="mt-2 text-sm leading-relaxed text-gray-400">
                 La montee en gamme se lit comme une progression, pas comme une liste de cartes separees.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-4">
               <p className="text-sm font-black">Chaque niveau debloque un univers</p>
               <p className="mt-2 text-sm leading-relaxed text-gray-400">
                 Analytics, Wealth OS, Freedom Engine puis Dynasty Office apparaissent comme des couches.
@@ -396,7 +396,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                       <p className="pb-1 text-base font-black text-gray-300">{intervalLabel}</p>
                     </div>
                     {interval === "yearly" && saving > 0 && (
-                      <p className="mt-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-100">
+                      <p className="mt-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-100">
                         2 mois offerts - economie {saving} EUR
                       </p>
                     )}
@@ -405,8 +405,8 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                     </p>
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
-                    <p className="text-xs uppercase tracking-widest text-[#8bd0ff]">
+                  <div className="mt-4 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4">
+                    <p className="text-xs uppercase tracking-widest text-emerald-300">
                       Ce que vous débloquez
                     </p>
                     <p className="mt-2 text-sm font-black text-white">{plan.unlock}</p>
@@ -421,7 +421,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                         <ul className="mt-3 space-y-2 text-sm text-gray-300">
                           {group.items.map((item) => (
                             <li key={item} className="flex gap-2">
-                              <span className="text-[#3fa9f5]">•</span>
+                              <span className="text-emerald-300">•</span>
                               <span>{item}</span>
                             </li>
                           ))}
@@ -439,7 +439,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                   <button
                     onClick={() => startCheckout(plan)}
                     disabled={loadingPlan !== null}
-                    className="mt-6 w-full rounded-2xl bg-[#3fa9f5] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#3fa9f5]/20 transition hover:-translate-y-0.5 hover:bg-[#2588d2] disabled:opacity-60"
+                    className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-400/20 transition hover:-translate-y-0.5 hover:shadow-emerald-300/30 disabled:opacity-60"
                   >
                     {loadingPlan === plan.id
                       ? "Ouverture du paiement..."

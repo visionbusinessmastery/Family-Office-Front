@@ -128,7 +128,7 @@ export default function ChartModule({
               {cleanData.map((entry) => (
                 <Cell
                   key={`${entry.date}-${entry.gain}`}
-                  fill={entry.gain >= 0 ? "#20c997" : "#ef4444"}
+                  fill={entry.gain >= 0 ? "#16d99a" : "#ef4444"}
                 />
               ))}
             </Bar>

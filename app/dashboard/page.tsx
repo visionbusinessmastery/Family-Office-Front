@@ -205,7 +205,7 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
   const potentialData = [
     { label: "Visible", value: Number(narrative.visible_wealth || 0), fill: "#3fa9f5" },
     { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#ffd21a" },
-    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#20c997" },
+    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#16d99a" },
   ].filter((item) => item.value > 0);
 
   return (
@@ -460,7 +460,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
           </p>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] via-[#20c997] to-[#ffd21a]"
+              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] via-[#16d99a] to-[#ffd21a]"
               style={{ width: `${Math.min(100, Number(position?.progress_percent || 0))}%` }}
             />
           </div>
@@ -2173,22 +2173,32 @@ export default function Dashboard() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <h2 className="text-2xl font-bold">Abonnement</h2>
+              <section className="rounded-2xl border border-emerald-300/25 bg-[radial-gradient(circle_at_top_right,_rgba(22,217,154,0.16),_transparent_36%),linear-gradient(135deg,#090909,#07120f_60%,#020202)] p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-emerald-300">
+                      Acces premium
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold">Abonnement</h2>
+                  </div>
+                  <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
+                    Croissance active
+                  </span>
+                </div>
                 <p className="mt-2 text-sm text-gray-400">
                   Plan actuel: {product?.plan || dashboard?.plan || "charge"}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-3">
-                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
+                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
                     Standard Plans
                   </button>
-                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-orange-300/40 bg-orange-300/10 px-4 py-2 text-sm font-semibold text-orange-200">
+                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
                     Founder Plans
                   </button>
                   <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
                     Gold - Growth
                   </button>
-                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white">
+                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-400/20">
                     Elite - Wealth OS
                   </button>
                   <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black">
