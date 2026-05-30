@@ -741,6 +741,208 @@ function WealthMapHeroPanel({ product }: { product?: ProductContext | null }) {
   );
 }
 
+function FamilyOfficeNarrativePanel({ product }: { product?: ProductContext | null }) {
+  const hidden = product?.hidden_wealth;
+  const gravity = product?.gravity_center;
+  const stress = product?.stress_tests;
+  const leverage = product?.leverage_engine;
+  const life = product?.life_wealth;
+  const film = product?.future_film;
+  const scorecard = product?.family_office_scorecard;
+  const board = product?.board_briefing;
+
+  if (!hidden && !gravity && !film) return null;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-2xl border border-[#d6b35a]/25 bg-gradient-to-br from-[#171104] to-black p-5">
+          <p className="text-xs uppercase tracking-widest text-[#d6b35a]">
+            Patrimoine cache
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-white">
+            Ce que White Rock voit au dela du patrimoine visible
+          </h2>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-gray-500">Visible</p>
+              <p className="text-2xl font-black text-white">
+                {money.format(Number(hidden?.visible_wealth || 0))} EUR
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Activable</p>
+              <p className="text-2xl font-black text-[#d6b35a]">
+                {money.format(Number(hidden?.activable_wealth || 0))} EUR
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Potentiel total</p>
+              <p className="text-2xl font-black text-white">
+                {money.format(Number(hidden?.total_potential || 0))} EUR
+              </p>
+            </div>
+          </div>
+          <div className="mt-5 space-y-2">
+            {(hidden?.items || []).slice(0, 4).map((item) => (
+              <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/35 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-bold text-white">{item.label}</p>
+                  <p className="text-sm font-black text-[#d6b35a]">
+                    {money.format(Number(item.potential_value || 0))} EUR
+                  </p>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+              Conseil personnel
+            </p>
+            <h3 className="mt-2 text-xl font-black text-white">
+              {board?.title || "Conseil Family Office"}
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-gray-400">
+              {board?.what_changed || gravity?.reading}
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-xs text-gray-500">Risque</p>
+                <p className="mt-1 text-sm font-bold text-white">{board?.main_risk || "A confirmer"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-xs text-gray-500">Opportunite</p>
+                <p className="mt-1 text-sm font-bold text-white">{board?.main_opportunity || "A confirmer"}</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-xs text-gray-500">Prochaine decision</p>
+                <p className="mt-1 text-sm font-bold text-[#3fa9f5]">{board?.next_step || "Attendre un signal backend"}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <h3 className="font-bold text-white">Centre de gravite</h3>
+              <p className="mt-2 text-sm text-gray-400">{gravity?.reading}</p>
+              <div className="mt-4 space-y-2">
+                {(gravity?.future || []).map((item) => (
+                  <div key={item.key || item.label}>
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>{item.label}</span>
+                      <span>{item.weight}%</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-[#3fa9f5]"
+                        style={{ width: `${Math.min(100, Number(item.weight || 0))}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+              <h3 className="font-bold text-white">Moteur de leviers</h3>
+              <p className="mt-2 text-sm text-gray-400">
+                Levier principal:{" "}
+                <span className="font-bold text-white">{leverage?.main_lever?.label || "a confirmer"}</span>
+              </p>
+              <div className="mt-4 space-y-2">
+                {(leverage?.levers || []).slice(0, 4).map((lever) => (
+                  <div key={lever.key || lever.label} className="rounded-xl border border-white/10 bg-black/30 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold text-white">{lever.label}</p>
+                      <p className="text-sm font-black text-[#d6b35a]">{lever.impact_score}/100</p>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">{lever.reason}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+          <h3 className="font-bold text-white">Film du futur</h3>
+          <div className="mt-4 space-y-3">
+            {(film?.chapters || []).map((chapter) => (
+              <div key={`${chapter.year}-${chapter.title}`} className="grid grid-cols-[70px_1fr_120px] gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                <p className="text-sm font-black text-[#3fa9f5]">{chapter.year}</p>
+                <div>
+                  <p className="text-sm font-bold text-white">{chapter.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-gray-400">{chapter.narrative}</p>
+                </div>
+                <p className="text-right text-sm font-black text-white">
+                  {money.format(Number(chapter.wealth || 0))} EUR
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h3 className="font-bold text-white">Patrimoine de vie</h3>
+            <div className="mt-4 grid grid-cols-1 gap-2">
+              {(life?.dimensions || []).map((dimension) => (
+                <div key={dimension.key || dimension.label}>
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>{dimension.label}</span>
+                    <span>{dimension.score}%</span>
+                  </div>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-[#d6b35a]"
+                      style={{ width: `${Math.min(100, Number(dimension.score || 0))}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h3 className="font-bold text-white">Scorecard Family Office</h3>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {(scorecard?.dimensions || []).map((dimension) => (
+                <div key={dimension.key || dimension.label} className="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-xs text-gray-500">{dimension.label}</p>
+                  <p className="mt-1 text-xl font-black text-white">{dimension.score}/100</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <h3 className="font-bold text-white">Stress tests</h3>
+            <div className="mt-4 space-y-2">
+              {(stress?.tests || []).slice(0, 3).map((test) => (
+                <div key={test.key || test.label} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-sm font-bold text-white">{test.label}</p>
+                  <p className={`text-sm font-black ${Number(test.delta || 0) >= 0 ? "text-[#3fa9f5]" : "text-red-300"}`}>
+                    {Number(test.delta || 0) >= 0 ? "+" : ""}
+                    {money.format(Number(test.delta || 0))} EUR
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PersonalCommandCenterPanel({ product }: { product?: ProductContext | null }) {
   const center = product?.personal_command_center;
   const radarItems = product?.opportunity_radar?.items || [];
@@ -2150,6 +2352,8 @@ export default function Dashboard() {
               />
 
               <WealthMapHeroPanel product={product} />
+
+              <FamilyOfficeNarrativePanel product={product} />
 
               <MissionControlPanel
                 product={product}

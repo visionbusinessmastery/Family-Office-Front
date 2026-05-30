@@ -396,6 +396,86 @@ export type ProductContext = {
       status?: "green" | "amber" | "red" | string;
     }>;
   };
+  hidden_wealth?: {
+    title?: string;
+    visible_wealth?: number;
+    activable_wealth?: number;
+    total_potential?: number;
+    basis?: string;
+    items?: Array<{
+      key?: string;
+      label?: string;
+      potential_value?: number;
+      confidence?: string;
+      description?: string;
+    }>;
+  };
+  gravity_center?: {
+    title?: string;
+    visible?: Array<{ key?: string; label?: string; value?: number; weight?: number }>;
+    future?: Array<{ key?: string; label?: string; value?: number; weight?: number }>;
+    dominant_visible?: string;
+    dominant_future?: string;
+    reading?: string;
+    hidden_count?: number;
+  };
+  stress_tests?: {
+    title?: string;
+    base_value?: number;
+    tests?: Array<{
+      key?: string;
+      label?: string;
+      result_value?: number;
+      delta?: number;
+      reading?: string;
+    }>;
+  };
+  leverage_engine?: {
+    title?: string;
+    main_lever?: {
+      key?: string;
+      label?: string;
+      impact_score?: number;
+      reason?: string;
+    } | null;
+    levers?: Array<{
+      key?: string;
+      label?: string;
+      impact_score?: number;
+      reason?: string;
+    }>;
+  };
+  life_wealth?: {
+    title?: string;
+    dimensions?: Array<{ key?: string; label?: string; score?: number }>;
+  };
+  future_film?: {
+    title?: string;
+    chapters?: Array<{
+      year?: number;
+      title?: string;
+      wealth?: number;
+      narrative?: string;
+    }>;
+  };
+  family_office_scorecard?: {
+    title?: string;
+    dimensions?: Array<{ key?: string; label?: string; score?: number }>;
+  };
+  board_briefing?: {
+    title?: string;
+    headline?: string;
+    what_changed?: string;
+    main_risk?: string;
+    main_opportunity?: string;
+    next_step?: string;
+    stress_watch?: {
+      label?: string;
+      result_value?: number;
+      delta?: number;
+      reading?: string;
+    } | null;
+  };
 };
 
 export type LegacyOverview = {
