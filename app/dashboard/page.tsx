@@ -2453,7 +2453,7 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-5">
                   <OpportunityDiscoveryPanel
                     universe="investments"
                     title="Investissements"
