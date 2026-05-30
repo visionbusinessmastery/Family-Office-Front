@@ -75,12 +75,12 @@ export async function apiRequest<T>(
     }
 
     const body = await res.text();
-    let message = body || "Erreur API";
+    let message = body || "Service indisponible";
     try {
       const parsed = JSON.parse(body);
       message = parsed.detail || parsed.message || message;
     } catch {
-      // Keep the raw API body when it is not JSON.
+      // Keep the raw service body when it is not JSON.
     }
     throw new Error(message);
   }

@@ -84,7 +84,7 @@ export default function EthanFloatingAdvisor() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
-        <div className="max-h-[78vh] w-[min(420px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
+        <div className="no-scrollbar max-h-[78vh] w-[min(420px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
           <AdvisorChat compact />
         </div>
       )}
@@ -98,7 +98,7 @@ export default function EthanFloatingAdvisor() {
         <span className="absolute inset-0 bg-[#3fa9f5]/15 opacity-70 blur-xl transition group-hover:opacity-100" />
         <span className="relative flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full border border-[#8bd0ff]/50 bg-[#3fa9f5] text-sm font-black shadow-lg shadow-[#3fa9f5]/35">
-            AI
+            E
           </span>
           <span className="hidden leading-tight sm:block">
             <span className="block text-sm font-black">Ethan</span>

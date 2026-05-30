@@ -42,8 +42,8 @@ const LEGACY_RESPONSE_PATTERNS = [
   "capacite mensuelle disponible",
   "ethan vient d'ecarter",
   "je suis la, mais je n'ai pas recu",
-  "moteur ia n'est pas disponible",
-  "moteur ethan sur cette demande",
+  "ethan n'est pas disponible",
+  "ethan sur cette demande",
 ];
 
 type CachedConversation = {
@@ -103,15 +103,15 @@ function isLegacyAssistantText(content?: string) {
 
 function getUnavailableMessage(metadata?: AdvisorResponse["metadata"]) {
   if (metadata?.llm_status === "openai_unconfigured") {
-    return "Ethan est bien connecte au backend, mais la configuration OpenAI serveur semble indisponible.";
+    return "Ethan n'est pas encore disponible pour cette demande. Reessaie dans un instant.";
   }
 
   if (metadata?.llm_status === "openai_call_failed") {
-    return "Ethan n'a pas pu joindre correctement le moteur OpenAI. Reessaie dans un instant.";
+    return "Ethan n'a pas pu finaliser sa reponse. Reessaie dans un instant.";
   }
 
   if (metadata?.llm_status === "openai_empty_output") {
-    return "Le moteur IA a repondu sans contenu exploitable. Relance ta question dans un instant.";
+    return "Ethan n'a pas encore une reponse exploitable. Relance ta question dans un instant.";
   }
 
   return "Ethan n'a pas pu produire une reponse exploitable pour le moment.";
@@ -286,7 +286,7 @@ export default function AdvisorChat({ compact = false }: { compact?: boolean }) 
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      setErrorMessage(message || "Connexion au moteur indisponible pour le moment.");
+      setErrorMessage(message || "Ethan est indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
@@ -361,7 +361,7 @@ export default function AdvisorChat({ compact = false }: { compact?: boolean }) 
       )}
 
       <div
-        className={`overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:p-4 ${
+        className={`no-scrollbar overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:p-4 ${
           compact ? "h-72 sm:h-80" : "h-[58vh] min-h-[460px]"
         }`}
       >

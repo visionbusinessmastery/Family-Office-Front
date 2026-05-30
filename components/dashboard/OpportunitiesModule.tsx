@@ -117,7 +117,7 @@ export default function OpportunitiesModule({
         <div>
           <h2 className="text-2xl font-bold">Opportunites</h2>
           <p className="text-sm text-gray-400">
-            Signaux fournis par le backend selon ton profil et ton portefeuille
+            Signaux construits selon ton profil et ton portefeuille
           </p>
         </div>
 

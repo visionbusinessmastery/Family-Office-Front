@@ -140,7 +140,7 @@ export default function ProductProgressPanel({
         <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5 transition duration-300 hover:border-white/20">
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="font-bold text-white">Missions de progression</h3>
-                <span className="text-xs text-gray-500">Validation backend</span>
+                <span className="text-xs text-gray-500">Validation White Rock</span>
               </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {missions.map((mission) => {

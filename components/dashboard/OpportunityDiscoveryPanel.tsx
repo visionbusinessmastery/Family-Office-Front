@@ -225,7 +225,7 @@ export default function OpportunityDiscoveryPanel({
       console.error(err);
       setError(
         err instanceof Error && err.message.includes("Failed to fetch")
-          ? "Connexion API impossible. Vérifie la configuration NEXT_PUBLIC_API_URL et le backend."
+          ? "Les signaux ne sont pas accessibles pour le moment. Réessaie dans quelques instants."
           : "Les signaux de cet univers sont indisponibles pour le moment."
       );
     } finally {
@@ -475,7 +475,7 @@ export default function OpportunityDiscoveryPanel({
         </div>
       ) : (
         <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-400">
-          Lance une recherche pour obtenir jusqu&apos;à 6 signaux priorises par le backend.
+          Lance une recherche pour obtenir jusqu&apos;à 6 signaux prioritaires.
         </div>
       )}
 
@@ -490,7 +490,7 @@ export default function OpportunityDiscoveryPanel({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xl">
           <form
             onSubmit={handleSubmit}
-            className="fade-in max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 p-5 shadow-2xl"
+            className="no-scrollbar fade-in max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950 p-5 shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -501,7 +501,7 @@ export default function OpportunityDiscoveryPanel({
                   {title}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                  Renseigne quelques critères. Le backend renvoie des signaux:
+                  Renseigne quelques critères. White Rock fera ressortir les signaux utiles:
                   potentiel, risque, coherence et donnees disponibles.
                 </p>
               </div>

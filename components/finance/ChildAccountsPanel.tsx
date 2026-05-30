@@ -168,7 +168,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
       <WealthModal
         open={open}
         title="Ajouter un compte enfant"
-        description="Structure une enveloppe simple et mesurable. La validation reste cote backend Liberty+."
+        description="Structure une enveloppe simple et mesurable, accessible a partir de Liberty."
         onClose={() => setOpen(false)}
         footer={
           <>

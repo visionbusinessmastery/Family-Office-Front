@@ -42,7 +42,7 @@ export default function LoginPage() {
         }),
       }).catch((err) => {
         console.error("FETCH ERROR:", err);
-        throw new Error("Backend injoignable");
+        throw new Error("Service momentanement indisponible");
       });
 
       const data = await res.json().catch(() => null);
@@ -54,7 +54,7 @@ export default function LoginPage() {
           return;
         }
 
-        throw new Error(data?.detail || "Erreur login");
+        throw new Error(data?.detail || "Connexion impossible");
       }
 
       if (data?.access_token) {
@@ -67,7 +67,7 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       }, 1400);
     } catch (err: unknown) {
-      setMessage(err instanceof Error ? err.message : JSON.stringify(err));
+      setMessage(err instanceof Error ? err.message : "Connexion impossible");
       setLoading(false);
     }
   };
@@ -169,7 +169,7 @@ export default function LoginPage() {
           <SocialLoginButtons disabled={loading} compact />
 
           <p className="mt-3 text-center text-xs leading-relaxed text-gray-500">
-            En continuant avec un provider social, tu confirmes vouloir acceder
+            En continuant avec cette connexion, tu confirmes vouloir acceder
             a WHITE ROCK avec une authentification securisee.
           </p>
 

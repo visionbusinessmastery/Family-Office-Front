@@ -52,13 +52,13 @@ export default function SetPasswordPage() {
           password,
         }),
       }).catch(() => {
-        throw new Error("Backend injoignable");
+        throw new Error("Service momentanement indisponible");
       });
 
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(data?.detail || "Erreur serveur");
+        throw new Error(data?.detail || "Service momentanement indisponible");
       }
 
       setState("success");

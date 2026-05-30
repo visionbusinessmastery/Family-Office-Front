@@ -118,7 +118,7 @@ const plans: Plan[] = [
       },
       {
         label: "Family Office Intelligence",
-        items: ["Scorecard multidimensionnelle", "Inbox patrimonial documents", "Patrimoine cache", "Detecteur de dependances", "Graphiques par rubrique", "Multi-user Family Office"],
+        items: ["Scorecard multidimensionnelle", "Coffre documentaire patrimonial", "Patrimoine cache", "Detecteur de dependances", "Graphiques par rubrique", "Espace familial Family Office"],
       },
     ],
   },
@@ -250,11 +250,11 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         return;
       }
 
-      setMessage("Checkout Stripe indisponible pour le moment.");
+      setMessage("Paiement indisponible pour le moment.");
     } catch (err) {
       console.error(err);
       setMessage(
-        "Impossible d'ouvrir Stripe. Vérifie la configuration billing ou réessaie dans quelques instants."
+        "Impossible d'ouvrir le paiement. Réessaie dans quelques instants."
       );
     } finally {
       setLoadingPlan(null);
@@ -274,7 +274,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
           <div className="relative">
             <p className="text-xs uppercase tracking-[0.35em] text-[#3fa9f5]">
-              WHITE ROCK Billing
+              WHITE ROCK Plans
             </p>
             <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -323,7 +323,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
         {founder && (
           <div className="mt-5 rounded-2xl border border-orange-300/25 bg-orange-300/10 p-4 text-sm leading-relaxed text-orange-100">
-            Founder Access est pensé comme une entrée rare : même moteur Stripe,
+            Founder Access est pensé comme une entrée rare : même parcours de paiement,
             même sécurité, mais une présentation plus exclusive pour les premiers membres.
           </div>
         )}
@@ -442,7 +442,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                     className="mt-6 w-full rounded-2xl bg-[#3fa9f5] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#3fa9f5]/20 transition hover:-translate-y-0.5 hover:bg-[#2588d2] disabled:opacity-60"
                   >
                     {loadingPlan === plan.id
-                      ? "Ouverture Stripe..."
+                      ? "Ouverture du paiement..."
                       : founder
                         ? `Rejoindre ${plan.name} Founder`
                         : plan.cta}

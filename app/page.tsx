@@ -65,7 +65,7 @@ export default function Home() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        throw new Error(data?.detail || "Erreur serveur");
+        throw new Error(data?.detail || "Service momentanement indisponible");
       }
 
       localStorage.setItem("verified_email", cleanEmail);
@@ -142,7 +142,7 @@ export default function Home() {
                 {[
                   ["terms_accepted", "J'accepte les conditions generales."],
                   ["privacy_policy_accepted", "J'accepte la politique de confidentialite."],
-                  ["ai_processing_accepted", "J'autorise le moteur IA a traiter mes donnees pour personnaliser l'accompagnement."],
+                  ["ai_processing_accepted", "J'autorise Ethan a utiliser mes donnees pour personnaliser l'accompagnement."],
                   ["weekly_reports_accepted", "Je souhaite recevoir mes rapports patrimoniaux hebdomadaires."],
                 ].map(([key, label]) => (
                   <label key={key} className="flex items-start gap-2">
@@ -183,7 +183,7 @@ export default function Home() {
               {!legalOk && (
                 <p className="mt-2 text-xs text-amber-100/80">
                   Accepte les conditions et la confidentialite avant de continuer
-                  avec un provider social.
+                  avec cette connexion.
                 </p>
               )}
             </div>

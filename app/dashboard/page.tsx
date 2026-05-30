@@ -267,7 +267,7 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
               </h3>
             </div>
             <p className="text-sm text-gray-500">
-              Donnees consolidees backend
+              Lecture consolidee White Rock
             </p>
           </div>
           <div className="h-52">
@@ -385,7 +385,7 @@ function FamilyOfficeCeoPanel({ product }: { product?: ProductContext | null }) 
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">Runway</p>
           <p className="mt-2 text-xl font-black text-[#f0b429]">{runway}</p>
-          <p className="mt-1 text-xs text-gray-500">Lecture operationnelle backend</p>
+          <p className="mt-1 text-xs text-gray-500">Lecture operationnelle White Rock</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">Decision</p>
@@ -488,7 +488,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="font-bold text-white">Film du futur</h3>
-              <span className="text-xs text-gray-500">projection backend</span>
+              <span className="text-xs text-gray-500">projection White Rock</span>
             </div>
             <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
@@ -999,7 +999,7 @@ export default function Dashboard() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        showToast("Checkout Stripe indisponible pour le moment.", "error");
+        showToast("Paiement indisponible pour le moment.", "error");
       }
     } catch (err) {
       console.error(err);
@@ -1008,8 +1008,8 @@ export default function Dashboard() {
 
       showToast(
         missingPrice
-          ? `Abonnement Stripe non configure: ajoute ${missingPrice} dans Render.`
-          : "Impossible d'ouvrir l'abonnement. Verifie la configuration Stripe.",
+          ? `Abonnement indisponible pour le moment: l'offre ${missingPrice} doit encore etre activee.`
+          : "Impossible d'ouvrir l'abonnement pour le moment. Reessaie dans quelques instants.",
         "error"
       );
     }
@@ -1874,7 +1874,7 @@ export default function Dashboard() {
               <OpportunityDiscoveryPanel
                 universe="investments"
                 title="Investment Discovery"
-                description="Pistes d'allocation fournies par le backend selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
+                description="Pistes d'allocation construites selon ton horizon, ton risque, ton portefeuille et les signaux de marche disponibles."
                 plan={currentPlan}
                 token={token}
               />
@@ -2019,7 +2019,7 @@ export default function Dashboard() {
               <SectionHeader
                 eyebrow="Opportunites"
                 title="Opportunity Center"
-                description="Toutes les opportunites fournies par le backend, separees du chat Ethan pour garder une lecture claire."
+                description="Toutes les opportunites centralisees, separees du chat Ethan pour garder une lecture claire."
               />
 
               <OpportunitiesModule commandCenter={commandCenter} />
@@ -2112,7 +2112,7 @@ export default function Dashboard() {
                           Recompense
                         </p>
                         <p className="mt-1 text-sm font-bold text-white">
-                          +{mission.xp || 80} XP - meilleur contexte backend
+                          +{mission.xp || 80} XP - contexte enrichi
                         </p>
                       </div>
                       <p className="mt-4 text-xs leading-relaxed text-gray-500">
@@ -2127,7 +2127,7 @@ export default function Dashboard() {
                   ))}
                   {progressionMissions.length === 0 && (
                     <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
-                      Aucune mission supplementaire renvoyee par le backend pour le moment.
+                      Aucune mission supplementaire disponible pour le moment.
                     </p>
                   )}
                 </div>
@@ -2252,7 +2252,7 @@ export default function Dashboard() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-1.5 shadow-2xl backdrop-blur-xl lg:hidden">
-        <div className="mx-auto flex max-w-3xl gap-1.5 overflow-x-auto">
+        <div className="no-scrollbar mx-auto flex max-w-3xl gap-1.5 overflow-x-auto">
           {navigation.map((item) => {
             const active = item.key === activeSection;
 

@@ -93,7 +93,7 @@ export default function SecurityAdminPage() {
                   {data.rate_limits.map((item) => (
                     <div key={item.scope} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3 text-sm">
                       <span>{item.scope}</span>
-                      <span className="text-gray-400">{item.requests} req · {item.actors} acteurs</span>
+                      <span className="text-gray-400">{item.requests} demandes · {item.actors} acteurs</span>
                     </div>
                   ))}
                 </div>

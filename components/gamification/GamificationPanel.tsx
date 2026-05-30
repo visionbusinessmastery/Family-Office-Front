@@ -211,7 +211,7 @@ export default function GamificationPanel({
                 Ligne d&apos;actions courtes.
               </p>
             </div>
-            <div className="flex flex-1 gap-3 overflow-x-auto pb-1">
+            <div className="no-scrollbar flex flex-1 gap-3 overflow-x-auto pb-1">
               {actions.map((action, index) => (
                 <button
                   type="button"

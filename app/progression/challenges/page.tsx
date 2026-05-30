@@ -11,7 +11,7 @@ const fallbackMissions: ProductMission[] = [
   {
     key: "complete_finances",
     title: "Clarifier les fondations",
-    description: "Ajoute revenus, charges, epargne et dettes pour enrichir le contexte backend.",
+    description: "Ajoute revenus, charges, epargne et dettes pour enrichir ton profil patrimonial.",
     xp: 120,
     module: "Finances",
   },
@@ -96,7 +96,7 @@ export default function ChallengesPage() {
                   Récompense
                 </p>
                 <p className="mt-1 text-sm font-bold text-white">
-                  +{mission.xp || 80} XP · meilleur contexte backend
+                  +{mission.xp || 80} XP · contexte enrichi
                 </p>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-gray-500">

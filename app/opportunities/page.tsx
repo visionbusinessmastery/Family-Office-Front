@@ -70,11 +70,11 @@ export default function OpportunitiesPage() {
         <section className="grid gap-3 sm:grid-cols-3">
           <MetricCard label="Signaux" value={total} tone="primary" />
           <MetricCard label="Univers" value={categories.length} />
-          <MetricCard label="Source" value="Backend signals" />
+          <MetricCard label="Source" value="Signaux White Rock" />
         </section>
 
         <section className="mt-6 rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur-xl">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setFilter("all")}
               className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${filter === "all" ? "border-[#3fa9f5]/60 bg-[#3fa9f5]/15 text-white" : "border-white/10 bg-white/[0.04] text-gray-400"}`}
@@ -114,7 +114,7 @@ export default function OpportunitiesPage() {
               </div>
 
               <p className="mt-4 text-sm leading-relaxed text-gray-300">
-                {item.analysis || "Le backend attend plus de données pour affiner ce signal."}
+                {item.analysis || "White Rock attend plus de données pour affiner ce signal."}
               </p>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">

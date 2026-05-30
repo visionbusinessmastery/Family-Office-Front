@@ -122,7 +122,7 @@ export default function Onboarding() {
       }, 800);
     } catch (err: unknown) {
       console.error(err);
-      setMessage(err instanceof Error ? err.message : "Erreur serveur");
+      setMessage(err instanceof Error ? err.message : "Service momentanement indisponible");
     } finally {
       setLoading(false);
     }

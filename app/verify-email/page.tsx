@@ -37,14 +37,14 @@ function VerifyEmailContent() {
     const run = async () => {
       if (!token) {
         setState("error");
-        setMessage("Lien invalide (token manquant)");
+        setMessage("Lien invalide ou incomplet");
         return;
       }
 
       try {
         const res = await fetch(`${API_BASE_URL}/auth/verify-email?token=${token}`).catch(
           () => {
-            throw new Error("Backend injoignable (Failed to fetch)");
+            throw new Error("Service momentanement indisponible");
           }
         );
 
@@ -97,7 +97,7 @@ function VerifyEmailContent() {
           email: emailToUse.toLowerCase().trim(),
         }),
       }).catch(() => {
-        throw new Error("Backend injoignable (Failed to fetch)");
+        throw new Error("Service momentanement indisponible");
       });
 
       const data = await res.json().catch(() => null);

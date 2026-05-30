@@ -68,7 +68,7 @@ export default function VentureAssetsModule({
               Reprise et fonds de commerce
             </h3>
             <p className="mt-1 text-sm text-gray-400">
-              Ces volets utilisent la rubrique Business existante pour rester compatibles avec le moteur actuel.
+              Ces volets restent rattaches a la rubrique Business pour conserver une lecture simple.
             </p>
           </div>
           {onAdd && (

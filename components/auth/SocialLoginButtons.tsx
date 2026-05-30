@@ -54,12 +54,12 @@ export default function SocialLoginButtons({
 
   const startOAuth = (provider: Provider) => {
     if (disabled) {
-      window.alert("Accepte les conditions requises avant de continuer avec un provider social.");
+      window.alert("Accepte les conditions requises avant de continuer avec cette connexion.");
       return;
     }
 
     if (!provider.enabled || provider.coming_soon) {
-      window.alert(`${provider.label} OAuth est en cours de configuration.`);
+      window.alert(`${provider.label} sera disponible prochainement.`);
       return;
     }
 
@@ -77,7 +77,7 @@ export default function SocialLoginButtons({
         const helperText = provider.coming_soon
           ? "Bientôt disponible"
           : !provider.enabled
-            ? "Configuration en cours"
+            ? "Bientot disponible"
             : disabled
               ? "Consentements requis"
               : null;
