@@ -832,6 +832,7 @@ export default function Dashboard() {
     workspaces,
     product,
     billingSubscription,
+    progressionTimeline,
     refreshAll,
     refreshAfterMutation,
     loading,
@@ -1061,6 +1062,7 @@ export default function Dashboard() {
   const eliteChartsEnabled = planAllows(currentPlan, "ELITE");
   const legacyNavigationEnabled = planAllows(currentPlan, "LIBERTY");
   const progressionMissions = product?.missions || [];
+  const progressionTimelineItems = progressionTimeline?.timeline || [];
   const hasModule = (key: string) =>
     visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
@@ -2398,9 +2400,9 @@ export default function Dashboard() {
           {activeSection === "progression" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Progression"
-                title="XP, niveaux et deblocages"
-                description="Une gamification premium pour sentir la montee en puissance sans transformer l'app en jeu."
+                eyebrow="Progression patrimoniale"
+                title="Ton evolution au sein de White Rock"
+                description="Chaque action ameliore la qualite de ton pilotage, la profondeur de ton contexte et les capacites disponibles dans ton Family Office."
               />
 
               <GamificationPanel
@@ -2412,22 +2414,83 @@ export default function Dashboard() {
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Historique de progression
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Le chemin parcouru</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Evenements exposes par White Rock a partir des missions, XP, accomplissements et niveaux suivis.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-gray-300">
+                    {progressionTimelineItems.length} evenement(s)
+                  </span>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {progressionTimelineItems.slice(0, 8).map((item, index) => (
+                    <article
+                      key={`${item.type || "event"}-${item.date || index}`}
+                      className="rounded-2xl border border-white/10 bg-black/35 p-4"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="text-xs uppercase tracking-widest text-gray-500">
+                            {item.type || "progression"}
+                          </p>
+                          <h3 className="mt-1 text-lg font-bold text-white">
+                            {compactText(item.title, "Progression enregistree")}
+                          </h3>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-500">
+                          {formatDate(item.date)}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                        {compactText(item.description, "Evenement de progression enregistre.")}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {item.xp !== undefined && Number(item.xp) > 0 && (
+                          <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-200">
+                            +{item.xp} XP acquis
+                          </span>
+                        )}
+                        {item.impact && (
+                          <span className="rounded-full border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 px-3 py-1 text-xs font-semibold text-[#bfe8ff]">
+                            {item.impact}
+                          </span>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+
+                  {progressionTimelineItems.length === 0 && (
+                    <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
+                      Aucun historique detaille n'est encore disponible. Les prochains jalons valides par le backend apparaitront ici.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                  Missions et defis
+                  Missions patrimoniales
                 </p>
-                <h2 className="mt-2 text-2xl font-bold">Defis, badges et recompenses</h2>
+                <h2 className="mt-2 text-2xl font-bold">Missions, accomplissements et jalons</h2>
                 <p className="mt-2 text-sm text-gray-400">
                   Comprends pourquoi chaque mission compte, ce qu&apos;elle debloque et comment elle ameliore ton cockpit.
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                    <p className="text-xs text-gray-500">XP</p>
+                    <p className="text-xs text-gray-500">XP acquis</p>
                     <p className="mt-1 text-xl font-black text-white">
                       {product?.progression?.xp || gamification?.xp || 0}
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                    <p className="text-xs text-gray-500">Niveau</p>
+                    <p className="text-xs text-gray-500">Niveau actuel</p>
                     <p className="mt-1 text-xl font-black text-white">
                       {product?.progression?.level || "Builder"}
                     </p>
@@ -2439,7 +2502,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                    <p className="text-xs text-gray-500">Missions</p>
+                    <p className="text-xs text-gray-500">Missions disponibles</p>
                     <p className="mt-1 text-xl font-black text-white">
                       {progressionMissions.length}
                     </p>
@@ -2466,10 +2529,10 @@ export default function Dashboard() {
                       )}
                       <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
                         <p className="text-xs uppercase tracking-widest text-emerald-200">
-                          Recompense
+                          Impact attendu
                         </p>
                         <p className="mt-1 text-sm font-bold text-white">
-                          +{mission.xp || 80} XP - contexte enrichi
+                          +{mission.xp || 80} XP acquis - pilotage plus precis
                         </p>
                       </div>
                       <p className="mt-4 text-xs leading-relaxed text-gray-500">
@@ -2484,7 +2547,7 @@ export default function Dashboard() {
                   ))}
                   {progressionMissions.length === 0 && (
                     <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
-                      Aucune mission supplementaire disponible pour le moment.
+                      Toutes les missions disponibles ont ete completees. Continue a enrichir ton patrimoine pour debloquer de nouvelles opportunites.
                     </p>
                   )}
                 </div>

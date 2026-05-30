@@ -27,6 +27,8 @@ const badgeCollection = [
   { key: "Dynasty Builder", label: "Dynasty Builder", rarity: "Legend", tone: "border-amber-300/55 bg-amber-300/10 text-amber-100" },
 ];
 
+const journeyStages = ["Foundation", "Advanced", "Liberty", "Dynasty"];
+
 function BadgeMedal({
   badge,
   unlocked,
@@ -140,6 +142,13 @@ export default function GamificationPanel({
   const legacyMode =
     normalizedLevel === "LEGACY" ||
     normalizedLevel === "DYNASTY ARCHITECT";
+  const journeyIndex = legacyMode
+    ? 3
+    : normalizedLevel.includes("LIBERTY")
+      ? 2
+      : advanced || normalizedLevel.includes("ADVANCED")
+        ? 1
+        : 0;
   const recommendedPlan =
     gamification.upgrade?.recommended_plan?.toLowerCase() || null;
   const canUpgrade = Boolean(recommendedPlan);
@@ -189,14 +198,14 @@ export default function GamificationPanel({
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-widest text-emerald-300">
-            Progression
+            Progression patrimoniale
           </p>
           <h2 className="mt-1 text-2xl font-bold text-white">
-            Trajectoire personnelle
+            Parcours White Rock
           </h2>
         </div>
-        <div className="text-sm font-semibold text-orange-400">
-          {streak} jours
+        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-sm font-semibold text-gray-300">
+          {streak > 0 ? `${streak} jours d'activite suivie` : "Activite a relancer"}
         </div>
       </div>
 
@@ -205,10 +214,10 @@ export default function GamificationPanel({
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="shrink-0 lg:w-44">
               <h3 className="text-lg font-semibold text-emerald-300">
-                Missions du jour
+                Missions prioritaires
               </h3>
               <p className="mt-1 text-xs text-gray-400">
-                Ligne d&apos;actions courtes.
+                Actions courtes qui renforcent ton pilotage patrimonial.
               </p>
             </div>
             <div className="no-scrollbar flex flex-1 gap-3 overflow-x-auto pb-1">
@@ -228,7 +237,7 @@ export default function GamificationPanel({
                     </div>
                     {action.xp && (
                       <span className="shrink-0 text-xs font-bold text-emerald-300">
-                        +{action.xp} XP
+                        +{action.xp} XP acquis
                       </span>
                     )}
                   </div>
@@ -239,7 +248,7 @@ export default function GamificationPanel({
           {selectedAction && (
             <div className="mt-4 rounded-xl border border-emerald-300/20 bg-black/40 p-3">
               <p className="text-xs uppercase tracking-widest text-emerald-300">
-                Detail mission
+                Mission selectionnee
               </p>
               <p className="mt-2 font-semibold text-white">
                 {selectedAction.title}
@@ -249,7 +258,7 @@ export default function GamificationPanel({
               </p>
               {selectedAction.xp ? (
                 <p className="mt-2 text-xs font-bold text-emerald-300">
-                  Recompense: +{selectedAction.xp} XP
+                  Impact de progression: +{selectedAction.xp} XP acquis
                 </p>
               ) : null}
             </div>
@@ -259,8 +268,15 @@ export default function GamificationPanel({
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-white">Level {level}</h3>
-          <span className="font-bold text-[#3fa9f5]">{xp} XP</span>
+          <div>
+            <p className="text-xs uppercase tracking-widest text-gray-500">
+              Niveau actuel
+            </p>
+            <h3 className="mt-1 text-lg font-semibold text-white">
+              {userLevel || `Niveau ${level}`}
+            </h3>
+          </div>
+          <span className="font-bold text-[#3fa9f5]">{xp} XP acquis</span>
         </div>
         <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-gray-800">
           <div
@@ -269,15 +285,42 @@ export default function GamificationPanel({
           />
         </div>
         <p className="mt-2 text-xs text-gray-400">
-          {progress} / {xpToNextLevel} XP avant le prochain level
+          Progression vers le prochain niveau: {Math.round(progressPercent)}%
         </p>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-white">Trajectoire White Rock</h3>
+          <span className="text-xs font-semibold text-gray-500">
+            {journeyStages[journeyIndex]}
+          </span>
+        </div>
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {journeyStages.map((stage, index) => (
+            <div key={stage} className="space-y-2">
+              <div
+                className={`h-2 rounded-full ${
+                  index <= journeyIndex ? "bg-[#3fa9f5]" : "bg-white/10"
+                }`}
+              />
+              <p
+                className={`text-[11px] font-semibold ${
+                  index <= journeyIndex ? "text-white" : "text-gray-500"
+                }`}
+              >
+                {stage}
+              </p>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-4 rounded-2xl border border-[#3fa9f5]/30 bg-[#3fa9f5]/10 p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-[#3fa9f5]">
-              Prochain niveau
+              Prochaine etape
             </h3>
             <p className="mt-1 text-sm font-semibold text-white">
               {gamification.upgrade?.title ||
@@ -293,7 +336,7 @@ export default function GamificationPanel({
               {gamification.upgrade?.description ||
                 (legacyMode
                   ? "Tu es dans une phase de preservation, de gouvernance et de transmission."
-                  : "Ton niveau actuel justifie un espace plus avance pour accelerer, proteger et transmettre ton capital.")}
+                  : "Tu entres progressivement dans une logique de liberte financiere structuree et de pilotage long terme.")}
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -313,7 +356,7 @@ export default function GamificationPanel({
       </section>
 
       <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <h3 className="text-lg font-semibold text-white">Badges obtenus</h3>
+        <h3 className="text-lg font-semibold text-white">Accomplissements</h3>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {earnedBadges.length > 0 ? (
             earnedBadges.map((badge) => (
@@ -323,14 +366,14 @@ export default function GamificationPanel({
             ))
           ) : (
             <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
-              Aucun badge obtenu pour le moment.
+              Aucun accomplissement enregistre pour le moment.
             </p>
           )}
         </div>
       </section>
 
       <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <h3 className="text-lg font-semibold text-white">Badges a debloquer</h3>
+        <h3 className="text-lg font-semibold text-white">Jalons a atteindre</h3>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {lockedBadges.map((badge) => (
             <div key={badge.key}>
@@ -343,7 +386,7 @@ export default function GamificationPanel({
       {gamification.reward?.title && (
         <section className="mt-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-4">
           <h3 className="mb-2 text-lg font-semibold text-yellow-400">
-            Reward Unlocked
+            Accomplissement debloque
           </h3>
           <p className="text-sm text-white">{gamification.reward.title}</p>
           {gamification.reward.description && (

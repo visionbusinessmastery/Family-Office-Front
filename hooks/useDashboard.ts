@@ -12,6 +12,7 @@ import type {
   OnboardingData,
   PortfolioAsset,
   PortfolioHistoryPoint,
+  ProgressionTimelineData,
   ProductContext,
   RealEstateData,
   ScoreDetails,
@@ -90,6 +91,7 @@ type DashboardSessionSnapshot = {
   legacyOverview: LegacyOverview | null;
   product: ProductContext | null;
   billingSubscription?: BillingSubscription | null;
+  progressionTimeline: ProgressionTimelineData | null;
   finance: FinanceData;
 };
 
@@ -222,6 +224,8 @@ export function useDashboard() {
   const [product, setProduct] = useState<ProductContext | null>(null);
   const [billingSubscription, setBillingSubscription] =
     useState<BillingSubscription | null>(null);
+  const [progressionTimeline, setProgressionTimeline] =
+    useState<ProgressionTimelineData | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
   const [loading, setLoading] = useState(true);
 
@@ -283,6 +287,7 @@ export function useDashboard() {
     setLegacyOverview(snapshot.legacyOverview);
     setProduct(snapshot.product);
     setBillingSubscription(snapshot.billingSubscription || null);
+    setProgressionTimeline(snapshot.progressionTimeline || null);
     setFinance(snapshot.finance);
   }, []);
 
@@ -295,6 +300,14 @@ export function useDashboard() {
   const loadGamification = useCallback(async () => {
     const data = await safeFetch<GamificationData>("/gamification/");
     setGamification(data);
+  }, [safeFetch]);
+
+  const loadProgressionTimeline = useCallback(async () => {
+    const data = await safeFetch<ProgressionTimelineData>(
+      "/gamification/progression-timeline"
+    );
+    setProgressionTimeline(data || { timeline: [] });
+    return data;
   }, [safeFetch]);
 
   const loadProductContext = useCallback(async () => {
@@ -473,12 +486,14 @@ export function useDashboard() {
       loadOnboarding(userData),
       loadCommandCenter(),
       loadGamification(),
+      loadProgressionTimeline(),
     ]);
   }, [
     loadCommandCenter,
     loadFinance,
     loadCategoryOpportunities,
     loadGamification,
+    loadProgressionTimeline,
     loadHistory,
     loadLegacyOverview,
     loadRealEstate,
@@ -499,12 +514,14 @@ export function useDashboard() {
       loadCommandCenter(),
       loadCategoryOpportunities(),
       loadGamification(),
+      loadProgressionTimeline(),
     ]);
   }, [
     loadBillingSubscription,
     loadCategoryOpportunities,
     loadCommandCenter,
     loadGamification,
+    loadProgressionTimeline,
     loadProductContext,
   ]);
 
@@ -580,6 +597,7 @@ export function useDashboard() {
       legacyOverview,
       product,
       billingSubscription,
+      progressionTimeline,
       finance,
     });
   }, [
@@ -596,6 +614,7 @@ export function useDashboard() {
     onboarding,
     portfolio,
     product,
+    progressionTimeline,
     realEstate,
     score,
     scoreDetails,
@@ -624,6 +643,7 @@ export function useDashboard() {
     legacyOverview,
     product,
     billingSubscription,
+    progressionTimeline,
     finance,
     gamification,
     loadFinance,
@@ -639,6 +659,7 @@ export function useDashboard() {
     loadIntelligence,
     loadCategoryOpportunities,
     loadGamification,
+    loadProgressionTimeline,
     recalcScore,
     refreshAll,
     refreshAfterMutation,

@@ -1028,6 +1028,22 @@ export type GamificationData = {
   };
 };
 
+export type ProgressionTimelineItem = {
+  date?: string | null;
+  type?: string;
+  title?: string;
+  description?: string;
+  impact?: string;
+  xp?: number;
+  source?: string;
+};
+
+export type ProgressionTimelineData = {
+  version?: string;
+  plan?: string;
+  timeline?: ProgressionTimelineItem[];
+};
+
 export type DashboardSummary = {
   plan?: string;
   level?: string;
