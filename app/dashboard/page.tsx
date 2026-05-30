@@ -47,15 +47,11 @@ import type {
 
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
-import ChartModule from "@/components/dashboard/ChartModule";
-import DailyWealthCheck from "@/components/dashboard/DailyWealthCheck";
-import ExposureBreakdown from "@/components/dashboard/ExposureBreakdown";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import LegacyOfficePanel from "@/components/dashboard/LegacyOfficePanel";
 import OpportunityDiscoveryPanel from "@/components/dashboard/OpportunityDiscoveryPanel";
 import OpportunitiesModule from "@/components/dashboard/OpportunitiesModule";
 import PortfolioModule from "@/components/dashboard/PortfolioModule";
-import ProductProgressPanel from "@/components/dashboard/ProductProgressPanel";
 import ProfileReferralPanel from "@/components/dashboard/ProfileReferralPanel";
 import RealEstateModule from "@/components/dashboard/RealEstateModule";
 import RubricBreakdownChart from "@/components/dashboard/RubricBreakdownChart";
@@ -199,53 +195,10 @@ function SectionHeader({
   );
 }
 
-function FamilyOfficeModePanel({ product }: { product?: ProductContext | null }) {
-  const view = product?.family_office_view;
-  const allocation = view?.allocation || [];
-
-  if (!view || allocation.length === 0) return null;
-
-  return (
-    <section className="rounded-2xl border border-[#f0b429]/30 bg-gradient-to-br from-[#1f1604] via-zinc-950 to-black p-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[#f0b429]">
-            Family Office Mode
-          </p>
-          <h2 className="mt-1 text-2xl font-black text-white">
-            Tu ne pilotes plus des modules. Tu pilotes ta richesse.
-          </h2>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-gray-500">Patrimoine global backend</p>
-          <p className="text-2xl font-black text-white">
-            {money.format(Number(view.global_wealth || 0))} EUR
-          </p>
-        </div>
-      </div>
-      <p className="mt-3 text-sm leading-relaxed text-gray-400">{view.summary}</p>
-      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-        {allocation.map((item) => (
-          <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
-            <p className="text-xs uppercase tracking-widest text-gray-500">
-              {item.label}
-            </p>
-            <p className="mt-2 text-2xl font-black text-white">
-              {money.format(Number(item.value || 0))} EUR
-            </p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-400">
-              {item.description}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function WealthNarrativePanel({ product }: { product?: ProductContext | null }) {
-  const narrative = product?.wealth_narrative;
-  const hidden = product?.hidden_wealth;
+function WealthIntelligencePanel({ product }: { product?: ProductContext | null }) {
+  const narrative = product?.wealth_intelligence;
+  const hiddenItems = narrative?.hidden_items || [];
+  const domains = narrative?.domains || [];
 
   if (!narrative) return null;
 
@@ -260,10 +213,10 @@ function WealthNarrativePanel({ product }: { product?: ProductContext | null }) 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#f0b429]">
-            Wealth Narrative
+            {narrative.title || "Wealth Intelligence"}
           </p>
           <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
-            {narrative.headline || "Ce que raconte ta trajectoire"}
+            {narrative.headline || narrative.question || "Ou j'en suis ?"}
           </h2>
           <p className="mt-4 max-w-3xl text-base leading-relaxed text-gray-300">
             {narrative.narrative}
@@ -337,9 +290,26 @@ function WealthNarrativePanel({ product }: { product?: ProductContext | null }) 
           </div>
         </div>
       )}
-      {(hidden?.items || []).length > 0 && (
+      {domains.length > 0 && (
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {domains.slice(0, 3).map((item) => (
+            <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                {item.label}
+              </p>
+              <p className="mt-2 text-2xl font-black text-white">
+                {money.format(Number(item.value || 0))} EUR
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                {item.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      {hiddenItems.length > 0 && (
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          {(hidden?.items || []).slice(0, 4).map((item) => (
+          {hiddenItems.slice(0, 4).map((item) => (
             <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
               <p className="text-sm font-bold text-white">{item.label}</p>
               <p className="mt-2 text-xl font-black text-[#f0b429]">
@@ -572,8 +542,8 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
   );
 }
 
-function StrategicIntelligencePanel({ product }: { product?: ProductContext | null }) {
-  const strategy = product?.strategic_intelligence;
+function DecisionIntelligencePanel({ product }: { product?: ProductContext | null }) {
+  const strategy = product?.decision_intelligence;
   const cards = strategy?.cards || [];
 
   if (!strategy || cards.length === 0) return null;
@@ -581,11 +551,26 @@ function StrategicIntelligencePanel({ product }: { product?: ProductContext | nu
   return (
     <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
       <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-        Strategic Intelligence
+        {strategy.title || "Decision Intelligence"}
       </p>
       <h2 className="mt-1 text-2xl font-black text-white">
         {strategy.question || "Que dois-je faire ?"}
       </h2>
+      {strategy.why_it_matters ? (
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+          {strategy.why_it_matters}
+        </p>
+      ) : null}
+      {strategy.next_action ? (
+        <div className="mt-4 rounded-2xl border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-4">
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+            Action utile
+          </p>
+          <p className="mt-2 text-lg font-black leading-snug text-white">
+            {strategy.next_action}
+          </p>
+        </div>
+      ) : null}
       <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
         {cards.slice(0, 4).map((card) => (
           <div key={card.key || card.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
@@ -698,12 +683,6 @@ function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext |
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
-const getAssetCost = (asset: PortfolioAsset) =>
-  Number(
-    asset.cost ??
-      Number(asset.quantity || 0) * Number(asset.purchase_price || 0)
-  );
-
 const parsePositiveNumber = (value: string | null) => {
   if (value === null) return null;
 
@@ -759,49 +738,6 @@ const userValidationMessages = new Set([
 const isUserValidationError = (error: unknown) =>
   error instanceof Error && userValidationMessages.has(error.message);
 
-const getStrategicOpportunityCount = (
-  opportunities: unknown
-) => {
-  if (Array.isArray(opportunities)) return opportunities.length;
-
-  if (
-    opportunities &&
-    typeof opportunities === "object" &&
-    "count" in opportunities &&
-    typeof opportunities.count === "number"
-  ) {
-    return opportunities.count;
-  }
-
-  if (
-    opportunities &&
-    typeof opportunities === "object" &&
-    "opportunities" in opportunities &&
-    Array.isArray(opportunities.opportunities)
-  ) {
-    return opportunities.opportunities.length;
-  }
-
-  return 0;
-};
-
-const categoryNavigationTargets: Record<string, DashboardSection> = {
-  "ASSETS FINANCIERS": "investments",
-  "FOREX": "investments",
-  "IMMOBILIER": "real_estate",
-  "CROWDFUNDING": "ventures",
-  "PRIVATE EQUITY": "ventures",
-  "PRIVATE_EQUITY": "ventures",
-  "BUSINESS": "ventures",
-  "BUSINESS DIGITAL": "ventures",
-  "AI BUSINESS": "ventures",
-  "STARTUP": "ventures",
-  "FRANCHISE": "ventures",
-};
-
-const getCategoryTarget = (label: string): DashboardSection =>
-  categoryNavigationTargets[label.trim().toUpperCase()] || "settings";
-
 const buildStructuredNotes = (
   values: Record<string, string>,
   descriptors: Array<[string, string | undefined]>
@@ -819,7 +755,6 @@ export default function Dashboard() {
   const {
     dashboard,
     portfolio,
-    history,
     realEstate,
     yieldAssets,
     ventureAssets,
@@ -924,51 +859,7 @@ export default function Dashboard() {
 
   const globalScore =
     Number(commandCenter?.global_score ?? 0) || 0;
-  const totalValue = portfolio.reduce(
-    (acc, asset) => acc + getAssetValue(asset),
-    0
-  );
-  const initialInvestment = portfolio.reduce(
-    (acc, asset) => acc + getAssetCost(asset),
-    0
-  );
-  const portfolioGain = totalValue - initialInvestment;
   const realEstateAssets = realEstate?.assets || [];
-  const realEstateFinal = Number(realEstate?.totals?.total_estimated_value || 0);
-  const realEstateGain = Number(realEstate?.totals?.total_potential_gain || 0);
-  const yieldFinal = Number(yieldAssets?.totals?.total_final_value || 0);
-  const yieldGain = Number(yieldAssets?.totals?.total_projected_gain || 0);
-  const ventureFinal = Number(ventureAssets?.totals?.total_final_value || 0);
-  const ventureGain = Number(ventureAssets?.totals?.total_result || 0);
-  const globalPortfolioValue =
-    totalValue + realEstateFinal + yieldFinal + ventureFinal;
-  const backendGlobalWealth = Number(
-    product?.family_office_view?.global_wealth ??
-      product?.data_profile?.current_wealth ??
-      globalPortfolioValue
-  );
-  const globalPortfolioGain =
-    portfolioGain + realEstateGain + yieldGain + ventureGain;
-  const businessFinal = yieldFinal + ventureFinal;
-  const businessGain = yieldGain + ventureGain;
-  const realEstateSummary = {
-    label: "Immobilier",
-    count: realEstateAssets.length,
-    value: realEstateFinal,
-    gain: realEstateGain,
-  };
-  const investmentSummary = {
-    label: "Investissements",
-    count: portfolio.length,
-    value: totalValue,
-    gain: portfolioGain,
-  };
-  const businessSummary = {
-    label: "Business",
-    count: (yieldAssets?.assets || []).length + (ventureAssets?.assets || []).length,
-    value: businessFinal,
-    gain: businessGain,
-  };
   const investmentRubrics = portfolio.map((asset) => ({
     label: String(asset.asset_type || asset.type || "Autre").replace(/_/g, " ").toUpperCase(),
     value: getAssetValue(asset),
@@ -990,22 +881,6 @@ export default function Dashboard() {
       value: Number(asset.final_value || asset.computed_value || asset.valuation || 0),
     })),
   ];
-  const categoryCounts = [
-    { label: "Assets financiers", value: portfolio.length },
-    {
-      label: "Forex",
-      value: portfolio.filter(
-        (asset) => String(asset.asset_type || asset.type).toUpperCase() === "FOREX"
-      ).length,
-    },
-    { label: "Immobilier", value: realEstateAssets.length },
-    { label: "Crowdfunding", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "crowdfunding").length },
-    { label: "Private Equity", value: (yieldAssets?.assets || []).filter((asset) => asset.asset_type === "private_equity").length },
-    { label: "Business", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "business").length },
-    { label: "Startup", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "startup").length },
-    { label: "Franchise", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "franchise").length },
-    { label: "Business digital", value: (ventureAssets?.assets || []).filter((asset) => asset.asset_type === "ai_business").length },
-  ].filter((item) => item.value > 0);
   const categoryOpportunityItems = categoryOpportunities?.categories || [];
   const findOpportunity = (key: string) =>
     categoryOpportunityItems.find((item) => item.key === key);
@@ -1042,7 +917,6 @@ export default function Dashboard() {
     maxAssets === null ||
     maxAssets === undefined ||
     totalAssetsCount < Number(maxAssets);
-  const hasPortfolioHistory = planAllows(currentPlan, "GOLD");
   const navigation: NavigationItem[] = [
     {
       key: "home",
@@ -1099,11 +973,6 @@ export default function Dashboard() {
       description: "Identité",
     },
   ];
-  const opportunitiesCount =
-    typeof commandCenter?.opportunities_count === "number"
-      ? commandCenter.opportunities_count
-      : getStrategicOpportunityCount(commandCenter?.opportunities);
-
   const handleUpdateOnboarding = async () => {
     setFormModal({
       kind: "onboarding",
@@ -1940,195 +1809,15 @@ export default function Dashboard() {
                 description="Une vue complete mais lisible: trajectoire, decisions, domaines patrimoniaux et prochaine action utile."
               />
 
-              <DailyWealthCheck
-                score={globalScore}
-                gain={globalPortfolioGain}
-                product={product}
-                opportunitiesCount={opportunitiesCount}
-                onOpenStatus={() => goToSection("progression")}
-                onOpenAction={() => goToSection("progression")}
-                onOpenOpportunities={() => goToSection("opportunities")}
-              />
-
-              <WealthNarrativePanel product={product} />
+              <WealthIntelligencePanel product={product} />
 
               <FamilyOfficeCeoPanel product={product} />
 
+              <DecisionIntelligencePanel product={product} />
+
               <FutureIntelligencePanel product={product} />
 
-              <StrategicIntelligencePanel product={product} />
-
               <FamilyOfficeIntelligencePanel product={product} />
-
-              <FamilyOfficeModePanel product={product} />
-
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      Domaines patrimoniaux
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold">
-                      Ou se situe la valeur aujourd&apos;hui
-                    </h2>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {money.format(backendGlobalWealth)} EUR consolides
-                  </p>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
-                  {[realEstateSummary, investmentSummary, businessSummary].map((item) => {
-                    const percent =
-                      backendGlobalWealth > 0
-                        ? Math.min(100, (item.value / backendGlobalWealth) * 100)
-                        : 0;
-                    const target =
-                      item.label === "Immobilier"
-                        ? "real_estate"
-                        : item.label === "Investissements"
-                          ? "investments"
-                          : "ventures";
-
-                    return (
-                      <button
-                        key={item.label}
-                        onClick={() => goToSection(target)}
-                        className={`rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left ${interactiveCard}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                              {item.label}
-                            </p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              {item.count} element{item.count > 1 ? "s" : ""} suivi{item.count > 1 ? "s" : ""}
-                            </p>
-                          </div>
-                          <p className={`text-sm font-black ${item.gain >= 0 ? "text-[#3fa9f5]" : "text-red-400"}`}>
-                            {item.gain >= 0 ? "+" : ""}
-                            {money.format(item.gain)} EUR
-                          </p>
-                        </div>
-                        <p className="mt-4 text-2xl font-black text-white">
-                          {money.format(item.value)} EUR
-                        </p>
-                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#f0b429]"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                          {Math.round(percent)}% du patrimoine consolide
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {categoryCounts.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {categoryCounts.slice(0, 8).map((item) => (
-                      <button
-                        key={item.label}
-                        onClick={() => goToSection(getCategoryTarget(item.label))}
-                        className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.04]"
-                      >
-                        <span className="text-gray-400">{item.label}</span>{" "}
-                        <span className="font-bold text-white">{item.value}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      Action utile
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold">Prochaines actions</h2>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    Un petit pas, puis le cockpit devient plus clair.
-                  </p>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                  {(product?.missions || []).slice(0, 3).map((mission) => (
-                    <button
-                      key={mission.key}
-                      onClick={() => {
-                        router.push("/progression/challenges");
-                      }}
-                      className={`rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left ${interactiveCard}`}
-                    >
-                      <div className="flex h-full flex-col justify-between gap-3">
-                        <div>
-                          <p className="font-bold text-white">{mission.title}</p>
-                          <p className="mt-1 text-sm text-gray-400">
-                            {mission.description}
-                          </p>
-                        </div>
-                        {mission.xp ? (
-                          <span className="text-xs font-bold text-emerald-300">
-                            +{mission.xp} XP
-                          </span>
-                        ) : null}
-                      </div>
-                    </button>
-                  ))}
-
-                  {(product?.missions || []).length === 0 && (
-                    <p className="text-sm text-gray-400">
-                      Aucun signal urgent. Continue a enrichir ton patrimoine tranquillement.
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
-                <div className="mb-4">
-                  <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                    Repartition
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold">Allocation patrimoniale</h2>
-                </div>
-                {hasModule("diversification") ? (
-                  <ExposureBreakdown
-                    portfolio={portfolio}
-                    realEstate={realEstate}
-                    yieldAssets={yieldAssets}
-                    ventureAssets={ventureAssets}
-                    finance={finance}
-                  />
-                ) : (
-                  <LockedSection
-                    title="Allocation avancee"
-                    description="Debloque la lecture par exposition pour visualiser les concentrations et les arbitrages prioritaires."
-                    onUpgrade={handleUpgradePlan}
-                  />
-                )}
-              </section>
-
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
-                {hasPortfolioHistory ? (
-                  <ChartModule
-                    history={history}
-                    initialInvestment={initialInvestment}
-                    currentValue={globalPortfolioValue}
-                    currentInvestment={initialInvestment}
-                  />
-                ) : (
-                  <LockedSection
-                    title="Historique portfolio"
-                    description="Le graphique d'evolution est disponible a partir du plan Gold."
-                    onUpgrade={handleUpgradePlan}
-                  />
-                )}
-              </section>
-
-              <ProductProgressPanel product={product} onUpgrade={handleUpgradePlan} />
             </div>
           )}
 

@@ -498,6 +498,20 @@ export type ProductContext = {
     } | null;
     gravity_reading?: string;
   };
+  wealth_intelligence?: {
+    title?: string;
+    question?: string;
+    headline?: string;
+    narrative?: string;
+    memorable_insight?: string;
+    why_it_matters?: string;
+    visible_wealth?: number;
+    activable_wealth?: number;
+    total_potential?: number;
+    gravity_reading?: string;
+    domains?: NonNullable<ProductContext["family_office_view"]>["allocation"];
+    hidden_items?: NonNullable<ProductContext["hidden_wealth"]>["items"];
+  };
   future_intelligence?: {
     title?: string;
     question?: string;
@@ -532,6 +546,52 @@ export type ProductContext = {
       score?: number;
     }>;
     decision_matrix?: NonNullable<ProductContext["decision_engine"]>["decisions"];
+  };
+  decision_intelligence?: {
+    title?: string;
+    question?: string;
+    why_it_matters?: string;
+    decision?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    risk?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    opportunity?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    leverage?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    next_action?: string;
+    cards?: Array<{
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    }>;
   };
   family_office_intelligence?: {
     title?: string;
