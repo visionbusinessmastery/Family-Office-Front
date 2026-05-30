@@ -287,47 +287,64 @@ function WealthTimelinePanel({ product }: { product?: ProductContext | null }) {
   if (!timeline || stages.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+    <section className="rounded-2xl border border-[#3fa9f5]/25 bg-gradient-to-br from-[#071521] via-zinc-950 to-black p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-            Timeline patrimoniale
+            Ton futur patrimonial
           </p>
           <h2 className="mt-1 text-2xl font-black text-white">
-            Le GPS de ta richesse globale
+            Une trajectoire, pas seulement des chiffres
           </h2>
         </div>
         {timeline.next_milestone?.label && (
           <p className="text-sm text-gray-400">
             Prochain palier:{" "}
             <span className="font-bold text-white">{timeline.next_milestone.label}</span>
+            {timeline.next_milestone.estimated_label ? (
+              <span className="text-[#3fa9f5]"> · {timeline.next_milestone.estimated_label}</span>
+            ) : null}
           </p>
         )}
       </div>
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-6">
+      <div className="mt-6 space-y-3">
         {stages.map((stage) => {
           const active = stage.status === "achieved" || stage.status === "current";
           return (
             <div
               key={stage.label}
-              className={`rounded-xl border p-4 ${
+              className={`grid grid-cols-1 gap-3 rounded-xl border p-4 md:grid-cols-[150px_1fr_170px] md:items-center ${
                 active
                   ? "border-[#3fa9f5]/50 bg-[#3fa9f5]/10"
                   : "border-white/10 bg-white/[0.03]"
               }`}
             >
-              <p className="text-sm font-bold text-white">{stage.label}</p>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div>
+                <p className="text-sm font-bold text-white">{stage.label}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {stage.target ? `${money.format(Number(stage.target || 0))} EUR` : "Position actuelle"}
+                </p>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
                   className="h-full rounded-full bg-[#3fa9f5]"
                   style={{ width: `${Math.min(100, Number(stage.progress_percent || 0))}%` }}
                 />
               </div>
-              {stage.target ? (
-                <p className="mt-2 text-xs text-gray-500">
-                  {money.format(Number(stage.target || 0))} EUR
+              <div className="text-left md:text-right">
+                <p className="text-sm font-bold text-white">
+                  {stage.estimated_label}
                 </p>
-              ) : null}
+                {stage.months_to_target ? (
+                  <p className="mt-1 text-xs text-gray-500">
+                    dans {stage.months_to_target} mois · reste {money.format(Number(stage.distance_remaining || 0))} EUR
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {active ? "palier actuel ou franchi" : "date a confirmer"}
+                  </p>
+                )}
+              </div>
             </div>
           );
         })}
@@ -605,6 +622,121 @@ function WealthStoryPanel({ product }: { product?: ProductContext | null }) {
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function WealthMapHeroPanel({ product }: { product?: ProductContext | null }) {
+  const map = product?.wealth_map;
+  const invisible = product?.invisible_wealth;
+  const radarItems = product?.family_office_radar?.items || [];
+
+  if (!map && !invisible && radarItems.length === 0) return null;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-[#d6b35a]/30 bg-[radial-gradient(circle_at_top_left,_rgba(63,169,245,0.22),_transparent_34%),linear-gradient(135deg,#080b10,#111006_58%,#020202)] p-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#d6b35a]">
+            Wealth Map
+          </p>
+          <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
+            Tu es ici. Ton prochain palier est visible.
+          </h2>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-black/35 p-4">
+              <p className="text-xs text-gray-500">Position actuelle</p>
+              <p className="mt-2 text-2xl font-black text-white">
+                {money.format(Number(map?.current_position || 0))} EUR
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/35 p-4">
+              <p className="text-xs text-gray-500">Destination</p>
+              <p className="mt-2 text-2xl font-black text-white">
+                {money.format(Number(map?.destination?.target || 0))} EUR
+              </p>
+              <p className="mt-1 text-xs text-[#3fa9f5]">{map?.destination?.label}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/35 p-4">
+              <p className="text-xs text-gray-500">Date estimee</p>
+              <p className="mt-2 text-2xl font-black text-white">
+                {map?.estimated_label || "A confirmer"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>Progression vers {map?.destination?.label || "destination"}</span>
+              <span>{map?.progress_percent || 0}%</span>
+            </div>
+            <div className="mt-2 h-3 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#d6b35a]"
+                style={{ width: `${Math.min(100, Number(map?.progress_percent || 0))}%` }}
+              />
+            </div>
+            <p className="mt-3 text-sm text-gray-400">
+              Distance restante:{" "}
+              <span className="font-bold text-white">
+                {money.format(Number(map?.distance_remaining || 0))} EUR
+              </span>
+              {" "}· vitesse actuelle backend:{" "}
+              <span className="font-bold text-white">
+                {money.format(Number(map?.monthly_velocity || 0))} EUR/mois
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-black/35 p-5">
+          <p className="text-xs uppercase tracking-widest text-[#d6b35a]">
+            Richesse invisible
+          </p>
+          <p className="mt-3 text-sm text-gray-400">
+            Ce que White Rock projette au-dela de la photo actuelle.
+          </p>
+          <div className="mt-5 space-y-4">
+            <div>
+              <p className="text-xs text-gray-500">Potentiel patrimonial projete</p>
+              <p className="mt-1 text-3xl font-black text-white">
+                {money.format(Number(invisible?.projected_wealth || 0))} EUR
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Capital non exploite</p>
+              <p className="mt-1 text-3xl font-black text-[#d6b35a]">
+                {money.format(Number(invisible?.untapped_capital || 0))} EUR
+              </p>
+            </div>
+            <p className="text-sm leading-relaxed text-gray-400">
+              Meilleur chemin simule:{" "}
+              <span className="font-bold text-white">
+                {invisible?.best_path?.label || "a confirmer"}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {radarItems.length > 0 && (
+        <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-6">
+          {radarItems.map((item) => (
+            <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/35 p-3">
+              <div className={`mb-3 h-2 rounded-full ${
+                item.status === "green"
+                  ? "bg-emerald-400"
+                  : item.status === "amber"
+                    ? "bg-amber-300"
+                    : "bg-red-400"
+              }`} />
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                {item.label}
+              </p>
+              <p className="mt-1 text-xl font-black text-white">{item.score}/100</p>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -2016,6 +2148,8 @@ export default function Dashboard() {
                 onOpenAction={() => goToSection("progression")}
                 onOpenOpportunities={() => goToSection("opportunities")}
               />
+
+              <WealthMapHeroPanel product={product} />
 
               <MissionControlPanel
                 product={product}

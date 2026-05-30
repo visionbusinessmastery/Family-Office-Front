@@ -225,12 +225,19 @@ export type ProductContext = {
     next_milestone?: {
       label?: string;
       target?: number;
+      months_to_target?: number | null;
+      estimated_date?: string | null;
+      estimated_label?: string | null;
     } | null;
     stages?: Array<{
       label?: string;
       target?: number;
       status?: string;
       progress_percent?: number;
+      distance_remaining?: number;
+      months_to_target?: number | null;
+      estimated_date?: string | null;
+      estimated_label?: string | null;
     }>;
   };
   family_office_view?: {
@@ -350,6 +357,44 @@ export type ProductContext = {
     mission?: ProductSignal | null;
     next_step?: string;
     time_value?: ProductContext["time_value"];
+  };
+  wealth_map?: {
+    title?: string;
+    destination?: {
+      label?: string;
+      target?: number;
+      months_to_target?: number | null;
+      estimated_label?: string | null;
+    } | null;
+    current_position?: number;
+    progress_percent?: number;
+    distance_remaining?: number;
+    monthly_velocity?: number;
+    estimated_label?: string | null;
+    months_to_destination?: number | null;
+  };
+  invisible_wealth?: {
+    title?: string;
+    current_wealth?: number;
+    projected_wealth?: number;
+    untapped_capital?: number;
+    story?: string;
+    best_path?: {
+      key?: string;
+      label?: string;
+      value_10y?: number;
+      value_5y?: number;
+      description?: string;
+    } | null;
+  };
+  family_office_radar?: {
+    title?: string;
+    items?: Array<{
+      key?: string;
+      label?: string;
+      score?: number;
+      status?: "green" | "amber" | "red" | string;
+    }>;
   };
 };
 
