@@ -100,6 +100,8 @@ type DashboardSection =
   | "ai"
   | "progression"
   | "legacy"
+  | "profile"
+  | "billing"
   | "settings";
 
 type NavigationItem = {
@@ -1004,9 +1006,19 @@ export default function Dashboard() {
       description: "Statut",
     },
     {
+      key: "profile",
+      label: "Mon Profil",
+      description: "Profil",
+    },
+    {
+      key: "billing",
+      label: "Plan & Facturation",
+      description: "Abonnement",
+    },
+    {
       key: "settings",
       label: "Family Office",
-      description: "Identité",
+      description: "Gouvernance",
     },
   ];
   const handleUpdateOnboarding = async () => {
@@ -2377,26 +2389,25 @@ export default function Dashboard() {
             </div>
           )}
 
-          {activeSection === "settings" && (
+          {activeSection === "profile" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Family Office"
-                title="Identite, controle et personnalisation"
-                description="Ton centre premium pour le profil, l'abonnement, les preferences et la gouvernance patrimoniale."
+                eyebrow="Mon Profil"
+                title="Mon Profil"
+                description="Ton identite, ta situation, tes objectifs et tes preferences personnelles."
               />
 
-              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
+              <section className="rounded-2xl border border-[#3fa9f5]/25 bg-[radial-gradient(circle_at_top_right,_rgba(63,169,245,0.16),_transparent_34%),linear-gradient(135deg,#060912,#020202)] p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      Profil utilisateur
+                      Identite personnelle
                     </p>
-                    <h2 className="mt-2 text-2xl font-bold">
-                      Donnees personnelles et patrimoniales
+                    <h2 className="mt-2 text-3xl font-black">
+                      {compactText(wealthProfile?.first_name, "Profil White Rock")}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-                      Modifie les informations saisies pendant l'onboarding et
-                      enrichis le contexte utilise par White Rock.
+                      Les informations qui permettent de personnaliser ton espace sans melanger profil personnel et organisation patrimoniale.
                     </p>
                   </div>
                   <ActionButton onClick={handleUpdateOnboarding}>
@@ -2407,13 +2418,13 @@ export default function Dashboard() {
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {[
                     ["Situation", compactText(onboarding?.situation_pro || wealthProfile?.investor_profile)],
-                    ["Age", compactText(onboarding?.age)],
-                    ["Revenus", `${money.format(Number(onboarding?.revenus_mensuels ?? onboarding?.monthly_income ?? 0))} EUR / mois`],
-                    ["Charges", `${money.format(Number(onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses ?? 0))} EUR / mois`],
                     ["Objectif", compactText(wealthProfile?.motivation)],
                     ["Horizon", compactText(wealthProfile?.horizon)],
                     ["Risque", compactText(wealthProfile?.risk_level)],
-                    ["Enfants", yesNoLabel(wealthProfile?.has_children)],
+                    ["Devise", compactText(wealthProfile?.main_currency || "EUR")],
+                    ["Age", compactText(onboarding?.age)],
+                    ["Revenus", (onboarding?.revenus_mensuels ?? onboarding?.monthly_income) ? `${money.format(Number(onboarding?.revenus_mensuels ?? onboarding?.monthly_income))} EUR` : "A completer"],
+                    ["Charges", (onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses) ? `${money.format(Number(onboarding?.charges_mensuelles ?? onboarding?.monthly_expenses))} EUR` : "A completer"],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
                       <p className="text-xs uppercase tracking-widest text-gray-500">
@@ -2425,8 +2436,139 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
+              </section>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <ProfileReferralPanel mode="identity" />
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <p className="text-xs uppercase tracking-widest text-gray-500">
+                  Preferences et confidentialite
+                </p>
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-xl font-bold">Theme</h2>
+                        <p className="mt-2 text-sm text-gray-400">
+                          Choisissez la couleur de votre theme.
+                        </p>
+                      </div>
+                      <ThemeSwitcher />
+                    </div>
+                  </div>
+
+                  <div className={`rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-4 ${interactiveCard}`}>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-xl font-bold">Confidentialite</h2>
+                        <p className="mt-2 text-sm text-gray-400">
+                          Consentements, exports, preferences emails, cookies et suppression du compte.
+                        </p>
+                      </div>
+                      <ActionButton variant="secondary" onClick={() => router.push("/privacy-center")}>
+                        Ouvrir
+                      </ActionButton>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeSection === "billing" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Plan & Facturation"
+                title="Plan & Facturation"
+                description="Ton plan actuel, les acces disponibles et la gestion de ton abonnement."
+              />
+
+              <section className="rounded-2xl border border-emerald-300/25 bg-[radial-gradient(circle_at_top_right,_rgba(22,217,154,0.16),_transparent_36%),linear-gradient(135deg,#090909,#07120f_60%,#020202)] p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-emerald-300">
+                      Plan et acces premium
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold">Mon Plan</h2>
+                  </div>
+                  <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
+                    {compactText(product?.entitlements?.copy?.promise || "Progression active")}
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">Plan actuel</p>
+                    <p className="mt-2 text-xl font-black text-white">
+                      {compactText(product?.entitlements?.copy?.name || product?.plan || dashboard?.plan)}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">Modules actifs</p>
+                    <p className="mt-2 text-xl font-black text-emerald-300">
+                      {(product?.modules?.visible || []).filter((module) => module.state === "active").length}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/25 p-4">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">A debloquer</p>
+                    <p className="mt-2 text-xl font-black text-amber-200">
+                      {(product?.modules?.locked || []).length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
+                    Voir les plans
+                  </button>
+                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
+                    Plans fondateurs
+                  </button>
+                  <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
+                    Gold - Growth
+                  </button>
+                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-400/20">
+                    Elite - Wealth OS
+                  </button>
+                  <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black">
+                    Liberty - Sovereign Wealth
+                  </button>
+                  <button onClick={() => handleUpgradePlan("legacy")} className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200">
+                    Dynasty Office
+                  </button>
+                  <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
+                    Gerer mon abonnement
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeSection === "settings" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Family Office"
+                title="Organisation patrimoniale"
+                description="Vision familiale, gouvernance, collaboration et transmission autour de ton patrimoine."
+              />
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-amber-200">
+                      Family Office Profile
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Famille, transmission et vision</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Les donnees qui preparent les niveaux Liberty et Dynasty sans complexifier ton espace actuel.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-xs font-bold text-amber-100">
+                    {yesNoLabel(wealthProfile?.has_children)} enfants
+                  </span>
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3">
                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">
                     <p className="text-xs uppercase tracking-widest text-gray-500">
                       Transmission
@@ -2454,106 +2596,29 @@ export default function Dashboard() {
                 </div>
               </section>
 
-              <ProfileReferralPanel mode="referral" />
-
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">Theme</h2>
-                    <p className="mt-2 text-sm text-gray-400">
-                      Choisissez la couleur de votre theme.
-                    </p>
-                  </div>
-                  <ThemeSwitcher />
+              <section className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                  <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                    Family Office Spaces
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold">Gouvernance et multi-user</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Espaces, membres, invitations et permissions pour preparer conjoint, conseiller, associe ou heritier.
+                  </p>
                 </div>
-              </section>
 
-              <section className="rounded-2xl border border-emerald-300/25 bg-[radial-gradient(circle_at_top_right,_rgba(22,217,154,0.16),_transparent_36%),linear-gradient(135deg,#090909,#07120f_60%,#020202)] p-5">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-emerald-300">
-                      Acces premium
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold">Abonnement</h2>
-                  </div>
-                  <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
-                    Croissance active
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-gray-400">
-                  Plan actuel: {product?.plan || dashboard?.plan || "charge"}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
-                    Standard Plans
-                  </button>
-                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
-                    Founder Plans
-                  </button>
-                  <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
-                    Gold - Growth
-                  </button>
-                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-400/20">
-                    Elite - Wealth OS
-                  </button>
-                  <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black">
-                    Liberty - Sovereign Wealth
-                  </button>
-                  <button onClick={() => handleUpgradePlan("legacy")} className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200">
-                    Dynasty Office
-                  </button>
-                  <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
-                    Gerer mon abonnement
-                  </button>
-                </div>
-              </section>
+                <WorkspacePanel
+                  data={workspaces}
+                  onCreate={handleCreateWorkspace}
+                  onInvite={handleInviteWorkspaceMember}
+                  onSwitch={handleSwitchWorkspace}
+                />
 
-              <ProfileReferralPanel
-                mode="identity"
-                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
-              />
-
-              <section className={`rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/5 p-5 ${interactiveCard}`}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      Confiance et donnees
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold">Privacy Center</h2>
-                    <p className="mt-2 text-sm text-gray-400">
-                      Gere tes consentements, exports, preferences emails,
-                      cookies et demandes de suppression depuis un espace dedie.
-                    </p>
-                  </div>
-                  <ActionButton variant="secondary" onClick={() => router.push("/privacy-center")}>
-                    Ouvrir
-                  </ActionButton>
-                </div>
-              </section>
-
-              <WorkspacePanel
-                data={workspaces}
-                onCreate={handleCreateWorkspace}
-                onInvite={handleInviteWorkspaceMember}
-                onSwitch={handleSwitchWorkspace}
-              />
-
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <h2 className="text-2xl font-bold">Espaces ouverts</h2>
-                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                  {(product?.modules?.visible || []).slice(0, 6).map((module) => (
-                    <div key={module.key} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-                      <p className="text-sm font-semibold text-white">{module.label}</p>
-                      <p className="text-xs text-gray-500">Stage {module.stage || "-"}</p>
-                    </div>
-                  ))}
-                  {(product?.modules?.visible || []).length === 0 && (
-                    <p className="text-sm text-gray-400">Aucun espace actif pour le moment.</p>
-                  )}
-                </div>
+                <ProfileReferralPanel mode="referral" />
               </section>
             </div>
-          )}        </div>
+          )}
+        </div>
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-2 py-1.5 shadow-2xl backdrop-blur-xl lg:hidden">
