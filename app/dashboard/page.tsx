@@ -380,6 +380,235 @@ function FamilyOfficeModePanel({ product }: { product?: ProductContext | null })
   );
 }
 
+function WealthGpsPanel({ product }: { product?: ProductContext | null }) {
+  const gps = product?.wealth_gps;
+  const routes = gps?.routes || [];
+
+  if (!gps || routes.length === 0) return null;
+
+  return (
+    <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+            GPS patrimonial
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-white">
+            Plusieurs chemins vers le prochain palier
+          </h2>
+        </div>
+        <div className="text-right text-sm text-gray-400">
+          Destination:{" "}
+          <span className="font-bold text-white">
+            {money.format(Number(gps.next_destination || 0))} EUR
+          </span>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
+        {routes.map((route) => (
+          <div key={route.key || route.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-sm font-bold text-white">{route.label}</h3>
+              <span className="rounded-full bg-[#3fa9f5]/15 px-2 py-1 text-xs text-[#3fa9f5]">
+                {route.annual_return}%/an
+              </span>
+            </div>
+            <p className="mt-3 text-2xl font-black text-white">
+              {money.format(Number(route.value_10y || 0))} EUR
+            </p>
+            <p className="mt-1 text-xs text-gray-500">projection 10 ans</p>
+            <p className="mt-3 text-sm leading-relaxed text-gray-400">
+              {route.description}
+            </p>
+            <p className="mt-3 text-xs font-semibold text-[#3fa9f5]">
+              {route.years_to_next_milestone
+                ? `Palier atteignable en ${route.years_to_next_milestone} an(s)`
+                : "Palier non atteint dans la projection prudente"}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-sm leading-relaxed text-gray-500">{gps.assumption}</p>
+    </section>
+  );
+}
+
+function DigitalTwinPanel({ product }: { product?: ProductContext | null }) {
+  const twin = product?.digital_twin;
+  const scenarios = twin?.scenarios || [];
+
+  if (!twin || scenarios.length === 0) return null;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+          Double patrimonial
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-white">
+          Explorer plusieurs futurs possibles
+        </h2>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {scenarios.map((scenario) => (
+          <div key={scenario.key || scenario.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <h3 className="text-sm font-bold text-white">{scenario.label}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              {scenario.description}
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">5 ans</p>
+                <p className="text-lg font-black text-white">
+                  {money.format(Number(scenario.value_5y || 0))} EUR
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">10 ans</p>
+                <p className="text-lg font-black text-white">
+                  {money.format(Number(scenario.value_10y || 0))} EUR
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-sm leading-relaxed text-gray-500">{twin.basis}</p>
+    </section>
+  );
+}
+
+function WeakSignalsPanel({ product }: { product?: ProductContext | null }) {
+  const signals = product?.weak_signals?.signals || [];
+
+  if (signals.length === 0) return null;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+          Signaux faibles
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-white">
+          Ce que White Rock surveille avant toi
+        </h2>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {signals.map((signal) => (
+          <div key={`${signal.type}-${signal.title}`} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-white">{signal.title}</h3>
+              <span className={`rounded-full px-2 py-1 text-xs ${
+                signal.severity === "high"
+                  ? "bg-red-500/15 text-red-300"
+                  : signal.severity === "medium"
+                    ? "bg-amber-500/15 text-amber-200"
+                    : "bg-[#3fa9f5]/15 text-[#3fa9f5]"
+              }`}>
+                {signal.severity || "signal"}
+              </span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              {signal.description}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SelfBenchmarkPanel({ product }: { product?: ProductContext | null }) {
+  const benchmark = product?.self_benchmark;
+  const deltas = [
+    { label: "6 mois", value: benchmark?.six_months },
+    { label: "12 mois", value: benchmark?.twelve_months },
+  ];
+
+  if (!benchmark) return null;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+            Contre toi-meme
+          </p>
+          <h2 className="mt-1 text-2xl font-black text-white">
+            Ta progression, pas celle des autres
+          </h2>
+        </div>
+        <p className="text-2xl font-black text-white">
+          {money.format(Number(benchmark.current_wealth || 0))} EUR
+        </p>
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        {deltas.map((item) => (
+          <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-xs uppercase tracking-widest text-gray-500">
+              Depuis {item.label}
+            </p>
+            {item.value ? (
+              <>
+                <p className={`mt-2 text-2xl font-black ${
+                  Number(item.value.delta_value || 0) >= 0 ? "text-[#3fa9f5]" : "text-red-300"
+                }`}>
+                  {Number(item.value.delta_value || 0) >= 0 ? "+" : ""}
+                  {money.format(Number(item.value.delta_value || 0))} EUR
+                </p>
+                <p className="mt-1 text-sm text-gray-400">
+                  {Number(item.value.delta_percent || 0) >= 0 ? "+" : ""}
+                  {item.value.delta_percent}% vs {money.format(Number(item.value.previous_value || 0))} EUR
+                </p>
+              </>
+            ) : (
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Historique encore insuffisant pour comparer ce palier.
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-sm leading-relaxed text-gray-500">{benchmark.basis}</p>
+    </section>
+  );
+}
+
+function WealthStoryPanel({ product }: { product?: ProductContext | null }) {
+  const story = product?.wealth_story;
+  const events = story?.events || [];
+
+  if (events.length === 0) return null;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+      <div>
+        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+          Histoire de richesse
+        </p>
+        <h2 className="mt-1 text-2xl font-black text-white">
+          Ta biographie patrimoniale commence ici
+        </h2>
+      </div>
+      <div className="mt-5 space-y-3">
+        {events.map((event, index) => (
+          <div key={`${event.label}-${index}`} className="grid grid-cols-[90px_1fr] gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+              {event.label}
+            </p>
+            <div>
+              <h3 className="text-sm font-bold text-white">{event.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-gray-400">
+                {event.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
@@ -1644,7 +1873,17 @@ export default function Dashboard() {
 
               <FutureViewPanel product={product} />
 
+              <WealthGpsPanel product={product} />
+
+              <DigitalTwinPanel product={product} />
+
               <WealthTimelinePanel product={product} />
+
+              <WeakSignalsPanel product={product} />
+
+              <SelfBenchmarkPanel product={product} />
+
+              <WealthStoryPanel product={product} />
 
               <FamilyOfficeModePanel product={product} />
 

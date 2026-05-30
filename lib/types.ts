@@ -101,6 +101,12 @@ export type ProductSignal = {
   xp?: number;
 };
 
+export type ProductBenchmarkDelta = {
+  previous_value?: number;
+  delta_value?: number;
+  delta_percent?: number;
+};
+
 export type ProductContext = {
   plan?: string;
   next_plan?: string | null;
@@ -220,6 +226,58 @@ export type ProductContext = {
       key?: string;
       label?: string;
       value?: number;
+      description?: string;
+    }>;
+  };
+  wealth_gps?: {
+    title?: string;
+    current_position?: number;
+    next_destination?: number;
+    assumption?: string;
+    routes?: Array<{
+      key?: string;
+      label?: string;
+      annual_return?: number;
+      monthly_multiplier?: number;
+      value_10y?: number;
+      years_to_next_milestone?: number | null;
+      description?: string;
+    }>;
+  };
+  digital_twin?: {
+    title?: string;
+    basis?: string;
+    scenarios?: Array<{
+      key?: string;
+      label?: string;
+      monthly_delta?: number;
+      annual_return?: number;
+      value_5y?: number;
+      value_10y?: number;
+      description?: string;
+    }>;
+  };
+  weak_signals?: {
+    title?: string;
+    signals?: Array<{
+      type?: string;
+      title?: string;
+      description?: string;
+      severity?: string;
+    }>;
+  };
+  self_benchmark?: {
+    title?: string;
+    current_wealth?: number;
+    six_months?: ProductBenchmarkDelta | null;
+    twelve_months?: ProductBenchmarkDelta | null;
+    basis?: string;
+  };
+  wealth_story?: {
+    title?: string;
+    events?: Array<{
+      label?: string;
+      title?: string;
       description?: string;
     }>;
   };
