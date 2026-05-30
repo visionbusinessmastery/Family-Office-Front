@@ -127,6 +127,8 @@ const planAllows = (plan: string | undefined | null, required: string) =>
 
 type DashboardSection =
   | "home"
+  | "wealth"
+  | "trajectory"
   | "opportunities"
   | "finances"
   | "balance_sheet"
@@ -238,6 +240,8 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
   const narrative = product?.wealth_intelligence;
   const hiddenItems = narrative?.hidden_items || [];
   const domains = narrative?.domains || [];
+  const wealthBlocks = product?.wealth_blocks?.blocks || [];
+  const gravity = product?.gravity_center;
 
   if (!narrative) return null;
 
@@ -361,6 +365,61 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
           ))}
         </div>
       )}
+      {(wealthBlocks.length > 0 || gravity) && (
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_0.8fr]">
+          {wealthBlocks.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Blocs de richesse
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {wealthBlocks.slice(0, 4).map((block) => (
+                  <div key={block.key || block.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-bold text-white">{block.label}</p>
+                      <span className="text-xs uppercase text-gray-500">{block.status}</span>
+                    </div>
+                    <p className="mt-2 text-xl font-black text-[#f7d154]">
+                      {money.format(Number(block.value || 0))} EUR
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                      {block.description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {gravity && (
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Centre de gravite
+              </p>
+              <h3 className="mt-2 text-xl font-black text-white">
+                {gravity.dominant_visible || "Lecture actuelle"}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                {gravity.reading}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <p className="text-xs text-gray-500">Aujourd'hui</p>
+                  <p className="mt-1 font-bold text-white">
+                    {gravity.dominant_visible || "A confirmer"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <p className="text-xs text-gray-500">Futur possible</p>
+                  <p className="mt-1 font-bold text-white">
+                    {gravity.dominant_future || "A confirmer"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -451,6 +510,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
   const timeline = future?.timeline || [];
   const simulations = future?.simulations || [];
   const film = future?.film || [];
+  const routes = future?.routes || [];
 
   if (!future) return null;
 
@@ -521,6 +581,25 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
           ))}
         </div>
       </div>
+
+      {routes.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+          {routes.slice(0, 3).map((route) => (
+            <div key={route.key || route.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Itineraire
+              </p>
+              <h3 className="mt-2 text-sm font-bold text-white">{route.label}</h3>
+              <p className="mt-2 text-2xl font-black text-[#3fa9f5]">
+                {money.format(Number(route.value_10y || 0))} EUR
+              </p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                {route.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         {trajectoryData.length > 0 && (
@@ -629,11 +708,68 @@ function DecisionIntelligencePanel({ product }: { product?: ProductContext | nul
   );
 }
 
+function BoardBriefingPanel({ product }: { product?: ProductContext | null }) {
+  const briefing = product?.board_briefing;
+
+  if (!briefing) return null;
+
+  return (
+    <section className="rounded-2xl border border-[#f7d154]/25 bg-zinc-950 p-5">
+      <p className="text-xs uppercase tracking-widest text-[#f7d154]">
+        Briefing patrimonial
+      </p>
+      <h2 className="mt-2 text-2xl font-black text-white">
+        {briefing.headline || briefing.title || "Ce qui merite attention"}
+      </h2>
+      {briefing.what_changed ? (
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-300">
+          {briefing.what_changed}
+        </p>
+      ) : null}
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+        {[
+          ["Risque", briefing.main_risk],
+          ["Opportunite", briefing.main_opportunity],
+          ["Prochaine etape", briefing.next_step],
+        ].map(([label, value]) => (
+          <div
+            key={String(label)}
+            className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+          >
+            <p className="text-xs uppercase tracking-widest text-gray-500">
+              {label}
+            </p>
+            <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+              {compactText(value, "A confirmer")}
+            </p>
+          </div>
+        ))}
+      </div>
+      {briefing.stress_watch ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
+          <p className="text-xs uppercase tracking-widest text-gray-500">
+            Stress watch
+          </p>
+          <p className="mt-2 text-sm font-bold text-white">
+            {briefing.stress_watch.label}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-gray-400">
+            {briefing.stress_watch.reading}
+          </p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext | null }) {
   const intelligence = product?.family_office_intelligence;
   const scorecard = intelligence?.scorecard || [];
   const stressTests = intelligence?.stress_tests || [];
   const dependencies = intelligence?.dependencies || [];
+  const weakSignals = intelligence?.weak_signals || [];
+  const lifeDimensions = intelligence?.life_dimensions || [];
+  const radar = intelligence?.radar || [];
 
   if (!intelligence) return null;
 
@@ -715,6 +851,65 @@ function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext |
           </div>
         </div>
       </div>
+      {(weakSignals.length > 0 || lifeDimensions.length > 0 || radar.length > 0) && (
+        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          {weakSignals.length > 0 && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <h3 className="font-bold text-white">Signaux faibles</h3>
+              <div className="mt-3 space-y-2">
+                {weakSignals.slice(0, 3).map((signal) => (
+                  <div key={`${signal.type}-${signal.title}`} className="rounded-lg bg-black/30 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-white">{signal.title}</p>
+                      <span className="text-xs uppercase text-gray-500">{signal.severity}</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-400">{signal.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lifeDimensions.length > 0 && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <h3 className="font-bold text-white">Patrimoine de vie</h3>
+              <div className="mt-3 space-y-3">
+                {lifeDimensions.slice(0, 5).map((dimension) => (
+                  <div key={dimension.key || dimension.label}>
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <span className="font-bold text-gray-300">{dimension.label}</span>
+                      <span className="text-gray-500">{dimension.score}/100</span>
+                    </div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-emerald-400"
+                        style={{ width: `${Math.min(100, Number(dimension.score || 0))}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {radar.length > 0 && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <h3 className="font-bold text-white">Radar Family Office</h3>
+              <div className="mt-3 space-y-2">
+                {radar.slice(0, 5).map((item) => (
+                  <div key={item.key || item.label} className="flex items-center justify-between rounded-lg bg-black/30 p-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">{item.label}</p>
+                      <p className="text-xs uppercase text-gray-500">{item.status}</p>
+                    </div>
+                    <p className="text-sm font-black text-[#f7d154]">{item.score}/100</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -1090,6 +1285,16 @@ export default function Dashboard() {
       key: "home",
       label: "Home",
       description: "Vue globale",
+    },
+    {
+      key: "wealth",
+      label: "Patrimoine",
+      description: "Synthese",
+    },
+    {
+      key: "trajectory",
+      label: "Trajectoire",
+      description: "Futur",
     },
     {
       key: "opportunities",
@@ -2161,6 +2366,63 @@ export default function Dashboard() {
                 plan={currentPlan}
                 level={product?.progression?.level || commandCenter?.level || dashboard?.level}
               />
+            </div>
+          )}
+
+          {activeSection === "wealth" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Patrimoine"
+                title="Wealth Intelligence"
+                description="Patrimoine visible, potentiel activable, scorecard et signaux de solidite. Cette page donne la lecture patrimoniale complete."
+              />
+
+              <WealthIntelligencePanel product={product} />
+
+              <BoardBriefingPanel product={product} />
+
+              <FamilyOfficeIntelligencePanel product={product} />
+            </div>
+          )}
+
+          {activeSection === "trajectory" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Trajectoire"
+                title="Future Intelligence"
+                description="Wealth Map, film du futur, scenarios et vitesse vers les prochains paliers."
+              />
+
+              <FutureIntelligencePanel product={product} />
+
+              {planAllows(currentPlan, "ELITE") ? (
+                <FamilyOfficeCeoPanel product={product} />
+              ) : (
+                <LockedSection
+                  title="Family Office CEO"
+                  description="Debloque en ELITE le burn rate, la marge mensuelle, le runway et la lecture operationnelle de ta trajectoire."
+                  onUpgrade={handleUpgradePlan}
+                  plan="elite"
+                />
+              )}
+
+              {!planAllows(currentPlan, "LIBERTY") && (
+                <LockedSection
+                  title="Arbitrages Family Office"
+                  description="LIBERTY ajoute les priorites d'allocation, le board virtuel, les objectifs avances, les comptes enfants et la transmission."
+                  onUpgrade={handleUpgradePlan}
+                  plan="liberty"
+                />
+              )}
+
+              {!planAllows(currentPlan, "LEGACY") && (
+                <LockedSection
+                  title="Dynasty Office"
+                  description="Dynasty ouvre la projection generationnelle, la gouvernance familiale, la protection et les scenarios successoraux."
+                  onUpgrade={handleUpgradePlan}
+                  plan="legacy"
+                />
+              )}
             </div>
           )}
 
