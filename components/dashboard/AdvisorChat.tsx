@@ -12,6 +12,8 @@ type AdvisorResponse = {
   analysis: string;
   metadata: {
     cache_version: string;
+    llm_status?: string;
+    status?: string;
     text_origin: string;
   };
 };
@@ -89,6 +91,22 @@ function hasLegacyResponse(messages: ChatMessage[]) {
 function isLegacyAssistantText(content?: string) {
   if (!content) return false;
   return hasLegacyResponse([{ role: "assistant", content }]);
+}
+
+function getUnavailableMessage(metadata?: AdvisorResponse["metadata"]) {
+  if (metadata?.llm_status === "openai_unconfigured") {
+    return "Ethan est bien connecte au backend, mais la configuration OpenAI serveur semble indisponible.";
+  }
+
+  if (metadata?.llm_status === "openai_call_failed") {
+    return "Ethan n'a pas pu joindre correctement le moteur OpenAI. Reessaie dans un instant.";
+  }
+
+  if (metadata?.llm_status === "openai_empty_output") {
+    return "Le moteur IA a repondu sans contenu exploitable. Relance ta question dans un instant.";
+  }
+
+  return "Ethan n'a pas pu produire une reponse exploitable pour le moment.";
 }
 
 function clearConversationCache() {
@@ -206,15 +224,18 @@ export default function AdvisorChat({ compact = false }: { compact?: boolean }) 
     try {
       const data = await requestAdvisorResponse(token, question);
       let analysis = data.analysis || "";
+      let metadata = data.metadata;
 
       if (isLegacyAssistantText(analysis)) {
         clearConversationCache();
         const refreshed = await requestAdvisorResponse(token, question, true);
         analysis = refreshed.analysis || "";
+        metadata = refreshed.metadata;
       }
 
       if (!analysis || isLegacyAssistantText(analysis)) {
-        throw new Error("Contrat Ethan invalide");
+        setErrorMessage(getUnavailableMessage(metadata));
+        return;
       }
 
       setMessages((current) => [
@@ -222,8 +243,8 @@ export default function AdvisorChat({ compact = false }: { compact?: boolean }) 
         { role: "assistant", content: analysis },
       ]);
     } catch (err) {
-      console.error(err);
-      setErrorMessage("Connexion au moteur indisponible pour le moment.");
+      const message = err instanceof Error ? err.message : "";
+      setErrorMessage(message || "Connexion au moteur indisponible pour le moment.");
     } finally {
       setLoading(false);
     }
