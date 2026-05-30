@@ -22,7 +22,7 @@ const initialMessages: ChatMessage[] = [];
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHED_MESSAGES = 40;
-const CONVERSATION_CACHE_VERSION = "v23-openai-resilience";
+const CONVERSATION_CACHE_VERSION = "v24-empty-output-retry";
 const LEGACY_RESPONSE_PATTERNS = [
   "ton score est",
   "score 39/100",
