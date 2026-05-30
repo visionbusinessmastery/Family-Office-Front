@@ -100,7 +100,7 @@ const plans: Plan[] = [
     capabilityGroups: [
       {
         label: "Future Intelligence",
-        items: ["20 assets maximum", "Patrimoine visible et activable", "Wealth Narrative simple", "Wealth Map", "Projection 10 ans", "Film du futur"],
+        items: ["20 assets financiers", "3 biens immobiliers avec lecture cashflow", "2 business structures", "Patrimoine visible et activable", "Wealth Map", "Projection 10 ans"],
       },
       {
         label: "Decision & solidite",
@@ -140,7 +140,7 @@ const plans: Plan[] = [
     capabilityGroups: [
       {
         label: "Strategic Intelligence",
-        items: ["30 assets maximum", "Family Office CEO", "Burn rate", "Marge mensuelle", "Runway", "Lecture operationnelle"],
+        items: ["30 assets financiers", "10 biens immobiliers avec simulations", "5 business avec valorisation", "Family Office CEO", "Runway", "Lecture operationnelle"],
       },
       {
         label: "Family Office Intelligence",
@@ -180,7 +180,7 @@ const plans: Plan[] = [
     capabilityGroups: [
       {
         label: "Family Office personnel",
-        items: ["50 assets maximum", "Family Office Mode complet", "Comptes enfants", "Multi-objectifs", "Probabilites d'atteinte", "Scenarios de vie avances"],
+        items: ["50 assets financiers", "Immobilier illimite", "Business illimites", "Family Office Mode complet", "Comptes enfants", "Scenarios de vie avances"],
       },
       {
         label: "Architecture patrimoniale",
@@ -220,7 +220,7 @@ const plans: Plan[] = [
     capabilityGroups: [
       {
         label: "Dynasty Layer",
-        items: ["Assets illimites", "Projection 30 ans", "Transmission familiale", "Vision generationnelle", "Family Vault", "Heirs mode", "Protection layer"],
+        items: ["Assets financiers illimites", "Immobilier et business illimites", "Projection 30 ans", "Transmission familiale", "Family Vault", "Heirs mode", "Protection layer"],
       },
       {
         label: "Family Office Infrastructure",

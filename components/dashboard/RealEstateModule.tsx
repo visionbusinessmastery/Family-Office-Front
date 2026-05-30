@@ -60,7 +60,14 @@ export default function RealEstateModule({
 }: RealEstateModuleProps) {
   const assets = data?.assets || [];
   const totals = data?.totals || {};
+  const access = data?.access;
   const potentialGain = numberValue(totals.total_potential_gain);
+  const canAddAsset = !access || access.is_unlimited || numberValue(access.remaining) > 0;
+  const accessLine = access
+    ? access.is_unlimited
+      ? `${access.depth_label || "Lecture avancee"} · biens illimites`
+      : `${access.depth_label || "Lecture"} · ${access.count || 0}/${access.limit} biens`
+    : null;
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -71,6 +78,11 @@ export default function RealEstateModule({
             Une catégorie dédiée pour suivre les biens, les plus-values et le
             rendement locatif.
           </p>
+          {accessLine && (
+            <p className="mt-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
+              {accessLine}
+            </p>
+          )}
         </div>
       </div>
 
@@ -119,7 +131,7 @@ export default function RealEstateModule({
                   </p>
                 </div>
 
-                {onAdd && (
+                {onAdd && canAddAsset && (
                   <ActionButton
                     onClick={() => onAdd(type.key)}
                     className="shrink-0"
@@ -134,9 +146,13 @@ export default function RealEstateModule({
                 {categoryAssets.length === 0 ? (
                   <EmptyState
                     title="Aucun bien"
-                    description="Ajoute un premier actif pour suivre achat, valeur cible et performance."
+                    description={
+                      canAddAsset
+                        ? "Ajoute un premier actif pour suivre achat, valeur cible et performance."
+                        : "La limite du plan actuel est atteinte pour les biens immobiliers."
+                    }
                     action={
-                      onAdd ? (
+                      onAdd && canAddAsset ? (
                         <ActionButton onClick={() => onAdd(type.key)} icon="+">
                           Ajouter
                         </ActionButton>

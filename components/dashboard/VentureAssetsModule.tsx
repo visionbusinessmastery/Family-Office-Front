@@ -36,6 +36,13 @@ export default function VentureAssetsModule({
 }: Props) {
   const assets = data?.assets || [];
   const totals = data?.totals || {};
+  const access = data?.access;
+  const canAddAsset = !access || access.is_unlimited || n(access.remaining) > 0;
+  const accessLine = access
+    ? access.is_unlimited
+      ? `${access.depth_label || "Lecture avancee"} · business illimites`
+      : `${access.depth_label || "Lecture"} · ${access.count || 0}/${access.limit} business`
+    : null;
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
@@ -44,6 +51,11 @@ export default function VentureAssetsModule({
         <p className="text-sm text-gray-400">
           CA, charges, resultat, dettes, levees et valorisation.
         </p>
+        {accessLine && (
+          <p className="mt-2 text-xs font-bold uppercase tracking-widest text-emerald-300">
+            {accessLine}
+          </p>
+        )}
       </div>
 
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
@@ -71,7 +83,7 @@ export default function VentureAssetsModule({
               Ces volets restent rattaches a la rubrique Business pour conserver une lecture simple.
             </p>
           </div>
-          {onAdd && (
+          {onAdd && canAddAsset && (
             <div className="flex flex-col gap-2 sm:flex-row">
               <ActionButton onClick={() => onAdd("business")} variant="secondary">
                 Rachat / Reprise
@@ -95,7 +107,7 @@ export default function VentureAssetsModule({
             <div key={type.key} className="bg-white/5 border border-white/10 rounded-2xl p-4">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <h3 className="font-bold">{type.label}</h3>
-                {onAdd && (
+                {onAdd && canAddAsset && (
                   <ActionButton onClick={() => onAdd(type.key)} icon="+">
                     Ajouter
                   </ActionButton>
@@ -108,9 +120,13 @@ export default function VentureAssetsModule({
                 {rows.length === 0 ? (
                   <EmptyState
                     title="Aucun business"
-                    description="Ajoute une ligne pour suivre CA, charges, resultat et valorisation."
+                    description={
+                      canAddAsset
+                        ? "Ajoute une ligne pour suivre CA, charges, resultat et valorisation."
+                        : "La limite du plan actuel est atteinte pour les actifs business."
+                    }
                     action={
-                      onAdd ? (
+                      onAdd && canAddAsset ? (
                         <ActionButton onClick={() => onAdd(type.key)} icon="+">
                           Ajouter
                         </ActionButton>

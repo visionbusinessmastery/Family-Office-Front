@@ -136,6 +136,10 @@ export type ProductContext = {
   entitlements?: {
     plan?: string;
     max_assets?: number | null;
+    max_real_estate_assets?: number | null;
+    real_estate_depth?: string;
+    max_business_assets?: number | null;
+    business_depth?: string;
     ai_level?: string;
     modules?: string[];
     features?: string[];
@@ -641,6 +645,16 @@ export type ProductContext = {
   } | null;
 };
 
+export type AssetAccess = {
+  plan?: string;
+  count?: number;
+  limit?: number | null;
+  remaining?: number | null;
+  depth?: string;
+  depth_label?: string;
+  is_unlimited?: boolean;
+};
+
 export type LegacyOverview = {
   counts?: {
     family_vault?: number;
@@ -692,6 +706,7 @@ export type RealEstatePayload = {
 
 export type RealEstateData = {
   assets: RealEstateAsset[];
+  access?: AssetAccess | null;
   totals: {
     total_purchase?: number | string;
     total_estimated_value?: number | string;
@@ -764,6 +779,7 @@ export type VentureAssetPayload = {
 
 export type VentureAssetData = {
   assets: VentureAsset[];
+  access?: AssetAccess | null;
   totals: {
     total_revenue?: number | string;
     total_charges?: number | string;
