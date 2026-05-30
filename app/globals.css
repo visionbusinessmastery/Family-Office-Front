@@ -55,7 +55,7 @@ body {
   --wr-subtle: #667085;
   --wr-border: rgba(17, 24, 39, 0.12);
   --wr-blue: #0f86d9;
-  --wr-amber: #c2410c;
+  --wr-amber: #b7791f;
 }
 
 :root[data-theme="light"] .bg-black,
@@ -210,7 +210,7 @@ body {
 
 .wealth-line-two {
   animation: wealth-flow 18s linear infinite reverse;
-  stroke: rgba(244, 201, 93, 0.5);
+  stroke: rgba(240, 180, 41, 0.72);
 }
 
 @keyframes wealth-flow {

@@ -4,6 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { useDashboard } from "@/hooks/useDashboard";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  PolarAngleAxis,
+  PolarGrid,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import BrandMark from "@/components/BrandMark";
 import {
   ActionButton,
@@ -54,6 +70,9 @@ import GamificationPanel from "@/components/gamification/GamificationPanel";
 const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
 });
+
+const formatChartMoney = (value: number | string) =>
+  `${money.format(Number(value || 0))} EUR`;
 
 const planOrder: Record<string, number> = {
   FREE: 0,
@@ -187,10 +206,10 @@ function FamilyOfficeModePanel({ product }: { product?: ProductContext | null })
   if (!view || allocation.length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-[#d6b35a]/30 bg-gradient-to-br from-[#151006] via-zinc-950 to-black p-5">
+    <section className="rounded-2xl border border-[#f0b429]/30 bg-gradient-to-br from-[#1f1604] via-zinc-950 to-black p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#d6b35a]">
+          <p className="text-xs uppercase tracking-widest text-[#f0b429]">
             Family Office Mode
           </p>
           <h2 className="mt-1 text-2xl font-black text-white">
@@ -230,11 +249,17 @@ function WealthNarrativePanel({ product }: { product?: ProductContext | null }) 
 
   if (!narrative) return null;
 
+  const potentialData = [
+    { label: "Visible", value: Number(narrative.visible_wealth || 0), fill: "#3fa9f5" },
+    { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#f0b429" },
+    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#ffd166" },
+  ].filter((item) => item.value > 0);
+
   return (
-    <section className="rounded-2xl border border-[#d6b35a]/30 bg-[radial-gradient(circle_at_top_left,_rgba(214,179,90,0.2),_transparent_35%),linear-gradient(135deg,#080808,#141006_60%,#020202)] p-6">
+    <section className="rounded-2xl border border-[#f0b429]/30 bg-[radial-gradient(circle_at_top_left,_rgba(240,180,41,0.28),_transparent_35%),linear-gradient(135deg,#080808,#1c1303_60%,#020202)] p-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#d6b35a]">
+          <p className="text-xs uppercase tracking-widest text-[#f0b429]">
             Wealth Narrative
           </p>
           <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
@@ -262,12 +287,47 @@ function WealthNarrativePanel({ product }: { product?: ProductContext | null }) 
           ))}
         </div>
       </div>
+      {potentialData.length > 0 && (
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Potentiel patrimonial
+              </p>
+              <h3 className="text-lg font-black text-white">
+                Visible vs activable
+              </h3>
+            </div>
+            <p className="text-sm text-gray-500">
+              Donnees consolidees backend
+            </p>
+          </div>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={potentialData} margin={{ left: 4, right: 4, top: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={48} />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  formatter={(value) => formatChartMoney(String(value))}
+                />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {potentialData.map((item) => (
+                    <Cell key={item.label} fill={item.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
       {(hidden?.items || []).length > 0 && (
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
           {(hidden?.items || []).slice(0, 4).map((item) => (
             <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
               <p className="text-sm font-bold text-white">{item.label}</p>
-              <p className="mt-2 text-xl font-black text-[#d6b35a]">
+              <p className="mt-2 text-xl font-black text-[#f0b429]">
                 {money.format(Number(item.potential_value || 0))} EUR
               </p>
               <p className="mt-2 text-xs leading-relaxed text-gray-400">
@@ -289,6 +349,13 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
   const film = future?.film || [];
 
   if (!future) return null;
+
+  const trajectoryData = film
+    .map((chapter) => ({
+      year: String(chapter.year || ""),
+      wealth: Number(chapter.wealth || 0),
+    }))
+    .filter((item) => item.year && item.wealth > 0);
 
   return (
     <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
@@ -323,7 +390,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
           </p>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#d6b35a]"
+              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#f0b429]"
               style={{ width: `${Math.min(100, Number(position?.progress_percent || 0))}%` }}
             />
           </div>
@@ -346,7 +413,32 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
+        {trajectoryData.length > 0 && (
+          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="font-bold text-white">Film du futur</h3>
+              <span className="text-xs text-gray-500">projection backend</span>
+            </div>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trajectoryData} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="year" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={50} />
+                  <Tooltip formatter={(value) => formatChartMoney(String(value))} />
+                  <Line
+                    type="monotone"
+                    dataKey="wealth"
+                    stroke="#3fa9f5"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: "#f0b429", stroke: "#f0b429" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
         <div className="space-y-2">
           {timeline.slice(0, 5).map((stage) => (
             <div key={stage.label} className="grid grid-cols-[90px_1fr_120px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
@@ -361,7 +453,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
             </div>
           ))}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 xl:col-span-2">
           {film.slice(0, 4).map((chapter) => (
             <div key={`${chapter.year}-${chapter.title}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <div className="flex items-center justify-between gap-3">
@@ -404,7 +496,7 @@ function StrategicIntelligencePanel({ product }: { product?: ProductContext | nu
               <p className="mt-3 text-xs font-semibold text-[#3fa9f5]">{card.action}</p>
             ) : null}
             {card.score ? (
-              <p className="mt-3 text-xs font-semibold text-[#d6b35a]">impact {card.score}/100</p>
+              <p className="mt-3 text-xs font-semibold text-[#f0b429]">impact {card.score}/100</p>
             ) : null}
           </div>
         ))}
@@ -421,6 +513,21 @@ function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext |
 
   if (!intelligence) return null;
 
+  const scorecardData = scorecard
+    .slice(0, 6)
+    .map((item) => ({
+      label: String(item.label || ""),
+      score: Number(item.score || 0),
+    }))
+    .filter((item) => item.label);
+  const stressData = stressTests
+    .slice(0, 4)
+    .map((test) => ({
+      label: String(test.label || ""),
+      delta: Number(test.delta || 0),
+    }))
+    .filter((item) => item.label);
+
   return (
     <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
       <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
@@ -432,32 +539,41 @@ function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext |
       <div className="mt-4 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_1fr_1fr]">
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <h3 className="font-bold text-white">Scorecard</h3>
-          <div className="mt-3 space-y-2">
-            {scorecard.slice(0, 6).map((item) => (
-              <div key={item.key || item.label}>
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>{item.label}</span>
-                  <span>{item.score}/100</span>
-                </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-full rounded-full bg-[#d6b35a]" style={{ width: `${Math.min(100, Number(item.score || 0))}%` }} />
-                </div>
-              </div>
-            ))}
+          <div className="mt-3 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart data={scorecardData}>
+                <PolarGrid stroke="rgba(255,255,255,0.12)" />
+                <PolarAngleAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <Tooltip formatter={(value) => `${Number(value || 0)}/100`} />
+                <Radar
+                  dataKey="score"
+                  stroke="#f0b429"
+                  fill="#f0b429"
+                  fillOpacity={0.24}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <h3 className="font-bold text-white">Stress tests</h3>
-          <div className="mt-3 space-y-2">
-            {stressTests.slice(0, 4).map((test) => (
-              <div key={test.key || test.label} className="flex items-center justify-between gap-3 rounded-lg bg-black/30 p-3">
-                <p className="text-sm font-bold text-white">{test.label}</p>
-                <p className={`text-sm font-black ${Number(test.delta || 0) >= 0 ? "text-[#3fa9f5]" : "text-red-300"}`}>
-                  {Number(test.delta || 0) >= 0 ? "+" : ""}
-                  {money.format(Number(test.delta || 0))} EUR
-                </p>
-              </div>
-            ))}
+          <div className="mt-3 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stressData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={48} />
+                <Tooltip formatter={(value) => formatChartMoney(String(value))} />
+                <Bar dataKey="delta" radius={[8, 8, 0, 0]}>
+                  {stressData.map((item) => (
+                    <Cell
+                      key={item.label}
+                      fill={item.delta >= 0 ? "#3fa9f5" : "#ef4444"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
@@ -733,8 +849,6 @@ export default function Dashboard() {
   );
   const globalPortfolioGain =
     portfolioGain + realEstateGain + yieldGain + ventureGain;
-  const globalPortfolioGainClass =
-    globalPortfolioGain >= 0 ? "text-emerald-400" : "text-red-400";
   const businessFinal = yieldFinal + ventureFinal;
   const businessGain = yieldGain + ventureGain;
   const realEstateSummary = {
@@ -1723,7 +1837,7 @@ export default function Dashboard() {
               <SectionHeader
                 eyebrow="Accueil"
                 title="Ton cockpit du jour"
-                description="La synthese immediate: patrimoine, score, progression et prochaine action utile."
+                description="Une vue complete mais lisible: trajectoire, decisions, domaines patrimoniaux et prochaine action utile."
               />
 
               <DailyWealthCheck
@@ -1746,107 +1860,86 @@ export default function Dashboard() {
 
               <FamilyOfficeModePanel product={product} />
 
-              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-gradient-to-br from-[#08131f] via-black to-[#0b2035] p-6">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_1.4fr]">
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
-                    <p className="text-sm uppercase tracking-widest text-[#3fa9f5]">
-                      Patrimoine centralise
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Domaines patrimoniaux
                     </p>
-                    <div className="mt-4 flex items-center gap-4">
-                      <span className="rounded-full bg-[#3fa9f5]/20 px-4 py-2 text-[#3fa9f5]">
-                        {product?.progression?.level || commandCenter?.level || "Starter"}
-                      </span>
-                      <span className="text-5xl font-black">{globalScore}/100</span>
-                    </div>
-                    <p className="mt-4 text-gray-400">
-                      Plan {product?.plan || dashboard?.plan || "charge"} ·{" "}
-                      {product?.progression?.status || "Foundation"}
-                    </p>
+                    <h2 className="mt-1 text-2xl font-bold">
+                      Ou se situe la valeur aujourd&apos;hui
+                    </h2>
                   </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <button onClick={() => goToSection("settings")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
-                      <p className="text-xs text-gray-400">Patrimoine global</p>
-                      <h3 className="mt-2 text-2xl font-black">
-                        {money.format(backendGlobalWealth)} EUR
-                      </h3>
-                    </button>
-                    <button onClick={() => goToSection("investments")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
-                      <p className="text-xs text-gray-400">+/- value</p>
-                      <h3 className={`mt-2 text-2xl font-black ${globalPortfolioGainClass}`}>
-                        {globalPortfolioGain >= 0 ? "+" : ""}
-                        {money.format(globalPortfolioGain)} EUR
-                      </h3>
-                    </button>
-                    <button onClick={() => goToSection("progression")} className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-left ${interactiveCard}`}>
-                      <p className="text-xs text-gray-400">Complétion</p>
-                      <h3 className="mt-2 text-2xl font-black text-[#3fa9f5]">
-                        {product?.data_profile?.completion_percent || 0}%
-                      </h3>
-                    </button>
-                  </div>
+                  <p className="text-sm text-gray-500">
+                    {money.format(backendGlobalWealth)} EUR consolides
+                  </p>
                 </div>
 
-                {categoryCounts.length > 0 && (
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {categoryCounts.slice(0, 6).map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => goToSection(getCategoryTarget(item.label))}
-                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-                    >
-                      <span className="text-gray-400">{item.label}</span>{" "}
-                      <span className="font-bold text-white">{item.value}</span>
-                    </button>
-                    ))}
-                  </div>
-                )}
-              </section>
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                  {[realEstateSummary, investmentSummary, businessSummary].map((item) => {
+                    const percent =
+                      backendGlobalWealth > 0
+                        ? Math.min(100, (item.value / backendGlobalWealth) * 100)
+                        : 0;
+                    const target =
+                      item.label === "Immobilier"
+                        ? "real_estate"
+                        : item.label === "Investissements"
+                          ? "investments"
+                          : "ventures";
 
-              <section className="grid grid-cols-1 gap-3">
-                {[realEstateSummary, investmentSummary, businessSummary].map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() =>
-                      goToSection(
-                        item.label === "Immobilier"
-                          ? "real_estate"
-                          : item.label === "Investissements"
-                            ? "investments"
-                            : "ventures"
-                      )
-                    }
-                    className={`rounded-2xl border border-white/10 bg-zinc-950 p-4 text-left ${interactiveCard}`}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                          {item.label}
-                        </p>
-                        <p className="mt-1 text-sm text-gray-400">
-                          {item.count} element{item.count > 1 ? "s" : ""} suivi{item.count > 1 ? "s" : ""}
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-right sm:min-w-[320px]">
-                        <div>
-                          <p className="text-xs text-gray-500">Valeur</p>
-                          <p className="text-lg font-black text-white">
-                            {money.format(item.value)} EUR
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">Resultat</p>
-                          <p className={`text-lg font-black ${item.gain >= 0 ? "text-[#3fa9f5]" : "text-red-400"}`}>
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => goToSection(target)}
+                        className={`rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left ${interactiveCard}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                              {item.label}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {item.count} element{item.count > 1 ? "s" : ""} suivi{item.count > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                          <p className={`text-sm font-black ${item.gain >= 0 ? "text-[#3fa9f5]" : "text-red-400"}`}>
                             {item.gain >= 0 ? "+" : ""}
                             {money.format(item.gain)} EUR
                           </p>
                         </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </section>
+                        <p className="mt-4 text-2xl font-black text-white">
+                          {money.format(item.value)} EUR
+                        </p>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#f0b429]"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                          {Math.round(percent)}% du patrimoine consolide
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
 
+                {categoryCounts.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {categoryCounts.slice(0, 8).map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => goToSection(getCategoryTarget(item.label))}
+                        className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.04]"
+                      >
+                        <span className="text-gray-400">{item.label}</span>{" "}
+                        <span className="font-bold text-white">{item.value}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div>
