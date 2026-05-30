@@ -67,6 +67,30 @@ type ScheduleDowngradeResponse = {
   change_type?: string;
 };
 
+const planPromise: Record<Plan["id"], string> = {
+  gold: "Je comprends mon patrimoine.",
+  elite: "J'optimise mon patrimoine.",
+  liberty: "Je pilote mon patrimoine.",
+  legacy: "Je construis un patrimoine transmissible.",
+};
+
+const planTransition: Record<Plan["id"], string> = {
+  gold: "A ce niveau, tu passes de la simple lecture a une comprehension claire de ta trajectoire.",
+  elite: "A ce niveau, tu passes de la comprehension a l'optimisation active.",
+  liberty: "A ce niveau, tu passes de l'optimisation au pilotage Family Office.",
+  legacy: "A ce niveau, tu passes du pilotage a la transmission familiale structuree.",
+};
+
+const nextLevelPreview: Record<Plan["id"], string> = {
+  gold: "Passe a Elite quand tu veux optimiser avec scenarios, stress tests et lecture operationnelle.",
+  elite: "Passe a Liberty quand tu veux piloter plusieurs objectifs, arbitrages et dimensions familiales.",
+  liberty: "Passe a Dynasty quand la transmission, la gouvernance et la protection deviennent centrales.",
+  legacy: "Le niveau le plus complet pour organiser la continuite patrimoniale familiale.",
+};
+
+const isSystemCapacity = (item: string) =>
+  /asset|assets|bien|biens|immobilier|business|illimite|illimites/i.test(item);
+
 const planOrder: Record<string, number> = {
   FREE: 0,
   GOLD: 1,
@@ -121,7 +145,7 @@ const plans: Plan[] = [
     rank: "Niveau 1",
     badge: "Growth Layer",
     altBadge: "Ethan flottant",
-    transformation: "Comprendre ou vous en etes, ou vous allez et quoi faire maintenant",
+    transformation: planTransition.gold,
     unlock: "Patrimoine activable + Future Intelligence + Decision Intelligence",
     includes: "Inclut FREE",
     price: {
@@ -161,7 +185,7 @@ const plans: Plan[] = [
     rank: "Niveau 2",
     badge: "Strategic OS",
     altBadge: "Wealth OS",
-    transformation: "Optimiser votre trajectoire au lieu de seulement la suivre",
+    transformation: planTransition.elite,
     unlock: "Family Office CEO + simulations avancees",
     includes: "Tout GOLD inclus",
     price: {
@@ -201,7 +225,7 @@ const plans: Plan[] = [
     rank: "Niveau 3",
     badge: "Family Office",
     altBadge: "Private Access",
-    transformation: "Prendre de meilleures decisions patrimoniales avec une logique Family Office",
+    transformation: planTransition.liberty,
     unlock: "Arbitrages Family Office + objectifs avances",
     includes: "Tout ELITE inclus",
     price: {
@@ -241,7 +265,7 @@ const plans: Plan[] = [
     rank: "Niveau 4",
     badge: "Dynasty Grade",
     altBadge: "Dynasty Office",
-    transformation: "Organiser la protection, la transmission et la gouvernance familiale",
+    transformation: planTransition.legacy,
     unlock: "Unlock Dynasty Infrastructure",
     includes: "Tout LIBERTY inclus",
     price: {
@@ -386,7 +410,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
     } catch (err) {
       console.error(err);
       setMessage(
-        "Impossible d'ouvrir le paiement. RÃ©essaie dans quelques instants."
+        "Impossible d'ouvrir le paiement. Reessaie dans quelques instants."
       );
     } finally {
       setLoadingPlan(null);
@@ -450,17 +474,17 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
           <div className="relative">
             <p className="text-xs uppercase tracking-[0.35em] text-[#3fa9f5]">
-              WHITE ROCK Plans
+              Plans White Rock
             </p>
             <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="max-w-4xl text-3xl font-black leading-tight sm:text-5xl">
-                  {founder ? "Founder Access" : "Montez dans le Wealth OS"}
+                  {founder ? "Founder Access" : "Choisis ton niveau White Rock"}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-300 sm:text-base">
                   {founder
-                    ? "Une fenÃªtre limitÃ©e pour entrer plus tÃ´t dans l'architecture White Rock, avec une perception de statut plus rare et plus fondatrice."
-                    : "Chaque niveau inclut le prÃ©cÃ©dent et dÃ©bloque une couche plus sophistiquÃ©e de pilotage patrimonial."}
+                    ? "Une fenetre limitee pour entrer plus tot dans l'architecture White Rock, avec une perception de statut plus rare et plus fondatrice."
+                    : "Chaque niveau represente une maturite patrimoniale plus avancee: comprendre, optimiser, piloter, transmettre."}
                 </p>
               </div>
 
@@ -476,7 +500,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                           : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
                       }`}
                     >
-                      {item === "monthly" ? "Monthly" : "Yearly - 2 mois offerts"}
+                      {item === "monthly" ? "Mensuel" : "Annuel - 2 mois offerts"}
                     </button>
                   ))}
                 </div>
@@ -499,8 +523,8 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
         {founder && (
           <div className="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-sm leading-relaxed text-emerald-100">
-            Founder Access est pensÃ© comme une entrÃ©e rare : mÃªme parcours de paiement,
-            mÃªme sÃ©curitÃ©, mais une prÃ©sentation plus exclusive pour les premiers membres.
+            Founder Access est pense comme une entree rare : meme parcours de paiement,
+            meme securite, mais une presentation plus exclusive pour les premiers membres.
           </div>
         )}
 
@@ -586,16 +610,27 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
             const targetPlan = plan.id.toUpperCase();
             const targetRank = planOrder[targetPlan] ?? 0;
             const backendPlan = backendPlans[plan.id];
-            const planPromise =
-              backendPlan?.entitlements?.copy?.promise || plan.transformation;
+            const displayedPromise =
+              backendPlan?.entitlements?.copy?.promise ||
+              planPromise[plan.id] ||
+              plan.transformation;
             const displayGroups =
               backendPlan?.entitlements?.pricing_groups?.length
                 ? backendPlan.entitlements.pricing_groups
                 : plan.capabilityGroups;
+            const capacityItems = displayGroups.flatMap((group) =>
+              group.items.filter(isSystemCapacity)
+            );
+            const capabilityGroups = displayGroups
+              .map((group) => ({
+                ...group,
+                items: group.items.filter((item) => !isSystemCapacity(item)),
+              }))
+              .filter((group) => group.items.length > 0);
             const isCurrentPlan = targetPlan === currentPlan && !pendingPlan;
             const isPendingPlan = targetPlan === pendingPlan;
             const isDowngrade = targetRank < currentRank;
-            const optionCount = displayGroups.reduce(
+            const capabilityCount = capabilityGroups.reduce(
               (total, group) => total + group.items.length,
               0
             );
@@ -636,7 +671,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
                   <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
                     <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      {plan.includes}
+                      Promesse
                     </p>
                     <div className="mt-3 flex items-end gap-2">
                       <p className="text-3xl font-black tracking-tight">{displayPrice}</p>
@@ -648,15 +683,21 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                       </p>
                     )}
                     <p className="mt-3 text-sm font-semibold text-gray-200">
-                      {planPromise}
+                      {displayedPromise}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-gray-500">
+                      {plan.includes}
                     </p>
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4">
                     <p className="text-xs uppercase tracking-widest text-emerald-300">
-                      Ce que vous dÃ©bloquez
+                      Ce qui change
                     </p>
-                    <p className="mt-2 text-sm font-black text-white">{plan.unlock}</p>
+                    <p className="mt-2 text-sm font-black text-white">{plan.transformation}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-emerald-100/80">
+                      {plan.unlock}
+                    </p>
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 gap-2">
@@ -670,10 +711,10 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                        Options
+                        Capacites
                       </p>
                       <p className="mt-1 text-lg font-black text-white">
-                        {optionCount}
+                        {capabilityCount}
                       </p>
                     </div>
                     <div className={`rounded-2xl border p-3 ${depth.tone}`}>
@@ -711,7 +752,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                   </div>
 
                   <div className="mt-5 space-y-3">
-                    {displayGroups.map((group) => (
+                    {capabilityGroups.map((group) => (
                       <div key={group.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
                         <p className="text-xs font-black uppercase tracking-widest text-gray-500">
                           {group.label}
@@ -726,6 +767,33 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                         </ul>
                       </div>
                     ))}
+                  </div>
+
+                  {capacityItems.length > 0 && (
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                      <p className="text-xs font-black uppercase tracking-widest text-gray-500">
+                        Capacite systeme
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {capacityItems.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-gray-300"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+                    <p className="text-xs font-black uppercase tracking-widest text-[#8bd0ff]">
+                      Niveau suivant
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-gray-300">
+                      {nextLevelPreview[plan.id]}
+                    </p>
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-2">
