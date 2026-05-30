@@ -245,12 +245,6 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
 
   if (!narrative) return null;
 
-  const potentialData = [
-    { label: "Visible", value: Number(narrative.visible_wealth || 0), fill: "#3fa9f5" },
-    { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#ffd21a" },
-    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#16d99a" },
-  ].filter((item) => item.value > 0);
-
   return (
     <section className="rounded-2xl border border-[#ffd21a]/30 bg-[radial-gradient(circle_at_top_left,_rgba(255,210,26,0.24),_transparent_35%),linear-gradient(135deg,#080808,#1b1503_58%,#020202)] p-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
@@ -298,41 +292,6 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
           ))}
         </div>
       </div>
-      {potentialData.length > 0 && (
-        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-gray-500">
-                Potentiel patrimonial
-              </p>
-              <h3 className="text-lg font-black text-white">
-                Visible vs activable
-              </h3>
-            </div>
-            <p className="text-sm text-gray-500">
-              Lecture consolidee White Rock
-            </p>
-          </div>
-          <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={potentialData} margin={{ left: 4, right: 4, top: 8, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
-                <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={48} />
-                <Tooltip
-                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
-                  formatter={(value) => formatChartMoney(String(value))}
-                />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {potentialData.map((item) => (
-                    <Cell key={item.label} fill={item.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
       {domains.length > 0 && (
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-3">
           {domains.slice(0, 3).map((item) => (

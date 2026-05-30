@@ -52,15 +52,7 @@ export default function FinanceModule({ overview }: FinanceModuleProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <p className="text-xs uppercase tracking-widest text-gray-500">
-            Reste a vivre
-          </p>
-          <p className="mt-2 text-xl font-black text-white">
-            {money.format(n(totals.living_margin))} EUR
-          </p>
-        </div>
+      <div className="grid grid-cols-1 gap-4">
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">
             Taux d'epargne suivi

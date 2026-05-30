@@ -151,7 +151,8 @@ export default function OpportunitiesModule({
   const renderOpportunityCard = (
     opportunity: Opportunity,
     index: number,
-    variant: "primary" | "standard" = "standard"
+    variant: "primary" | "standard" = "standard",
+    showAction = true
   ) => {
     const priority = opportunity.priority || "medium";
     const badgeClass = priorityClasses[priority] || priorityClasses.medium;
@@ -205,7 +206,7 @@ export default function OpportunitiesModule({
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-          {opportunity.next_action && (
+          {showAction && opportunity.next_action && (
             <div className="rounded-xl border border-white/10 bg-black/25 p-2">
               <p className="text-gray-500">Action</p>
               <p className="mt-1 text-gray-300">{opportunity.next_action}</p>
@@ -278,7 +279,7 @@ export default function OpportunitiesModule({
             )}
           </div>
 
-          {topOpportunity && renderOpportunityCard(topOpportunity, 0, "primary")}
+          {topOpportunity && renderOpportunityCard(topOpportunity, 0, "primary", false)}
 
           {secondaryOpportunities.length > 0 && (
             <div>
