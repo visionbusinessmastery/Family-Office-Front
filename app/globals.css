@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --wr-blue: #3fa9f5;
+  --wr-blue-deep: #2588d2;
+  --wr-blue-soft: #8bd0ff;
+  --wr-gold: #ffd21a;
+  --wr-gold-soft: #ffe37a;
+  --wr-gold-deep: #c99700;
+  --wr-green: #20c997;
+  --wr-green-soft: #68e6bf;
+  --wr-green-deep: #0f8f6d;
 }
 
 :root[data-theme="dark"],
@@ -70,7 +79,12 @@ body::-webkit-scrollbar,
   --wr-subtle: #667085;
   --wr-border: rgba(17, 24, 39, 0.12);
   --wr-blue: #0f86d9;
-  --wr-amber: #b7791f;
+  --wr-amber: #b68a00;
+  --wr-gold: #c99700;
+  --wr-gold-soft: #9f7300;
+  --wr-green: #0f8f6d;
+  --wr-green-soft: #0b6f55;
+  --wr-green-deep: #075c47;
 }
 
 :root[data-theme="light"] .bg-black,
@@ -147,13 +161,30 @@ body::-webkit-scrollbar,
 :root[data-theme="light"] .text-yellow-400,
 :root[data-theme="light"] .text-amber-100,
 :root[data-theme="light"] .text-amber-200,
-:root[data-theme="light"] .text-amber-300 {
+:root[data-theme="light"] .text-amber-300,
+:root[data-theme="light"] .text-\[\#ffd21a\] {
   color: var(--wr-amber) !important;
 }
 
+:root[data-theme="light"] .text-emerald-100,
+:root[data-theme="light"] .text-emerald-200,
+:root[data-theme="light"] .text-emerald-300,
+:root[data-theme="light"] .text-emerald-400,
+:root[data-theme="light"] .text-green-400,
+:root[data-theme="light"] .text-\[\#20c997\] {
+  color: var(--wr-green-deep) !important;
+}
+
 :root[data-theme="light"] .bg-yellow-500\/10,
-:root[data-theme="light"] .bg-amber-300\/10 {
+:root[data-theme="light"] .bg-amber-300\/10,
+:root[data-theme="light"] .bg-\[\#ffd21a\]\/10 {
   background-color: rgba(255, 237, 213, 0.9) !important;
+}
+
+:root[data-theme="light"] .bg-emerald-300\/10,
+:root[data-theme="light"] .bg-emerald-400\/10,
+:root[data-theme="light"] .bg-emerald-500\/10 {
+  background-color: rgba(15, 143, 109, 0.1) !important;
 }
 
 :root[data-theme="light"] .border-yellow-500\/30,
@@ -161,8 +192,19 @@ body::-webkit-scrollbar,
 :root[data-theme="light"] .border-amber-300\/25,
 :root[data-theme="light"] .border-amber-300\/30,
 :root[data-theme="light"] .border-amber-300\/35,
-:root[data-theme="light"] .border-amber-300\/40 {
+:root[data-theme="light"] .border-amber-300\/40,
+:root[data-theme="light"] .border-\[\#ffd21a\]\/30,
+:root[data-theme="light"] .border-\[\#ffd21a\]\/35 {
   border-color: rgba(194, 65, 12, 0.28) !important;
+}
+
+:root[data-theme="light"] .border-emerald-300\/20,
+:root[data-theme="light"] .border-emerald-300\/25,
+:root[data-theme="light"] .border-emerald-300\/30,
+:root[data-theme="light"] .border-emerald-300\/40,
+:root[data-theme="light"] .border-emerald-500\/25,
+:root[data-theme="light"] .border-emerald-500\/30 {
+  border-color: rgba(15, 143, 109, 0.24) !important;
 }
 
 :root[data-theme="light"] .bg-\[\#3fa9f5\],
@@ -190,6 +232,118 @@ body::-webkit-scrollbar,
 :root[data-theme="light"] .border-\[\#3fa9f5\]\/50,
 :root[data-theme="light"] .border-\[\#3fa9f5\]\/60 {
   border-color: rgba(15, 134, 217, 0.26) !important;
+}
+
+.text-\[\#f0b429\],
+.text-\[\#ffd166\],
+.text-yellow-100,
+.text-yellow-200,
+.text-yellow-300,
+.text-yellow-400,
+.text-amber-100,
+.text-amber-200,
+.text-amber-300 {
+  color: var(--wr-gold-soft) !important;
+}
+
+.bg-\[\#f0b429\],
+.bg-\[\#ffd166\],
+.bg-yellow-300,
+.bg-yellow-400,
+.bg-yellow-500,
+.bg-amber-200,
+.bg-amber-300 {
+  background-color: var(--wr-gold) !important;
+}
+
+.bg-\[\#f0b429\]\/10,
+.bg-yellow-300\/10,
+.bg-yellow-300\/14,
+.bg-yellow-300\/16,
+.bg-yellow-500\/10,
+.bg-amber-200\/\[0\.07\],
+.bg-amber-200\/\[0\.08\],
+.bg-amber-200\/10,
+.bg-amber-300\/10,
+.bg-amber-300\/12,
+.bg-amber-300\/15,
+.bg-amber-300\/20,
+.bg-amber-300\/30 {
+  background-color: color-mix(in srgb, var(--wr-gold) 13%, transparent) !important;
+}
+
+.border-\[\#f0b429\]\/30,
+.border-\[\#f0b429\]\/35,
+.border-yellow-300\/55,
+.border-yellow-300\/60,
+.border-yellow-500\/30,
+.border-amber-200\/25,
+.border-amber-200\/35,
+.border-amber-200\/45,
+.border-amber-300\/20,
+.border-amber-300\/25,
+.border-amber-300\/30,
+.border-amber-300\/35,
+.border-amber-300\/40,
+.border-amber-300\/45,
+.border-amber-300\/50,
+.border-amber-300\/55,
+.border-amber-300,
+.border-r-amber-300 {
+  border-color: color-mix(in srgb, var(--wr-gold) 42%, transparent) !important;
+}
+
+.text-amber-100\/80,
+.text-amber-100\/90,
+.text-amber-200\/80 {
+  color: color-mix(in srgb, var(--wr-gold-soft) 80%, transparent) !important;
+}
+
+.from-amber-200\/20,
+.from-amber-300\/30,
+.from-yellow-300\/36 {
+  --tw-gradient-from: color-mix(in srgb, var(--wr-gold) 26%, transparent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--wr-gold) 0%, transparent) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.via-amber-300\/20,
+.via-orange-300\/12 {
+  --tw-gradient-to: color-mix(in srgb, var(--wr-gold) 0%, transparent) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--wr-gold) 16%, transparent) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.text-green-400,
+.text-emerald-100,
+.text-emerald-200,
+.text-emerald-300,
+.text-emerald-400 {
+  color: var(--wr-green-soft) !important;
+}
+
+.bg-green-500,
+.bg-emerald-300,
+.bg-emerald-400,
+.bg-emerald-500 {
+  background-color: var(--wr-green) !important;
+}
+
+.bg-green-500\/10,
+.bg-emerald-300\/10,
+.bg-emerald-400\/10,
+.bg-emerald-500\/10 {
+  background-color: color-mix(in srgb, var(--wr-green) 13%, transparent) !important;
+}
+
+.border-green-500\/30,
+.border-emerald-300\/20,
+.border-emerald-300\/25,
+.border-emerald-300\/30,
+.border-emerald-300\/40,
+.border-emerald-300\/45,
+.border-emerald-500\/25,
+.border-emerald-500\/30 {
+  border-color: color-mix(in srgb, var(--wr-green) 36%, transparent) !important;
 }
 
 :root[data-theme="light"] input,

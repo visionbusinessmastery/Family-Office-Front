@@ -204,15 +204,15 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
 
   const potentialData = [
     { label: "Visible", value: Number(narrative.visible_wealth || 0), fill: "#3fa9f5" },
-    { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#f0b429" },
-    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#ffd166" },
+    { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#ffd21a" },
+    { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#20c997" },
   ].filter((item) => item.value > 0);
 
   return (
-    <section className="rounded-2xl border border-[#f0b429]/30 bg-[radial-gradient(circle_at_top_left,_rgba(240,180,41,0.28),_transparent_35%),linear-gradient(135deg,#080808,#1c1303_60%,#020202)] p-6">
+    <section className="rounded-2xl border border-[#ffd21a]/30 bg-[radial-gradient(circle_at_top_left,_rgba(255,210,26,0.24),_transparent_35%),linear-gradient(135deg,#080808,#1b1503_58%,#020202)] p-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#f0b429]">
+          <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
             {narrative.title || "Wealth Intelligence"}
           </p>
           <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
@@ -222,8 +222,8 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
             {narrative.narrative}
           </p>
           {narrative.memorable_insight ? (
-            <div className="mt-5 rounded-2xl border border-[#f0b429]/30 bg-[#f0b429]/10 p-4">
-              <p className="text-xs uppercase tracking-widest text-[#f0b429]">
+            <div className="mt-5 rounded-2xl border border-[#ffd21a]/30 bg-[#ffd21a]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
                 Insight memorable
               </p>
               <p className="mt-2 text-lg font-black leading-snug text-white">
@@ -312,7 +312,7 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
           {hiddenItems.slice(0, 4).map((item) => (
             <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
               <p className="text-sm font-bold text-white">{item.label}</p>
-              <p className="mt-2 text-xl font-black text-[#f0b429]">
+              <p className="mt-2 text-xl font-black text-[#ffd21a]">
                 {money.format(Number(item.potential_value || 0))} EUR
               </p>
               <p className="mt-2 text-xs leading-relaxed text-gray-400">
@@ -339,10 +339,10 @@ function FamilyOfficeCeoPanel({ product }: { product?: ProductContext | null }) 
         : "A confirmer";
 
   return (
-    <section className="rounded-2xl border border-[#f0b429]/35 bg-[radial-gradient(circle_at_top_right,_rgba(240,180,41,0.2),_transparent_34%),linear-gradient(135deg,#070707,#111827_58%,#1c1303)] p-5">
+    <section className="rounded-2xl border border-[#ffd21a]/35 bg-[radial-gradient(circle_at_top_right,_rgba(255,210,26,0.18),_transparent_34%),linear-gradient(135deg,#070707,#111827_58%,#1b1503)] p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#f0b429]">
+          <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
             {ceo.title || "Family Office CEO"}
           </p>
           <h2 className="mt-1 text-2xl font-black text-white">
@@ -384,7 +384,7 @@ function FamilyOfficeCeoPanel({ product }: { product?: ProductContext | null }) 
       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">Runway</p>
-          <p className="mt-2 text-xl font-black text-[#f0b429]">{runway}</p>
+          <p className="mt-2 text-xl font-black text-[#ffd21a]">{runway}</p>
           <p className="mt-1 text-xs text-gray-500">Lecture operationnelle White Rock</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
@@ -460,7 +460,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
           </p>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] to-[#f0b429]"
+              className="h-full rounded-full bg-gradient-to-r from-[#3fa9f5] via-[#20c997] to-[#ffd21a]"
               style={{ width: `${Math.min(100, Number(position?.progress_percent || 0))}%` }}
             />
           </div>
@@ -502,7 +502,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
                     dataKey="wealth"
                     stroke="#3fa9f5"
                     strokeWidth={3}
-                    dot={{ r: 3, fill: "#f0b429", stroke: "#f0b429" }}
+                    dot={{ r: 3, fill: "#ffd21a", stroke: "#ffd21a" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -581,7 +581,7 @@ function DecisionIntelligencePanel({ product }: { product?: ProductContext | nul
               <p className="mt-3 text-xs font-semibold text-[#3fa9f5]">{card.action}</p>
             ) : null}
             {card.score ? (
-              <p className="mt-3 text-xs font-semibold text-[#f0b429]">impact {card.score}/100</p>
+              <p className="mt-3 text-xs font-semibold text-[#ffd21a]">impact {card.score}/100</p>
             ) : null}
           </div>
         ))}
@@ -632,8 +632,8 @@ function FamilyOfficeIntelligencePanel({ product }: { product?: ProductContext |
                 <Tooltip formatter={(value) => `${Number(value || 0)}/100`} />
                 <Radar
                   dataKey="score"
-                  stroke="#f0b429"
-                  fill="#f0b429"
+                  stroke="#ffd21a"
+                  fill="#ffd21a"
                   fillOpacity={0.24}
                 />
               </RadarChart>
