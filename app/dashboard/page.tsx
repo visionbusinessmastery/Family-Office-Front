@@ -2190,23 +2190,23 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Finances"
-                title="Financial Clarity"
-                description="Cashflow, reste a vivre, epargne et dettes. Cette section clarifie ta marge de liberte mensuelle."
+                title="Donnees financieres"
+                description="Revenus, charges, epargne et dettes. Cette page sert a tenir les donnees financieres a jour."
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">
-                      Realite financiere actuelle
+                      Lignes suivies
                     </p>
-                    <h2 className="mt-1 text-2xl font-bold">Marge de liberte</h2>
+                    <h2 className="mt-1 text-2xl font-bold">Flux mensuel</h2>
                   </div>
                   <button
                     onClick={handleUpdateOnboarding}
                     className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-bold text-gray-100 transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/10"
                   >
-                    Modifier le profil
+                    Modifier le profil financier
                   </button>
                 </div>
                 <FinanceModule overview={financeOverview} />

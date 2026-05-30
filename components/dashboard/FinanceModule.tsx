@@ -32,14 +32,8 @@ export default function FinanceModule({ overview }: FinanceModuleProps) {
           {money.format(cashflow)} EUR
         </h3>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-300">
-          {overview?.reading ||
-            "Ajoute tes revenus et charges pour obtenir une lecture fiable de ta marge de liberte mensuelle."}
+          Calcul base sur les revenus et les charges renseignes ci-dessous.
         </p>
-        {overview?.priority && (
-          <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">
-            {overview.priority}
-          </p>
-        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -89,7 +83,7 @@ export default function FinanceModule({ overview }: FinanceModuleProps) {
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">
-            Taux de marge
+            Taux d'epargne suivi
           </p>
           <p className="mt-2 text-xl font-black text-white">
             {n(ratios.savings_rate).toFixed(1)}%
