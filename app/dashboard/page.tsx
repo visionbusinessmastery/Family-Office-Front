@@ -1327,20 +1327,24 @@ export default function Dashboard() {
     setToast({ message, type });
   };
 
-  const loadWealthProfile = useCallback(async () => {
-    if (!token) return null;
+  const fetchWealthProfile = useCallback(
+    async (currentToken: string | null) => {
+      if (!currentToken) return null;
 
-    try {
-      const data = await apiFetch<{ profile?: WealthProfile }>("/profile/me", token);
-      const profile = data.profile || {};
-      setWealthProfile(profile);
-      return profile;
-    } catch (err) {
-      console.error(err);
-      setWealthProfile({});
-      return {};
-    }
-  }, [token]);
+      try {
+        const data = await apiFetch<{ profile?: WealthProfile }>(
+          "/profile/me",
+          currentToken
+        );
+
+        return data.profile || {};
+      } catch (err) {
+        console.error(err);
+        return {};
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1358,10 +1362,14 @@ export default function Dashboard() {
   }, [router]);
 
   useEffect(() => {
-    if (!["profile", "settings"].includes(activeSection) || !token) return;
-    loadWealthProfile();
-  }, [activeSection, loadWealthProfile, token]);
+    if (!token) return;
+    if (!["profile", "settings"].includes(activeSection)) return;
 
+    fetchWealthProfile(token).then((profile) => {
+      if (profile) setWealthProfile(profile);
+    });
+  }, [activeSection, token, fetchWealthProfile]);
+  
   const updateModalValue = (key: string, value: string) => {
     setFormModal((current) =>
       current
@@ -1462,7 +1470,7 @@ export default function Dashboard() {
       .map((module) => module.key) || []
   );
   const currentPlan =
-    billingSubscription?.plan || product?.plan || dashboard?.plan;
+    billingSubscription?.plan || product?.plan || dashboard?.plan || "FREE";
   const currentPlanKey = normalizePlan(currentPlan);
   const currentPlanCopy =
     planExperienceCopy[currentPlanKey] || planExperienceCopy.FREE;
@@ -1632,7 +1640,8 @@ export default function Dashboard() {
     },
   ];
   const handleUpdateOnboarding = async () => {
-    const profile = (await loadWealthProfile()) || wealthProfile || {};
+    const profile =
+      (await fetchWealthProfile(token)) || wealthProfile || {};
 
     setFormModal({
       kind: "onboarding",
@@ -2023,7 +2032,7 @@ export default function Dashboard() {
           }),
         });
 
-        await loadWealthProfile();
+        await fetchWealthProfile(token);
         await refreshAfterMutation();
         showToast("Profil utilisateur mis a jour.", "success");
       }
@@ -2648,14 +2657,14 @@ export default function Dashboard() {
                 portfolio={portfolio}
                 realEstate={realEstate}
                 ventureAssets={ventureAssets}
-                plan={currentPlan || "FREE"}
-                level={product?.progression?.level || commandCenter?.level || dashboard?.level || "Foundation"}
+                plan={currentPlan}
+                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
               />
 
               <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
                 <PremiumOpportunityCounter
                   commandCenter={commandCenter}
-                  currentPlan={currentPlan || "FREE"}
+                  currentPlan={currentPlan}
                   onUpgrade={handleUpgradePlan}
                 />
                 <PlanComparisonWidget currentPlanKey={currentPlanKey} />
@@ -3751,6 +3760,10 @@ export default function Dashboard() {
     </main>
   );
 }
+
+
+
+
 
 
 
