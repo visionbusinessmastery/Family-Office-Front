@@ -36,7 +36,7 @@ export default function EthanFloatingAdvisor() {
 
       try {
         const product = await apiRequest<Pick<ProductContext, "entitlements">>(
-          "/product/entitlements",
+          "/product/context",
           token
         );
         if (cancelled) return;

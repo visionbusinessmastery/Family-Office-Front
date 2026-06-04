@@ -1,0 +1,363 @@
+[33mcommit ef760c970d9fee9675938e7f01ca67d8291fc7c4[m
+Author: visionbusinessmastery <visionbusinessmastery@gmail.com>
+Date:   Sat May 30 14:36:52 2026 -0400
+
+    Improve billing plan experience
+
+[1mdiff --git a/app/dashboard/page.tsx b/app/dashboard/page.tsx[m
+[1mindex a9a7116..847f629 100644[m
+[1m--- a/app/dashboard/page.tsx[m
+[1m+++ b/app/dashboard/page.tsx[m
+[36m@@ -79,6 +79,39 @@[m [mconst planOrder: Record<string, number> = {[m
+   LEGACY: 4,[m
+ };[m
+ [m
+[32m+[m[32mconst planSequence = ["FREE", "GOLD", "ELITE", "LIBERTY", "LEGACY"];[m
+[32m+[m
+[32m+[m[32mconst planExperienceCopy: Record<[m
+[32m+[m[32m  string,[m
+[32m+[m[32m  { name: string; promise: string; unlocks: string[] }[m
+[32m+[m[32m> = {[m
+[32m+[m[32m  FREE: {[m
+[32m+[m[32m    name: "Foundation",[m
+[32m+[m[32m    promise: "Ton patrimoine commence a prendre forme.",[m
+[32m+[m[32m    unlocks: ["Gold - Growth", "Future Intelligence", "Wealth Narrative", "Patrimoine activable"],[m
+[32m+[m[32m  },[m
+[32m+[m[32m  GOLD: {[m
+[32m+[m[32m    name: "Gold - Growth",[m
+[32m+[m[32m    promise: "Accelere ta croissance patrimoniale.",[m
+[32m+[m[32m    unlocks: ["Elite - Wealth OS", "Family Office CEO", "Simulations avancees", "Lecture operationnelle"],[m
+[32m+[m[32m  },[m
+[32m+[m[32m  ELITE: {[m
+[32m+[m[32m    name: "Elite - Wealth OS",[m
+[32m+[m[32m    promise: "Pilote ton patrimoine comme un systeme.",[m
+[32m+[m[32m    unlocks: ["Liberty - Sovereign Wealth", "Comptes enfants", "Arbitrages avances", "Objectifs patrimoniaux"],[m
+[32m+[m[32m  },[m
+[32m+[m[32m  LIBERTY: {[m
+[32m+[m[32m    name: "Liberty - Sovereign Wealth",[m
+[32m+[m[32m    promise: "Prends le controle de ta richesse.",[m
+[32m+[m[32m    unlocks: ["Dynasty Office", "Transmission Center", "Gouvernance familiale", "Succession"],[m
+[32m+[m[32m  },[m
+[32m+[m[32m  LEGACY: {[m
+[32m+[m[32m    name: "Dynasty Office",[m
+[32m+[m[32m    promise: "Construis un patrimoine transmissible.",[m
+[32m+[m[32m    unlocks: ["Tous les espaces", "Gouvernance familiale", "Transmission avancee", "Vision generationnelle"],[m
+[32m+[m[32m  },[m
+[32m+[m[32m};[m
+[32m+[m
+ const normalizePlan = (plan?: string | null) => {[m
+   const value = String(plan || "FREE").trim().toUpperCase();[m
+   if (value === "GROWTH") return "GOLD";[m
+[36m@@ -767,6 +800,21 @@[m [mconst compactText = (value?: string | number | null, fallback = "A renseigner")[m
+   return text || fallback;[m
+ };[m
+ [m
+[32m+[m[32mconst formatDate = (value?: string | number | null) => {[m
+[32m+[m[32m  if (!value) return "";[m
+[32m+[m[32m  const date =[m
+[32m+[m[32m    typeof value === "number" && value < 100000000000[m
+[32m+[m[32m      ? new Date(value * 1000)[m
+[32m+[m[32m      : new Date(value);[m
+[32m+[m[32m  if (Number.isNaN(date.getTime())) return "";[m
+[32m+[m
+[32m+[m[32m  return new Intl.DateTimeFormat("fr-FR", {[m
+[32m+[m[32m    day: "2-digit",[m
+[32m+[m[32m    month: "long",[m
+[32m+[m[32m    year: "numeric",[m
+[32m+[m[32m  }).format(date);[m
+[32m+[m[32m};[m
+[32m+[m
+ export default function Dashboard() {[m
+   const router = useRouter();[m
+   const {[m
+[36m@@ -783,6 +831,7 @@[m [mexport default function Dashboard() {[m
+     commandCenter,[m
+     workspaces,[m
+     product,[m
+[32m+[m[32m    billingSubscription,[m
+     refreshAll,[m
+     refreshAfterMutation,[m
+     loading,[m
+[36m@@ -939,6 +988,40 @@[m [mexport default function Dashboard() {[m
+       .map((module) => module.key) || [][m
+   );[m
+   const currentPlan = product?.plan || dashboard?.plan;[m
+[32m+[m[32m  const currentPlanKey = normalizePlan(currentPlan);[m
+[32m+[m[32m  const currentPlanCopy =[m
+[32m+[m[32m    planExperienceCopy[currentPlanKey] || planExperienceCopy.FREE;[m
+[32m+[m[32m  const backendNextPlan = normalizePlan(product?.next_plan);[m
+[32m+[m[32m  const currentPlanIndex = planSequence.indexOf(currentPlanKey);[m
+[32m+[m[32m  const fallbackNextPlan =[m
+[32m+[m[32m    currentPlanIndex >= 0 && currentPlanIndex < planSequence.length - 1[m
+[32m+[m[32m      ? planSequence[currentPlanIndex + 1][m
+[32m+[m[32m      : "LEGACY";[m
+[32m+[m[32m  const nextPlanKey =[m
+[32m+[m[32m    planOrder[backendNextPlan] > planOrder[currentPlanKey][m
+[32m+[m[32m      ? backendNextPlan[m
+[32m+[m[32m      : fallbackNextPlan;[m
+[32m+[m[32m  const nextPlanCopy = planExperienceCopy[nextPlanKey] || planExperienceCopy.LEGACY;[m
+[32m+[m[32m  const activeModuleCount = (product?.modules?.visible || []).filter([m
+[32m+[m[32m    (module) => module.state === "active"[m
+[32m+[m[32m  ).length;[m
+[32m+[m[32m  const lockedModuleCount = (product?.modules?.locked || []).length;[m
+[32m+[m[32m  const billingRenewalDate =[m
+[32m+[m[32m    formatDate([m
+[32m+[m[32m      billingSubscription?.renewal_at ||[m
+[32m+[m[32m        billingSubscription?.current_period_end ||[m
+[32m+[m[32m        billingSubscription?.effective_at ||[m
+[32m+[m[32m        billingSubscription?.cancel_at[m
+[32m+[m[32m    ) || "Visible dans le portail";[m
+[32m+[m[32m  const billingAmount =[m
+[32m+[m[32m    billingSubscription?.display_amount ||[m
+[32m+[m[32m    billingSubscription?.price ||[m
+[32m+[m[32m    product?.entitlements?.copy?.price ||[m
+[32m+[m[32m    "Visible dans le portail";[m
+[32m+[m[32m  const futurePlanName = compactText([m
+[32m+[m[32m    billingSubscription?.future_plan || billingSubscription?.pending_plan,[m
+[32m+[m[32m    ""[m
+[32m+[m[32m  );[m
+   const eliteChartsEnabled = planAllows(currentPlan, "ELITE");[m
+   const legacyNavigationEnabled = planAllows(currentPlan, "LIBERTY");[m
+   const progressionMissions = product?.missions || [];[m
+[36m@@ -2492,7 +2575,7 @@[m [mexport default function Dashboard() {[m
+                     <h2 className="mt-1 text-2xl font-bold">Mon Plan</h2>[m
+                   </div>[m
+                   <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">[m
+[31m-                    {compactText(product?.entitlements?.copy?.promise || "Progression active")}[m
+[32m+[m[32m                    {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}[m
+                   </span>[m
+                 </div>[m
+ [m
+[36m@@ -2500,20 +2583,72 @@[m [mexport default function Dashboard() {[m
+                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">[m
+                     <p className="text-xs uppercase tracking-widest text-gray-500">Plan actuel</p>[m
+                     <p className="mt-2 text-xl font-black text-white">[m
+[31m-                      {compactText(product?.entitlements?.copy?.name || product?.plan || dashboard?.plan)}[m
+[32m+[m[32m                      {compactText(product?.entitlements?.copy?.name || currentPlanCopy.name)}[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <p className="mt-2 text-xs leading-relaxed text-gray-400">[m
+[32m+[m[32m                      {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}[m
+                     </p>[m
+                   </div>[m
+                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">[m
+[31m-                    <p className="text-xs uppercase tracking-widest text-gray-500">Modules actifs</p>[m
+[32m+[m[32m                    <p className="text-xs uppercase tracking-widest text-gray-500">Progression White Rock</p>[m
+                     <p className="mt-2 text-xl font-black text-emerald-300">[m
+[31m-                      {(product?.modules?.visible || []).filter((module) => module.state === "active").length}[m
+[32m+[m[32m                      {activeModuleCount} espaces debloques[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <p className="mt-2 text-xs leading-relaxed text-gray-400">[m
+[32m+[m[32m                      Ton cockpit actif aujourd'hui.[m
+                     </p>[m
+                   </div>[m
+                   <div className="rounded-xl border border-white/10 bg-black/25 p-4">[m
+[31m-                    <p className="text-xs uppercase tracking-widest text-gray-500">A debloquer</p>[m
+[32m+[m[32m                    <p className="text-xs uppercase tracking-widest text-gray-500">Espaces avances</p>[m
+                     <p className="mt-2 text-xl font-black text-amber-200">[m
+[31m-                      {(product?.modules?.locked || []).length}[m
+[32m+[m[32m                      {lockedModuleCount} a decouvrir[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <p className="mt-2 text-xs leading-relaxed text-gray-400">[m
+[32m+[m[32m                      Des lectures plus profondes selon ton plan.[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </div>[m
+[32m+[m
+[32m+[m[32m                <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">[m
+[32m+[m[32m                  <div className="rounded-2xl border border-[#ffd21a]/25 bg-[#ffd21a]/5 p-4">[m
+[32m+[m[32m                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">[m
+[32m+[m[32m                      Prochain palier[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <h3 className="mt-2 text-xl font-black text-white">[m
+[32m+[m[32m                      {nextPlanCopy.name}[m
+[32m+[m[32m                    </h3>[m
+[32m+[m[32m                    <p className="mt-2 text-sm leading-relaxed text-gray-300">[m
+[32m+[m[32m                      {nextPlanCopy.promise}[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">[m
+[32m+[m[32m                      {nextPlanCopy.unlocks.map((unlock) => ([m
+[32m+[m[32m                        <div key={unlock} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-gray-200">[m
+[32m+[m[32m                          {unlock}[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                      ))}[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                  </div>[m
+[32m+[m
+[32m+[m[32m                  <div className="rounded-2xl border border-white/10 bg-black/25 p-4">[m
+[32m+[m[32m                    <p className="text-xs uppercase tracking-widest text-gray-500">[m
+[32m+[m[32m                      Facturation[m
+                     </p>[m
+[32m+[m[32m                    <div className="mt-3 space-y-3">[m
+[32m+[m[32m                      <div>[m
+[32m+[m[32m                        <p className="text-xs text-gray-500">Renouvellement</p>[m
+[32m+[m[32m                        <p className="text-sm font-semibold text-white">{billingRenewalDate}</p>[m
+[32m+[m[32m                      </div>[m
+[32m+[m[32m                      <div>[m
+[32m+[m[32m                        <p className="text-xs text-gray-500">Montant</p>[m
+[32m+[m[32m                        <p className="text-sm font-semibold text-white">{billingAmount}</p>[m
+[32m+[m[32m                      </div>[m
+[32m+[m[32m                      {futurePlanName && ([m
+[32m+[m[32m                        <div>[m
+[32m+[m[32m                          <p className="text-xs text-gray-500">Plan futur</p>[m
+[32m+[m[32m                          <p className="text-sm font-semibold text-amber-200">{futurePlanName}</p>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                      )}[m
+[32m+[m[32m                    </div>[m
+                   </div>[m
+                 </div>[m
+ [m
+[36m@@ -2542,6 +2677,23 @@[m [mexport default function Dashboard() {[m
+                 </div>[m
+               </section>[m
+ [m
+[32m+[m[32m              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">[m
+[32m+[m[32m                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">[m
+[32m+[m[32m                  <div>[m
+[32m+[m[32m                    <p className="text-xs uppercase tracking-widest text-gray-500">[m
+[32m+[m[32m                      Historique de facturation[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                    <h2 className="mt-2 text-2xl font-bold">Factures et recus</h2>[m
+[32m+[m[32m                    <p className="mt-2 text-sm text-gray-400">[m
+[32m+[m[32m                      Les factures restent gerees par le portail de facturation tant que l'historique detaille n'est pas expose ici.[m
+[32m+[m[32m                    </p>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                  <ActionButton variant="secondary" onClick={handleOpenBillingPortal}>[m
+[32m+[m[32m                    Ouvrir le portail[m
+[32m+[m[32m                  </ActionButton>[m
+[32m+[m[32m                </div>[m
+[32m+[m[32m              </section>[m
+[32m+[m
+               <section className="space-y-4">[m
+                 <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">[m
+                   <p className="text-xs uppercase tracking-widest text-[#ffd21a]">[m
+[1mdiff --git a/components/dashboard/ProfileReferralPanel.tsx b/components/dashboard/ProfileReferralPanel.tsx[m
+[1mindex cb96b6b..09e38ab 100644[m
+[1m--- a/components/dashboard/ProfileReferralPanel.tsx[m
+[1m+++ b/components/dashboard/ProfileReferralPanel.tsx[m
+[36m@@ -175,28 +175,40 @@[m [mexport function IdentityPanel({[m
+ }[m
+ [m
+ export function ReferralPanel({ referral }: { referral: ReferralData | null }) {[m
+[32m+[m[32m  const [copied, setCopied] = useState(false);[m
+[32m+[m[32m  const copyReferralUrl = async () => {[m
+[32m+[m[32m    if (!referral?.referral_url || typeof navigator === "undefined") return;[m
+[32m+[m
+[32m+[m[32m    await navigator.clipboard.writeText(referral.referral_url);[m
+[32m+[m[32m    setCopied(true);[m
+[32m+[m[32m    window.setTimeout(() => setCopied(false), 1800);[m
+[32m+[m[32m  };[m
+[32m+[m
+   return ([m
+     <section className="rounded-2xl border border-white/10 bg-zinc-950 p-4 sm:p-5">[m
+       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.1fr] lg:items-center">[m
+         <div>[m
+[31m-          <h2 className="text-2xl font-bold">Inviter des amis</h2>[m
+[32m+[m[32m          <h2 className="text-2xl font-bold">Parrainage et recompenses</h2>[m
+           <p className="mt-2 text-sm text-gray-400">[m
+[31m-            Invite tes amis a decouvrir l&apos;application et debloque des recompenses.[m
+[32m+[m[32m            Chaque invitation active peut debloquer des XP, credits ou avantages White Rock selon les regles en vigueur.[m
+           </p>[m
+         </div>[m
+ [m
+         <div className="rounded-xl border border-white/10 bg-black/40 p-4">[m
+           <p className="text-xs uppercase tracking-widest text-gray-500">[m
+[31m-            Code referral[m
+[32m+[m[32m            Lien personnel[m
+           </p>[m
+[31m-          <p className="mt-2 text-2xl font-black text-[#3fa9f5]">[m
+[31m-            {referral?.referral_code || "En preparation"}[m
+[32m+[m[32m          <button[m
+[32m+[m[32m            type="button"[m
+[32m+[m[32m            onClick={copyReferralUrl}[m
+[32m+[m[32m            disabled={!referral?.referral_url}[m
+[32m+[m[32m            className="mt-3 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"[m
+[32m+[m[32m          >[m
+[32m+[m[32m            {copied ? "Lien copie" : "Copier mon lien"}[m
+[32m+[m[32m          </button>[m
+[32m+[m[32m          <p className="mt-2 text-xs text-gray-500">[m
+[32m+[m[32m            Code: {referral?.referral_code || "en preparation"}[m
+           </p>[m
+[31m-          {referral?.referral_url && ([m
+[31m-            <p className="mt-2 break-all text-xs text-gray-400">[m
+[31m-              {referral.referral_url}[m
+[31m-            </p>[m
+[31m-          )}[m
+         </div>[m
+       </div>[m
+ [m
+[1mdiff --git a/hooks/useDashboard.ts b/hooks/useDashboard.ts[m
+[1mindex 840340a..3d1e6fc 100644[m
+[1m--- a/hooks/useDashboard.ts[m
+[1m+++ b/hooks/useDashboard.ts[m
+[36m@@ -42,6 +42,18 @@[m [mconst PLAN_ORDER: Record<string, number> = {[m
+ type BillingSubscription = {[m
+   plan?: string;[m
+   status?: string;[m
+[32m+[m[32m  current_period_end?: string | number | null;[m
+[32m+[m[32m  renewal_at?: string | number | null;[m
+[32m+[m[32m  effective_at?: string | number | null;[m
+[32m+[m[32m  cancel_at?: string | number | null;[m
+[32m+[m[32m  cancel_at_period_end?: boolean;[m
+[32m+[m[32m  pending_plan?: string | null;[m
+[32m+[m[32m  future_plan?: string | null;[m
+[32m+[m[32m  amount?: number | string | null;[m
+[32m+[m[32m  price?: string | null;[m
+[32m+[m[32m  display_amount?: string | null;[m
+[32m+[m[32m  interval?: string | null;[m
+[32m+[m[32m  currency?: string | null;[m
+   founder?: {[m
+     is_founder?: boolean;[m
+     tier?: string | null;[m
+[36m@@ -77,6 +89,7 @@[m [mtype DashboardSessionSnapshot = {[m
+   workspaces: WorkspaceData | null;[m
+   legacyOverview: LegacyOverview | null;[m
+   product: ProductContext | null;[m
+[32m+[m[32m  billingSubscription?: BillingSubscription | null;[m
+   finance: FinanceData;[m
+ };[m
+ [m
+[36m@@ -207,6 +220,8 @@[m [mexport function useDashboard() {[m
+   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);[m
+   const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);[m
+   const [product, setProduct] = useState<ProductContext | null>(null);[m
+[32m+[m[32m  const [billingSubscription, setBillingSubscription] =[m
+[32m+[m[32m    useState<BillingSubscription | null>(null);[m
+   const [finance, setFinance] = useState<FinanceData>(emptyFinance);[m
+   const [loading, setLoading] = useState(true);[m
+ [m
+[36m@@ -267,6 +282,7 @@[m [mexport function useDashboard() {[m
+     setWorkspaces(snapshot.workspaces);[m
+     setLegacyOverview(snapshot.legacyOverview);[m
+     setProduct(snapshot.product);[m
+[32m+[m[32m    setBillingSubscription(snapshot.billingSubscription || null);[m
+     setFinance(snapshot.finance);[m
+   }, []);[m
+ [m
+[36m@@ -305,6 +321,7 @@[m [mexport function useDashboard() {[m
+ [m
+   const loadBillingSubscription = useCallback(async () => {[m
+     const data = await safeFetch<BillingSubscription>("/billing/current-subscription");[m
+[32m+[m[32m    setBillingSubscription(data);[m
+     if (data?.plan) {[m
+       setDashboard((current) => {[m
+         const nextDashboard = preserveHighestDashboard(current, {[m
+[36m@@ -562,9 +579,11 @@[m [mexport function useDashboard() {[m
+       workspaces,[m
+       legacyOverview,[m
+       product,[m
+[32m+[m[32m      billingSubscription,[m
+       finance,[m
+     });[m
+   }, [[m
+[32m+[m[32m    billingSubscription,[m
+     categoryOpportunities,[m
+     commandCenter,[m
+     dashboard,[m
+[36m@@ -604,6 +623,7 @@[m [mexport function useDashboard() {[m
+     workspaces,[m
+     legacyOverview,[m
+     product,[m
+[32m+[m[32m    billingSubscription,[m
+     finance,[m
+     gamification,[m
+     loadFinance,[m

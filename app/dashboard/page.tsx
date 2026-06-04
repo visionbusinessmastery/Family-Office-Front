@@ -29,8 +29,11 @@ import {
   WealthToast,
 } from "@/components/ui/WealthUI";
 import type {
+  CommandCenter,
   FinanceEntry,
   FinancePayload,
+  Opportunity,
+  OpportunityData,
   PortfolioAsset,
   PortfolioPayload,
   ProductContext,
@@ -233,6 +236,315 @@ function SectionHeader({
         {description}
       </p>
     </div>
+  );
+}
+
+const normalizeCommandCenterOpportunities = (
+  opportunities?: CommandCenter["opportunities"]
+): Opportunity[] => {
+  if (Array.isArray(opportunities)) return opportunities;
+  if (!opportunities) return [];
+  return (opportunities as OpportunityData).opportunities || [];
+};
+
+const opportunityDifficultyRank = (opportunity: Opportunity) => {
+  const value = String(
+    opportunity.difficulty || opportunity.profile_compatibility || ""
+  ).toLowerCase();
+
+  if (/advanced|expert|complex|hard|eleve|difficile/.test(value)) return 3;
+  if (/medium|intermediate|moyen|modere/.test(value)) return 2;
+  if (/easy|simple|low|faible|debutant/.test(value)) return 1;
+  return 1;
+};
+
+const requiredPlanForDifficultyRank = (rank: number) => {
+  if (rank <= 1) return "FREE";
+  if (rank === 2) return "GOLD";
+  if (rank === 3) return "ELITE";
+  return "LIBERTY";
+};
+
+const getNextLockedPlan = (
+  opportunities: Opportunity[],
+  currentPlanKey: string
+) => {
+  const availableRank = planOrder[currentPlanKey] ?? 0;
+  const lockedPlans = opportunities
+    .map((opportunity) => ({
+      rank: opportunityDifficultyRank(opportunity),
+      plan: requiredPlanForDifficultyRank(
+        opportunityDifficultyRank(opportunity)
+      ),
+    }))
+    .filter((item) => planOrder[item.plan] > availableRank)
+    .sort((a, b) => planOrder[a.plan] - planOrder[b.plan]);
+
+  return lockedPlans.length ? lockedPlans[0].plan : null;
+};
+
+function DashboardUpgradeBanner({
+  currentPlanKey,
+  score,
+  onUpgrade,
+}: {
+  currentPlanKey: string;
+  score: number;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const progress = Number.isFinite(score) ? Math.round(score) : 0;
+  const showGold = currentPlanKey === "FREE";
+  const showElite = currentPlanKey === "GOLD";
+  const showLiberty = currentPlanKey === "ELITE";
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#08131e] p-6 text-white shadow-xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+            Evolution du cockpit
+          </p>
+          <h2 className="mt-2 text-2xl font-black">Votre patrimoine est structuré à {progress}%.</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-300">
+            Gold permet d'identifier les leviers prioritaires. Elite permet d'orchestrer l'ensemble du Family Office.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {showGold && (
+            <button
+              onClick={() => onUpgrade?.("gold")}
+              className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+            >
+              Debloquer Gold
+            </button>
+          )}
+          {showElite && (
+            <button
+              onClick={() => onUpgrade?.("elite")}
+              className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-400/20"
+            >
+              Debloquer Elite
+            </button>
+          )}
+          {showLiberty && (
+            <button
+              onClick={() => onUpgrade?.("liberty")}
+              className="rounded-xl bg-[#f4c95d] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#d2b44e]"
+            >
+              Debloquer Liberty
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PremiumOpportunityCounter({
+  commandCenter,
+  currentPlan,
+  onUpgrade,
+}: {
+  commandCenter?: CommandCenter | null;
+  currentPlan: string;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const opportunities = normalizeCommandCenterOpportunities(
+    commandCenter?.opportunities
+  );
+  const total =
+    typeof commandCenter?.opportunities_count === "number"
+      ? commandCenter.opportunities_count
+      : opportunities.length;
+  const allowedRank = planOrder[normalizePlan(currentPlan)] ?? 0;
+  const available = opportunities.filter(
+    (opportunity) => opportunityDifficultyRank(opportunity) <= allowedRank
+  ).length;
+  const locked = Math.max(total - available, 0);
+  const nextPlan = getNextLockedPlan(opportunities, normalizePlan(currentPlan));
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Opportunités premium</p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-2xl font-black text-white">{total} opportunités détectées</h3>
+          <p className="mt-1 text-sm leading-relaxed text-gray-400">
+            {available} sont disponibles avec votre plan actuel.
+            {locked > 0 && nextPlan ? ` ${locked} nécessitent ${nextPlan}.` : ""}
+          </p>
+        </div>
+        {locked > 0 && nextPlan && (
+          <button
+            onClick={() => onUpgrade?.(nextPlan.toLowerCase())}
+            className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+          >
+            Débloquer {nextPlan}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LockedWealthIntelligenceCallout({
+  score,
+  onUpgrade,
+}: {
+  score: number;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const value = Number.isFinite(score) ? Math.round(score) : 0;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#08131e] p-6">
+      <p className="text-xs uppercase tracking-widest text-[#ffd21a]">Wealth Intelligence</p>
+      <h2 className="mt-2 text-2xl font-black text-white">Votre score patrimonial est de {value}.</h2>
+      <p className="mt-3 text-sm leading-relaxed text-gray-300">
+        Les analyses détaillées, projections et recommandations IA sont disponibles avec GOLD.
+      </p>
+      <button
+        onClick={() => onUpgrade?.("gold")}
+        className="mt-5 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+      >
+        Debloquer Gold
+      </button>
+    </section>
+  );
+}
+
+function ElitePreviewPanel({
+  onUpgrade,
+}: {
+  onUpgrade?: (plan: string) => void;
+}) {
+  const cards = [
+    {
+      title: "Wealth Intelligence",
+      description:
+        "Lecture multiactifs, corrigé de trajectoire et suivi de performance consolidé.",
+    },
+    {
+      title: "Advanced Analytics",
+      description:
+        "Simulations, scénarios et projections pour prioriser les décisions patrimoniales.",
+    },
+    {
+      title: "Opportunity Ranking",
+      description:
+        "Classement des opportunités par impact, risque et cohérence de portefeuille.",
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Elite preview</p>
+          <h2 className="mt-2 text-2xl font-black text-white">Ce que vous gagnez en Elite</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+            Aperçu flouté des principales capacités sans dévoiler les analyses complètes.
+          </p>
+        </div>
+        <button
+          onClick={() => onUpgrade?.("elite")}
+          className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-400/20"
+        >
+          Débloquer Elite
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {cards.map((card) => (
+          <div
+            key={card.title}
+            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-xl"
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative">
+              <h3 className="text-lg font-black">{card.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                {card.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PlanComparisonWidget({
+  currentPlanKey,
+}: {
+  currentPlanKey: string;
+}) {
+  const rows = [
+    {
+      label: "Score patrimonial",
+      free: true,
+      gold: true,
+      elite: true,
+    },
+    {
+      label: "Analyses IA",
+      free: false,
+      gold: true,
+      elite: true,
+    },
+    {
+      label: "Opportunity Ranking",
+      free: false,
+      gold: false,
+      elite: true,
+    },
+  ];
+
+  const currentPlanStyles: Record<string, string> = {
+    FREE: "border-white/10 bg-white/5",
+    GOLD: "border-yellow-500/30 bg-yellow-500/10",
+    ELITE: "border-[#3fa9f5]/30 bg-[#3fa9f5]/10",
+  };
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Comparaison de plans</p>
+          <h2 className="mt-2 text-2xl font-black text-white">FREE, GOLD, ELITE</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-400">
+            Les jalons clés pour passer d'une lecture basique à un pilotage avancé du patrimoine.
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            currentPlanStyles[currentPlanKey] || "border-white/10 bg-white/5"
+          }`}
+        >
+          Plan actuel : {currentPlanKey}
+        </span>
+      </div>
+
+      <div className="grid gap-3 text-sm">
+        <div className="grid grid-cols-[1.8fr_1fr_1fr_1fr] items-center gap-3 text-xs uppercase tracking-widest text-gray-500">
+          <span>Fonction</span>
+          <span className="text-center">FREE</span>
+          <span className="text-center">GOLD</span>
+          <span className="text-center">ELITE</span>
+        </div>
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="grid grid-cols-[1.8fr_1fr_1fr_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+          >
+            <span>{row.label}</span>
+            <span className="text-center">{row.free ? "✓" : "🔒"}</span>
+            <span className="text-center">{row.gold ? "✓" : "🔒"}</span>
+            <span className="text-center">{row.elite ? "✓" : "🔒"}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -977,6 +1289,7 @@ export default function Dashboard() {
   const {
     dashboard,
     portfolio,
+    portfolioAllocation,
     realEstate,
     yieldAssets,
     ventureAssets,
@@ -1108,10 +1421,7 @@ export default function Dashboard() {
   const globalScore =
     Number(commandCenter?.global_score ?? 0) || 0;
   const realEstateAssets = realEstate?.assets || [];
-  const investmentRubrics = portfolio.map((asset) => ({
-    label: String(asset.asset_type || asset.type || "Autre").replace(/_/g, " ").toUpperCase(),
-    value: getAssetValue(asset),
-  }));
+  const investmentRubrics = portfolioAllocation;
   const realEstateRubrics = realEstateAssets.map((asset) => ({
     label: String(asset.property_type || "Immobilier").replace(/_/g, " ").toUpperCase(),
     value: Number(asset.estimated_value || asset.resale_price || asset.purchase_price || 0),
@@ -1151,7 +1461,8 @@ export default function Dashboard() {
       ?.filter((module) => module.state === "active")
       .map((module) => module.key) || []
   );
-  const currentPlan = product?.plan || dashboard?.plan;
+  const currentPlan =
+    billingSubscription?.plan || product?.plan || dashboard?.plan;
   const currentPlanKey = normalizePlan(currentPlan);
   const currentPlanCopy =
     planExperienceCopy[currentPlanKey] || planExperienceCopy.FREE;
@@ -2262,8 +2573,20 @@ export default function Dashboard() {
 
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-black/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <Header dashboard={dashboard} onUpgrade={handleUpgradePlan} />
+          <Header
+            dashboard={dashboard}
+            billingSubscription={billingSubscription}
+            onUpgrade={handleUpgradePlan}
+          />
         </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl p-4">
+        <DashboardUpgradeBanner
+          currentPlanKey={currentPlanKey}
+          score={globalScore}
+          onUpgrade={handleUpgradePlan}
+        />
       </div>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 lg:grid-cols-[260px_1fr]">
@@ -2322,9 +2645,21 @@ export default function Dashboard() {
               <HomeExecutiveSummary
                 product={product}
                 financeOverview={financeOverview}
+                portfolio={portfolio}
+                realEstate={realEstate}
+                ventureAssets={ventureAssets}
                 plan={currentPlan}
                 level={product?.progression?.level || commandCenter?.level || dashboard?.level}
               />
+
+              <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                <PremiumOpportunityCounter
+                  commandCenter={commandCenter}
+                  currentPlan={currentPlan}
+                  onUpgrade={handleUpgradePlan}
+                />
+                <PlanComparisonWidget currentPlanKey={currentPlanKey} />
+              </div>
             </div>
           )}
 
@@ -2335,6 +2670,13 @@ export default function Dashboard() {
                 title="Wealth Intelligence"
                 description="Patrimoine visible, potentiel activable, scorecard et signaux de solidite. Cette page donne la lecture patrimoniale complete."
               />
+
+              {!planAllows(currentPlan, "GOLD") && (
+                <LockedWealthIntelligenceCallout
+                  score={globalScore}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
 
               <WealthIntelligencePanel product={product} />
 
@@ -2353,6 +2695,10 @@ export default function Dashboard() {
               />
 
               <FutureIntelligencePanel product={product} />
+
+              {!planAllows(currentPlan, "ELITE") && (
+                <ElitePreviewPanel onUpgrade={handleUpgradePlan} />
+              )}
 
               {planAllows(currentPlan, "ELITE") ? (
                 <FamilyOfficeCeoPanel product={product} />

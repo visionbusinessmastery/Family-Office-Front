@@ -6,7 +6,7 @@ import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+  "http://127.0.0.1:8000";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

@@ -93,6 +93,20 @@ export type PortfolioAsset = {
   currency_quote?: string;
   ticker?: string;
   source?: string;
+  market_data_status?: string;
+  market_data?: {
+    status?: string;
+    ticker?: string;
+    source?: string;
+    message?: string | null;
+  };
+};
+
+export type RubricBreakdownItem = {
+  label: string;
+  value: number;
+  count?: number;
+  has_market_data_issue?: boolean;
 };
 
 export type PortfolioPayload = {
