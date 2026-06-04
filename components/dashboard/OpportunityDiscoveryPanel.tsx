@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type {
   OpportunityIntelligenceData,
   OpportunityUniverse,
@@ -208,7 +208,7 @@ export default function OpportunityDiscoveryPanel({
     setError(null);
 
     try {
-      const response = await apiRequest<OpportunityIntelligenceData>(
+      const response = await apiFetch<OpportunityIntelligenceData>(
         "/intelligence/opportunity-intelligence",
         token,
         {

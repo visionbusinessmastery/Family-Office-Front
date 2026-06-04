@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 import type { ProductContext, ProductMission } from "@/lib/types";
 
@@ -41,7 +41,7 @@ export default function ChallengesPage() {
       window.location.href = "/login";
       return;
     }
-    apiRequest<ProductContext>("/product/context", token)
+    apiFetch<ProductContext>("/product/context", token)
       .then(setProduct)
       .catch((error) =>
         setToast(error instanceof Error ? error.message : "Progression indisponible.")

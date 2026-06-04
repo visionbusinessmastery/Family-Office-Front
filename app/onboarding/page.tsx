@@ -2,10 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8000";
+import { apiFetch } from "@/lib/api-client";
 
 const motivations = [
   "liberte financiere",
@@ -77,27 +74,13 @@ export default function Onboarding() {
         charges_mensuelles: chargesMensuelles ? Number(chargesMensuelles) : 0,
       };
 
-      const onboardingRes = await fetch(`${API_BASE_URL}/auth/onboarding/save`, {
+      await apiFetch("/auth/onboarding/save", token, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify(onboardingPayload),
       });
 
-      const onboardingData = await onboardingRes.json().catch(() => ({}));
-
-      if (!onboardingRes.ok) {
-        throw new Error(onboardingData?.detail || "Erreur onboarding");
-      }
-
-      await fetch(`${API_BASE_URL}/profile/me`, {
+      await apiFetch("/profile/me", token, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({
           first_name: firstName,
           goals: [motivation].filter(Boolean),

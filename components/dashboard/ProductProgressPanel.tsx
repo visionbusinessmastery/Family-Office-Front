@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type { ProductContext, ProductModule } from "@/lib/types";
 
 type ProductProgressPanelProps = {
@@ -53,7 +53,7 @@ export default function ProductProgressPanel({
     setVerifyingKey(missionKey);
     setVerificationMessage("");
     try {
-      const result = await apiRequest<{
+      const result = await apiFetch<{
         completed?: boolean;
         status?: string;
         xp_awarded?: number;

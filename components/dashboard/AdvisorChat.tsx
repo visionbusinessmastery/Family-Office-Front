@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -175,7 +175,7 @@ async function requestAdvisorResponse(
   question: string,
   bypassCache = false
 ) {
-  return apiRequest<AdvisorResponse>("/advisor/core", token, {
+  return apiFetch<AdvisorResponse>("/advisor/core", token, {
     method: "POST",
     headers: {
       "Cache-Control": "no-store",
@@ -188,7 +188,7 @@ async function requestAdvisorResponse(
 async function detectProfileProposals(token: string | null, sourceText: string) {
   if (!token) return [];
   try {
-    const payload = await apiRequest<{ proposals?: ProfileProposal[] }>(
+    const payload = await apiFetch<{ proposals?: ProfileProposal[] }>(
       "/advisor/profile-reconciliation/detect",
       token,
       {
@@ -208,7 +208,7 @@ async function resolveProfileProposal(
   action: "accept" | "reject"
 ) {
   if (!token) return false;
-  await apiRequest(`/advisor/profile-reconciliation/${proposalId}/${action}`, token, {
+  await apiFetch(`/advisor/profile-reconciliation/${proposalId}/${action}`, token, {
     method: "POST",
   });
   return true;

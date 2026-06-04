@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiRequest, clearAuthSession, isJwtExpired } from "@/lib/api";
+import { apiFetch, clearAuthSession, isJwtExpired } from "@/lib/api-client";
 import type {
   AdvisorContextSummary,
   BusinessIntelligenceData,
@@ -281,7 +281,7 @@ export function useDashboard() {
       if (!token) return null;
 
       try {
-        return await apiRequest<T>(url, token);
+        return await apiFetch<T>(url, token);
       } catch {
         return null;
       }
@@ -491,7 +491,7 @@ export function useDashboard() {
   const recalcScore = useCallback(async () => {
     if (!token) return;
 
-    const data = await apiRequest<{
+    const data = await apiFetch<{
       score?: number;
       details?: ScoreDetails;
     }>("/intelligence/score/recalculate", token, {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { useDashboard } from "@/hooks/useDashboard";
 
 type BillingInterval = "monthly" | "yearly";
@@ -220,7 +220,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   const openPortal = async () => {
     if (!token) return;
     try {
-      const resp = await apiRequest<{ url?: string }>("/billing/create-portal-session", token, {
+      const resp = await apiFetch<{ url?: string }>("/billing/create-portal-session", token, {
         method: "POST",
       });
       if (resp?.url) {
@@ -258,7 +258,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   setLoadingPlan(plan.id);
 
   try {
-    const response = await apiRequest<{ url?: string }>(
+    const response = await apiFetch<{ url?: string }>(
       "/billing/create-checkout-session",
       token,
       {

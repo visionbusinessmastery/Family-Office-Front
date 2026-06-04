@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type { ProductContext } from "@/lib/types";
 
 const AdvisorChat = dynamic(() => import("@/components/dashboard/AdvisorChat"), {
@@ -35,7 +35,7 @@ export default function EthanFloatingAdvisor() {
       }
 
       try {
-        const product = await apiRequest<Pick<ProductContext, "entitlements">>(
+        const product = await apiFetch<Pick<ProductContext, "entitlements">>(
           "/product/context",
           token
         );
@@ -44,7 +44,7 @@ export default function EthanFloatingAdvisor() {
         setEnabled(features.includes("ethan_floating_chat"));
       } catch {
         try {
-          const product = await apiRequest<Pick<ProductContext, "entitlements">>(
+          const product = await apiFetch<Pick<ProductContext, "entitlements">>(
             "/product/context",
             token
           );

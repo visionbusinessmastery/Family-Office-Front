@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { useDashboard } from "@/hooks/useDashboard";
 import {
   Bar,
@@ -1331,7 +1331,7 @@ export default function Dashboard() {
     if (!token) return null;
 
     try {
-      const data = await apiRequest<{ profile?: WealthProfile }>("/profile/me", token);
+      const data = await apiFetch<{ profile?: WealthProfile }>("/profile/me", token);
       const profile = data.profile || {};
       setWealthProfile(profile);
       return profile;
@@ -1665,7 +1665,7 @@ export default function Dashboard() {
 
   const handleUpgradePlan = async (plan: string) => {
     try {
-      const data = await apiRequest<{ url?: string }>("/billing/create-checkout-session", token, {
+      const data = await apiFetch<{ url?: string }>("/billing/create-checkout-session", token, {
         method: "POST",
         body: JSON.stringify({ plan }),
       });
@@ -1691,7 +1691,7 @@ export default function Dashboard() {
 
   const handleOpenBillingPortal = async () => {
     try {
-      const data = await apiRequest<{ url?: string }>("/billing/customer-portal", token, {
+      const data = await apiFetch<{ url?: string }>("/billing/customer-portal", token, {
         method: "POST",
       });
 
@@ -1738,7 +1738,7 @@ export default function Dashboard() {
     method: "POST" | "PUT",
     payload: PortfolioPayload
   ) => {
-    await apiRequest(url, token, {
+    await apiFetch(url, token, {
       method,
       body: JSON.stringify(payload),
     });
@@ -1788,7 +1788,7 @@ export default function Dashboard() {
       title: "Supprimer cet actif ?",
       description: "Cette action retire la ligne du portefeuille.",
       onConfirm: async () => {
-        await apiRequest(`/portfolio/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/portfolio/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Actif supprime.", "success");
       },
@@ -1796,7 +1796,7 @@ export default function Dashboard() {
   };
 
   const handleAddFinance = async (data: FinancePayload) => {
-    await apiRequest("/finance/", token, {
+    await apiFetch("/finance/", token, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -1805,7 +1805,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteFinance = async (id: number) => {
-    await apiRequest(`/finance/${id}`, token, {
+    await apiFetch(`/finance/${id}`, token, {
       method: "DELETE",
     });
 
@@ -1813,7 +1813,7 @@ export default function Dashboard() {
   };
 
   const handleUpdateFinance = async (item: FinanceEntry) => {
-    await apiRequest(`/finance/${item.id}`, token, {
+    await apiFetch(`/finance/${item.id}`, token, {
       method: "PUT",
       body: JSON.stringify({
         name: item.name || item.label || "",
@@ -1872,7 +1872,7 @@ export default function Dashboard() {
       title: "Supprimer ce bien ?",
       description: "Cette action retire ce bien de la rubrique immobilier.",
       onConfirm: async () => {
-        await apiRequest(`/real-estate/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/real-estate/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Bien supprime.", "success");
       },
@@ -1916,7 +1916,7 @@ export default function Dashboard() {
       title: "Supprimer cet investissement ?",
       description: "Cette action retire cet actif de la rubrique rendement prive.",
       onConfirm: async () => {
-        await apiRequest(`/yield-assets/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/yield-assets/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Investissement supprime.", "success");
       },
@@ -1964,7 +1964,7 @@ export default function Dashboard() {
       title: "Supprimer ce business ?",
       description: "Cette action retire cette ligne de la rubrique Business & Ventures.",
       onConfirm: async () => {
-        await apiRequest(`/venture-assets/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/venture-assets/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Business supprime.", "success");
       },
@@ -1992,7 +1992,7 @@ export default function Dashboard() {
           .map((item) => String(item || "").trim())
           .filter(Boolean);
 
-        await apiRequest("/auth/onboarding/update", token, {
+        await apiFetch("/auth/onboarding/update", token, {
           method: "PUT",
           body: JSON.stringify({
             age,
@@ -2002,7 +2002,7 @@ export default function Dashboard() {
           }),
         });
 
-        await apiRequest("/profile/me", token, {
+        await apiFetch("/profile/me", token, {
           method: "PUT",
           body: JSON.stringify({
             first_name: values.first_name || null,
@@ -2032,7 +2032,7 @@ export default function Dashboard() {
         const name = requireName(values.name);
         if (!name) throw new Error("Nom requis");
 
-        const data = await apiRequest<{ workspace_id?: number }>("/workspaces/", token, {
+        const data = await apiFetch<{ workspace_id?: number }>("/workspaces/", token, {
           method: "POST",
           body: JSON.stringify({ name }),
         });
@@ -2051,7 +2051,7 @@ export default function Dashboard() {
         const workspaceId = formModal.context?.workspaceId;
         if (!email || !workspaceId) throw new Error("Invitation incomplete");
 
-        const data = await apiRequest<{ invite_url?: string; token?: string }>(
+        const data = await apiFetch<{ invite_url?: string; token?: string }>(
           `/workspaces/${workspaceId}/invite`,
           token,
           {
@@ -2133,7 +2133,7 @@ export default function Dashboard() {
           ]),
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/real-estate/${formModal.context.id}`
             : "/real-estate/",
@@ -2167,7 +2167,7 @@ export default function Dashboard() {
           notes: values.notes || null,
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/yield-assets/${formModal.context.id}`
             : "/yield-assets/",
@@ -2213,7 +2213,7 @@ export default function Dashboard() {
           notes: values.notes || null,
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/venture-assets/${formModal.context.id}`
             : "/venture-assets/",
@@ -2648,14 +2648,14 @@ export default function Dashboard() {
                 portfolio={portfolio}
                 realEstate={realEstate}
                 ventureAssets={ventureAssets}
-                plan={currentPlan}
-                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
+                plan={currentPlan || "FREE"}
+                level={product?.progression?.level || commandCenter?.level || dashboard?.level || "Foundation"}
               />
 
               <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
                 <PremiumOpportunityCounter
                   commandCenter={commandCenter}
-                  currentPlan={currentPlan}
+                  currentPlan={currentPlan || "FREE"}
                   onUpgrade={handleUpgradePlan}
                 />
                 <PlanComparisonWidget currentPlanKey={currentPlanKey} />

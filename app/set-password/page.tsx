@@ -2,12 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
+import { apiFetch } from "@/lib/api-client";
 
 type State = "idle" | "loading" | "success" | "error";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8000";
+type SetPasswordResponse = {
+  access_token?: string;
+};
 
 export default function SetPasswordPage() {
   const initialEmail =
@@ -41,25 +41,16 @@ export default function SetPasswordPage() {
     setMessage("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/set-password`, {
+      const data = await apiFetch<SetPasswordResponse>("/auth/set-password", null, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           accept: "application/json",
         },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
           password,
         }),
-      }).catch(() => {
-        throw new Error("Service momentanement indisponible");
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.detail || "Service momentanement indisponible");
-      }
 
       setState("success");
       setMessage("Compte active. Ouverture de ton onboarding...");

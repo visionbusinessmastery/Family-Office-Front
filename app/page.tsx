@@ -3,16 +3,16 @@
 import { FormEvent, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:8000";
+import { apiFetch } from "@/lib/api-client";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 type SubmitState = "idle" | "loading" | "success" | "error";
+type RegisterResponse = {
+  action?: string;
+};
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -53,20 +53,13 @@ export default function Home() {
     setMessage("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      const data = await apiFetch<RegisterResponse>("/auth/register", null, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           accept: "application/json",
         },
         body: JSON.stringify({ email: cleanEmail, ...consents }),
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.detail || "Service momentanement indisponible");
-      }
 
       localStorage.setItem("verified_email", cleanEmail);
       localStorage.setItem("current_email", cleanEmail);

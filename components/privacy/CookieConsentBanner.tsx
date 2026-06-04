@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { ActionButton } from "@/components/ui/WealthUI";
 
 const STORAGE_KEY = "whiteRockCookieConsent";
@@ -50,9 +50,8 @@ export default function CookieConsentBanner() {
     setVisible(false);
 
     try {
-      await fetch(`${API_BASE_URL}/privacy/cookie-consent`, {
+      await apiFetch("/privacy/cookie-consent", null, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           anonymous_id: getAnonymousId(),
           preferences: next,
