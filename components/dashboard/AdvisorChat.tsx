@@ -1,8 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
-import type { GamificationData } from "@/lib/types";
+import { apiFetch } from "@/lib/api-client";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -10,39 +9,63 @@ type ChatMessage = {
 };
 
 type AdvisorResponse = {
-  result?: {
-    analysis?: string;
-    context_score?: number;
+  analysis: string;
+  metadata: {
+    cache_version: string;
+    llm_status?: string;
+    status?: string;
+    text_origin: string;
   };
 };
 
-type AdvisorChatProps = {
-  recommendations?: string[];
-  aiCoach?: GamificationData["ai_coach"];
-  notification?: GamificationData["notification"];
+type ProfileProposal = {
+  id: number;
+  field: string;
+  old_value?: string | null;
+  new_value: string;
+  status: string;
 };
 
-const initialMessages: ChatMessage[] = [
-  {
-    role: "assistant",
-    content:
-      "Je suis Ethan. Pose-moi une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.",
-  },
-];
+const initialMessages: ChatMessage[] = [];
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_CACHED_MESSAGES = 40;
+const CONVERSATION_CACHE_VERSION = "v26-memory-priority";
+const LEGACY_RESPONSE_PATTERNS = [
+  "ton score est",
+  "score 39/100",
+  "pour le cashflow",
+  "action simple",
+  "action prioritaire",
+  "priorite:",
+  "clarifier la capacite",
+  "capacite mensuelle disponible",
+  "ethan vient d'ecarter",
+  "je suis la, mais je n'ai pas recu",
+  "ethan n'est pas disponible",
+  "ethan sur cette demande",
+];
 
 type CachedConversation = {
+  version?: string;
   updatedAt: number;
   messages: ChatMessage[];
 };
 
+function normalizeConversationText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function getUserCacheKey() {
-  if (typeof window === "undefined") return "ethanConversation:anonymous";
+  if (typeof window === "undefined") {
+    return `ethanConversation:${CONVERSATION_CACHE_VERSION}:anonymous`;
+  }
 
   const token = localStorage.getItem("token");
-  if (!token) return "ethanConversation:anonymous";
+  if (!token) return `ethanConversation:${CONVERSATION_CACHE_VERSION}:anonymous`;
 
   try {
     const tokenPayload = token.split(".")[1];
@@ -53,23 +76,59 @@ function getUserCacheKey() {
     const payload = JSON.parse(
       atob(paddedPayload.replace(/-/g, "+").replace(/_/g, "/"))
     );
-    return `ethanConversation:${payload.sub || payload.email || payload.user_id || "user"}`;
+    return `ethanConversation:${CONVERSATION_CACHE_VERSION}:${
+      payload.sub || payload.email || payload.user_id || "user"
+    }`;
   } catch {
-    return "ethanConversation:user";
+    return `ethanConversation:${CONVERSATION_CACHE_VERSION}:user`;
   }
+}
+
+function hasLegacyResponse(messages: ChatMessage[]) {
+  const normalizedMessages = messages.map((message) =>
+    normalizeConversationText(message.content)
+  );
+
+  return normalizedMessages.some((content) =>
+    LEGACY_RESPONSE_PATTERNS.some((pattern) =>
+      content.includes(normalizeConversationText(pattern))
+    )
+  );
+}
+
+function isLegacyAssistantText(content?: string) {
+  if (!content) return false;
+  return hasLegacyResponse([{ role: "assistant", content }]);
+}
+
+function getUnavailableMessage(metadata?: AdvisorResponse["metadata"]) {
+  if (metadata?.llm_status === "openai_unconfigured") {
+    return "Ethan n'est pas encore disponible pour cette demande. Reessaie dans un instant.";
+  }
+
+  if (metadata?.llm_status === "openai_call_failed") {
+    return "Ethan n'a pas pu finaliser sa reponse. Reessaie dans un instant.";
+  }
+
+  if (metadata?.llm_status === "openai_empty_output") {
+    return "Ethan n'a pas encore une reponse exploitable. Relance ta question dans un instant.";
+  }
+
+  return "Ethan n'a pas pu produire une reponse exploitable pour le moment.";
+}
+
+function clearConversationCache() {
+  if (typeof window === "undefined") return;
+
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith("ethanConversation:"))
+    .forEach((key) => localStorage.removeItem(key));
 }
 
 function trimMessages(messages: ChatMessage[]) {
   if (messages.length <= MAX_CACHED_MESSAGES) return messages;
 
-  const conversation = messages.filter(
-    (message) => message.content !== initialMessages[0].content
-  );
-
-  return [
-    initialMessages[0],
-    ...conversation.slice(-(MAX_CACHED_MESSAGES - 1)),
-  ];
+  return messages.slice(-MAX_CACHED_MESSAGES);
 }
 
 function readCachedMessages() {
@@ -80,12 +139,18 @@ function readCachedMessages() {
     if (!raw) return initialMessages;
 
     const cached = JSON.parse(raw) as CachedConversation;
-    if (!cached.updatedAt || Date.now() - cached.updatedAt > CACHE_TTL_MS) {
-      localStorage.removeItem(getUserCacheKey());
+    if (
+      cached.version !== CONVERSATION_CACHE_VERSION ||
+      !cached.updatedAt ||
+      Date.now() - cached.updatedAt > CACHE_TTL_MS ||
+      !Array.isArray(cached.messages) ||
+      hasLegacyResponse(cached.messages)
+    ) {
+      clearConversationCache();
       return initialMessages;
     }
 
-    return Array.isArray(cached.messages) && cached.messages.length > 0
+    return cached.messages.length > 0
       ? trimMessages(cached.messages)
       : initialMessages;
   } catch {
@@ -97,6 +162,7 @@ function writeCachedMessages(messages: ChatMessage[]) {
   if (typeof window === "undefined") return;
 
   const payload: CachedConversation = {
+    version: CONVERSATION_CACHE_VERSION,
     updatedAt: Date.now(),
     messages: trimMessages(messages),
   };
@@ -104,24 +170,60 @@ function writeCachedMessages(messages: ChatMessage[]) {
   localStorage.setItem(getUserCacheKey(), JSON.stringify(payload));
 }
 
-export default function AdvisorChat({
-  recommendations = [],
-  aiCoach,
-  notification,
-}: AdvisorChatProps) {
+async function requestAdvisorResponse(
+  token: string | null,
+  question: string,
+  bypassCache = false
+) {
+  return apiFetch<AdvisorResponse>("/advisor/core", token, {
+    method: "POST",
+    headers: {
+      "Cache-Control": "no-store",
+      "X-Ethan-Client-Version": CONVERSATION_CACHE_VERSION,
+    },
+    body: JSON.stringify({ message: question, bypass_cache: bypassCache }),
+  });
+}
+
+async function detectProfileProposals(token: string | null, sourceText: string) {
+  if (!token) return [];
+  try {
+    const payload = await apiFetch<{ proposals?: ProfileProposal[] }>(
+      "/advisor/profile-reconciliation/detect",
+      token,
+      {
+        method: "POST",
+        body: JSON.stringify({ source_text: sourceText }),
+      }
+    );
+    return payload.proposals || [];
+  } catch {
+    return [];
+  }
+}
+
+async function resolveProfileProposal(
+  token: string | null,
+  proposalId: number,
+  action: "accept" | "reject"
+) {
+  if (!token) return false;
+  await apiFetch(`/advisor/profile-reconciliation/${proposalId}/${action}`, token, {
+    method: "POST",
+  });
+  return true;
+}
+
+export default function AdvisorChat({ compact = false }: { compact?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cacheReady, setCacheReady] = useState(false);
-  const [detail, setDetail] = useState<{
-    title: string;
-    body: string;
-    tone?: "blue" | "amber" | "cyan";
-  } | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [profileProposals, setProfileProposals] = useState<ProfileProposal[]>([]);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const affiliations = aiCoach?.affiliations || [];
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -134,13 +236,15 @@ export default function AdvisorChat({
 
   useEffect(() => {
     if (!cacheReady) return;
+    if (hasLegacyResponse(messages)) {
+      clearConversationCache();
+      return;
+    }
     writeCachedMessages(messages);
   }, [cacheReady, messages]);
 
   const clearConversation = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(getUserCacheKey());
-    }
+    clearConversationCache();
     setMessages(initialMessages);
   };
 
@@ -150,40 +254,53 @@ export default function AdvisorChat({
     const question = input.trim();
     if (!question || loading) return;
 
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: question },
-    ]);
+    setErrorMessage("");
+    setMessages((current) => [...current, { role: "user", content: question }]);
     setInput("");
     setLoading(true);
 
     try {
-      const data = await apiRequest<AdvisorResponse>("/advisor/advisor", token, {
-        method: "POST",
-        body: JSON.stringify({ message: question }),
-      });
+      const data = await requestAdvisorResponse(token, question);
+      let analysis = data.analysis || "";
+      let metadata = data.metadata;
+
+      if (isLegacyAssistantText(analysis)) {
+        clearConversationCache();
+        const refreshed = await requestAdvisorResponse(token, question, true);
+        analysis = refreshed.analysis || "";
+        metadata = refreshed.metadata;
+      }
+
+      if (!analysis || isLegacyAssistantText(analysis)) {
+        setErrorMessage(getUnavailableMessage(metadata));
+        return;
+      }
 
       setMessages((current) => [
         ...current,
-        {
-          role: "assistant",
-          content:
-            data.result?.analysis ||
-            "Je n'ai pas encore assez de contexte pour te guider clairement, mais on peut deja clarifier une prochaine action.",
-        },
+        { role: "assistant", content: analysis },
       ]);
+      const proposals = await detectProfileProposals(token, question);
+      if (proposals.length > 0) {
+        setProfileProposals(proposals);
+      }
     } catch (err) {
-      console.error(err);
-      setMessages((current) => [
-        ...current,
-        {
-          role: "assistant",
-          content:
-            "Je n'arrive pas a joindre le moteur de conseil pour le moment. Reessaie dans quelques instants.",
-        },
-      ]);
+      const message = err instanceof Error ? err.message : "";
+      setErrorMessage(message || "Ethan est indisponible pour le moment.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProposal = async (proposalId: number, action: "accept" | "reject") => {
+    try {
+      await resolveProfileProposal(token, proposalId, action);
+      setProfileProposals((current) =>
+        current.filter((proposal) => proposal.id !== proposalId)
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setErrorMessage(message || "Impossible de traiter la proposition de profil.");
     }
   };
 
@@ -195,7 +312,7 @@ export default function AdvisorChat({
         </p>
         <div className="mt-1 flex items-center justify-between gap-3">
           <h2 className="text-2xl font-black">Ethan</h2>
-          {messages.length > 1 && (
+          {messages.length > 0 && (
             <button
               type="button"
               onClick={clearConversation}
@@ -210,141 +327,50 @@ export default function AdvisorChat({
         </p>
       </div>
 
-      <div className="mb-5 space-y-4">
-        <div className="bg-[#3fa9f5]/10 border border-[#3fa9f5]/20 rounded-2xl p-4 transition hover:border-[#3fa9f5]/35">
-          <h3 className="font-bold text-[#3fa9f5] mb-3">
-            Conseils prioritaires
-          </h3>
-
-          <div className="space-y-2">
-            {recommendations.length > 0 ? (
-              recommendations.map((advice, index) => (
-                <p key={`${advice}-${index}`} className="text-sm text-gray-300">
-                  {advice}
-                </p>
-              ))
-            ) : (
-              <p className="text-sm text-gray-400">
-                Aucun conseil prioritaire pour le moment.
+      {profileProposals.length > 0 && (
+        <div className="mb-4 space-y-3 rounded-2xl border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-4">
+          <p className="text-xs font-black uppercase tracking-widest text-[#8bd0ff]">
+            Mise a jour profil detectee
+          </p>
+          {profileProposals.map((proposal) => (
+            <div key={proposal.id} className="rounded-xl border border-white/10 bg-black/25 p-3">
+              <p className="text-sm text-gray-200">
+                Remplacer <span className="font-bold text-white">{proposal.old_value || "non renseigne"}</span>{" "}
+                par <span className="font-bold text-white">{proposal.new_value}</span>{" "}
+                pour <span className="font-bold text-white">{proposal.field}</span> ?
               </p>
-            )}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: "Guidance du jour",
-              body:
-                aiCoach?.message ||
-                "Complète ton cockpit avec une donnée utile, puis reviens vérifier l'impact sur ton score et tes prochaines actions.",
-              tone: "cyan",
-            })
-          }
-          className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20"
-        >
-          <h3 className="font-bold text-white mb-2">Guidance du jour</h3>
-
-          <p className="text-sm text-gray-300 leading-relaxed">
-            {aiCoach?.message ||
-              "Tu construis une vraie base patrimoniale. Continue a completer ton cockpit, une donnee utile a la fois."}
-          </p>
-
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: "Opportunités partenaires",
-              body:
-                affiliations.length > 0
-                  ? affiliations
-                      .map((item) => `${item.title}: ${item.reason}`)
-                      .join("\n")
-                  : "Aucun partenaire prioritaire pour le moment. Ethan n'affiche cette zone que lorsqu'une proposition est cohérente avec ton profil.",
-              tone: "amber",
-            })
-          }
-          className="w-full rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-left transition hover:border-amber-300/35"
-        >
-          <h3 className="font-bold text-amber-200 mb-3">
-            Opportunités partenaires
-          </h3>
-
-          {affiliations.length > 0 ? (
-            <div className="space-y-2">
-              {affiliations.map((item, index) => (
-                <div
-                  key={`${item.title}-${index}`}
-                  className="rounded-xl border border-white/10 bg-black/30 p-3"
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleProposal(proposal.id, "accept")}
+                  className="rounded-full bg-[#3fa9f5] px-3 py-1 text-xs font-black text-white"
                 >
-                  <p className="text-sm font-semibold text-white">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">{item.reason}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-400">
-              Ethan proposera des partenaires uniquement lorsqu&apos;ils sont coherents avec ton profil.
-            </p>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              title: notification?.title || "Notifications Ethan",
-              body:
-                notification?.message ||
-                "Aucune alerte urgente pour l'instant. Les notifications apparaîtront ici lorsqu'un signal mérite ton attention.",
-              tone: "blue",
-            })
-          }
-          className="w-full rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 text-left transition hover:border-blue-400/40"
-        >
-          <h3 className="font-bold text-blue-400 mb-2">Notification</h3>
-
-          <p className="text-sm text-white">
-            {notification?.title || "Aucune alerte urgente"}
-          </p>
-
-          {notification?.message && (
-            <p className="text-xs text-gray-400 mt-1">
-              {notification.message}
-            </p>
-          )}
-        </button>
-
-        {detail && (
-          <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                  Détail
-                </p>
-                <h3 className="mt-1 font-bold text-white">{detail.title}</h3>
+                  Mettre a jour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleProposal(proposal.id, "reject")}
+                  className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-gray-300"
+                >
+                  Ignorer
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setDetail(null)}
-                className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 hover:text-white"
-              >
-                Fermer
-              </button>
             </div>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-300">
-              {detail.body}
-            </p>
+          ))}
+        </div>
+      )}
+
+      <div
+        className={`no-scrollbar overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:p-4 ${
+          compact ? "h-72 sm:h-80" : "h-[58vh] min-h-[460px]"
+        }`}
+      >
+        {messages.length === 0 && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-gray-400">
+            Pose une question sur ton patrimoine, tes risques, tes opportunites ou ta prochaine action utile.
           </div>
         )}
-      </div>
 
-      <div className="h-72 overflow-y-auto rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3 sm:h-80 sm:p-4">
         {messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
@@ -366,6 +392,12 @@ export default function AdvisorChat({
 
         {loading && (
           <div className="text-sm text-gray-400">Ethan reflechit...</div>
+        )}
+
+        {errorMessage && (
+          <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {errorMessage}
+          </div>
         )}
       </div>
 
