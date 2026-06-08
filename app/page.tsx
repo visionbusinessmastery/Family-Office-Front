@@ -3,16 +3,16 @@
 import { FormEvent, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+import { apiFetch } from "@/lib/api-client";
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 type SubmitState = "idle" | "loading" | "success" | "error";
+type RegisterResponse = {
+  action?: string;
+};
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -53,20 +53,13 @@ export default function Home() {
     setMessage("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      const data = await apiFetch<RegisterResponse>("/auth/register", null, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           accept: "application/json",
         },
         body: JSON.stringify({ email: cleanEmail, ...consents }),
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.detail || "Erreur serveur");
-      }
 
       localStorage.setItem("verified_email", cleanEmail);
       localStorage.setItem("current_email", cleanEmail);
@@ -142,7 +135,7 @@ export default function Home() {
                 {[
                   ["terms_accepted", "J'accepte les conditions generales."],
                   ["privacy_policy_accepted", "J'accepte la politique de confidentialite."],
-                  ["ai_processing_accepted", "J'autorise Ethan a traiter mes donnees pour personnaliser l'accompagnement."],
+                  ["ai_processing_accepted", "J'autorise Ethan a utiliser mes donnees pour personnaliser l'accompagnement."],
                   ["weekly_reports_accepted", "Je souhaite recevoir mes rapports patrimoniaux hebdomadaires."],
                 ].map(([key, label]) => (
                   <label key={key} className="flex items-start gap-2">
@@ -183,7 +176,7 @@ export default function Home() {
               {!legalOk && (
                 <p className="mt-2 text-xs text-amber-100/80">
                   Accepte les conditions et la confidentialite avant de continuer
-                  avec un provider social.
+                  avec cette connexion.
                 </p>
               )}
             </div>
@@ -216,9 +209,7 @@ export default function Home() {
         <section className="mb-8 rounded-2xl border border-amber-300/20 bg-black/50 p-5 shadow-2xl backdrop-blur-xl sm:p-6">
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <div>
-              <p className="text-xs uppercase tracking-widest text-amber-200">
-                Legacy
-              </p>
+              <p className="text-xs uppercase tracking-widest text-amber-200">Dynasty</p>
               <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
                 Beyond Financial Freedom
               </h2>
@@ -259,3 +250,4 @@ export default function Home() {
     </AuthExperienceShell>
   );
 }
+
