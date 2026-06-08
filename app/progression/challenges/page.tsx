@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 import type { ProductContext, ProductMission } from "@/lib/types";
 
@@ -11,7 +11,7 @@ const fallbackMissions: ProductMission[] = [
   {
     key: "complete_finances",
     title: "Clarifier les fondations",
-    description: "Ajoute revenus, charges, épargne et dettes pour fiabiliser ton score.",
+    description: "Ajoute revenus, charges, epargne et dettes pour enrichir ton profil patrimonial.",
     xp: 120,
     module: "Finances",
   },
@@ -41,7 +41,7 @@ export default function ChallengesPage() {
       window.location.href = "/login";
       return;
     }
-    apiRequest<ProductContext>("/product/context", token)
+    apiFetch<ProductContext>("/product/context", token)
       .then(setProduct)
       .catch((error) =>
         setToast(error instanceof Error ? error.message : "Progression indisponible.")
@@ -96,7 +96,7 @@ export default function ChallengesPage() {
                   Récompense
                 </p>
                 <p className="mt-1 text-sm font-bold text-white">
-                  +{mission.xp || 80} XP · meilleure personnalisation Ethan
+                  +{mission.xp || 80} XP · contexte enrichi
                 </p>
               </div>
               <p className="mt-4 text-xs leading-relaxed text-gray-500">
