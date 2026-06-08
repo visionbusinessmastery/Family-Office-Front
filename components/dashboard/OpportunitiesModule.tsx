@@ -9,6 +9,7 @@ import type {
 
 type OpportunitiesModuleProps = {
   commandCenter: CommandCenter | null;
+  plan?: string | null;
 };
 
 const priorityClasses: Record<string, string> = {
@@ -25,184 +26,329 @@ const normalizeOpportunities = (
   return (opportunities as OpportunityData | undefined)?.opportunities || [];
 };
 
-const typeCopy: Record<string, { focus: string; impact: string; risk: string }> = {
-  real_estate: {
-    focus: "renforcer la poche immobilière sans surcharger ta liquidité",
-    impact: "améliorer la stabilité patrimoniale si le rendement net reste cohérent avec tes charges",
-    risk: "la liquidité et les travaux doivent rester sous contrôle avant engagement",
-  },
-  investments: {
-    focus: "équilibrer l'allocation financière et réduire les concentrations",
-    impact: "augmenter la diversification sans créer une exposition excessive à la volatilité",
-    risk: "le timing d'entrée et la corrélation avec tes positions actuelles sont les points à vérifier",
-  },
-  business: {
-    focus: "créer une poche de cashflow ou de valorisation entrepreneuriale",
-    impact: "accélérer la trajectoire si le risque opérationnel reste maîtrisé",
-    risk: "le temps disponible, les charges fixes et la dépendance au fondateur doivent être clarifiés",
-  },
-  strategic: {
-    focus: "transformer ton score en plan d'action concret",
-    impact: "réduire les angles morts et prioriser ce qui influence vraiment ton cockpit",
-    risk: "l'enjeu est d'éviter de multiplier les actions sans arbitrage clair",
-  },
-};
+const normalize = (value?: string | null) => (value || "").toLowerCase();
 
-const getOpportunityTypeKey = (opportunity: Opportunity) =>
-  String(opportunity.type || "").toLowerCase();
+const opportunitySummary = (opportunity: Opportunity) =>
+  opportunity.why_this_opportunity ||
+  opportunity.description ||
+  opportunity.impact_potential ||
+  "";
 
-const buildOpportunityInsight = (
-  opportunity: Opportunity,
-  globalScore: number
-) => {
-  const typeKey = getOpportunityTypeKey(opportunity);
-  const copy =
-    typeCopy[typeKey] ||
-    typeCopy[
-      typeKey.includes("real") || typeKey.includes("immo")
-        ? "real_estate"
-        : typeKey.includes("business") || typeKey.includes("venture")
-          ? "business"
-          : typeKey.includes("invest")
-            ? "investments"
-            : "strategic"
-    ];
-  const priority =
-    opportunity.priority === "high"
-      ? "prioritaire"
-      : opportunity.priority === "low"
-        ? "à garder en veille"
-        : "à qualifier";
+const opportunityText = (opportunity: Opportunity) =>
+  normalize(
+    [
+      opportunity.type,
+      opportunity.title,
+      opportunity.description,
+      opportunity.why_this_opportunity,
+      opportunity.next_action,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
 
-  return `Avec un score cockpit de ${globalScore}/100, ce signal est ${priority}: il peut ${copy.impact}. L'angle utile ici est de ${copy.focus}. Point de vigilance: ${copy.risk}.`;
-};
+const classifyOpportunity = (opportunity: Opportunity) => {
+  const text = opportunityText(opportunity);
 
-const buildOpportunityNextStep = (opportunity: Opportunity) => {
-  const typeKey = getOpportunityTypeKey(opportunity);
-
-  if (typeKey.includes("real") || typeKey.includes("immo")) {
-    return "Prochaine action: compare le rendement net, la fiscalité locale et le besoin de trésorerie avant toute visite ou simulation.";
+  if (
+    /business|agence|agency|ugc|revenu|income|cashflow|client|freelance|side|marketing/.test(
+      text
+    )
+  ) {
+    return {
+      label: "Income Building",
+      description: "Creation de revenus",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+    };
   }
 
-  if (typeKey.includes("business") || typeKey.includes("venture")) {
-    return "Prochaine action: vérifie le cashflow disponible, le niveau d'implication requis et le risque de dépendance opérationnelle.";
+  if (
+    /crypto|bitcoin|btc|solana|trading|swing|forex|speculat|opportunistic/.test(
+      text
+    )
+  ) {
+    return {
+      label: "Opportunistic",
+      description: "Signal tactique",
+      className: "border-orange-400/30 bg-orange-400/10 text-orange-200",
+    };
   }
 
-  if (typeKey.includes("invest")) {
-    return "Prochaine action: mesure l'effet sur ta diversification et évite d'ajouter une ligne trop corrélée à tes positions actuelles.";
-  }
-
-  return "Prochaine action: choisis une décision simple à exécuter cette semaine, puis mesure son effet sur ton score et ta clarté patrimoniale.";
+  return {
+    label: "Wealth Building",
+    description: "Construction long terme",
+    className: "border-[#f7d154]/30 bg-[#f7d154]/10 text-[#f7d154]",
+  };
 };
+
+const difficultyRank = (opportunity: Opportunity) => {
+  const value = normalize(
+    opportunity.difficulty || opportunity.profile_compatibility || ""
+  );
+
+  if (/advanced|expert|complex|hard|eleve|difficile/.test(value)) return 3;
+  if (/medium|intermediate|moyen|modere/.test(value)) return 2;
+  if (/easy|simple|low|faible|debutant/.test(value)) return 1;
+
+  return 1;
+};
+
+const allowedDifficultyRank = (plan?: string | null) => {
+  const normalizedPlan = normalize(plan);
+  if (/elite|liberty|legacy|dynasty/.test(normalizedPlan)) return 3;
+  if (/gold/.test(normalizedPlan)) return 2;
+  return 1;
+};
+
+const isStrategySignal = (opportunity: Opportunity) =>
+  /strategie|strategy|plan|10 ans|liberte financiere|freedom/.test(
+    opportunityText(opportunity)
+  );
 
 export default function OpportunitiesModule({
   commandCenter,
+  plan,
 }: OpportunitiesModuleProps) {
   const [selectedOpportunity, setSelectedOpportunity] =
     useState<Opportunity | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const opportunities = normalizeOpportunities(commandCenter?.opportunities);
-  const globalScore = Number(commandCenter?.global_score || 0);
   const detectedCount =
     typeof commandCenter?.opportunities_count === "number"
       ? commandCenter.opportunities_count
       : opportunities.length;
-  const enrichedOpportunities =
-    opportunities.length > 0
-      ? opportunities
-      : [
-          {
-            title: "Audit d'acceleration Advanced",
-            description:
-              "Transformer ton score actuel en plan d'action: proteger le cashflow, arbitrer les expositions et choisir une opportunite prioritaire cette semaine.",
-            priority: "high",
-            type: "strategic",
-            score: 73,
-          },
-          {
-            title: "Passer en Wealth OS",
-            description:
-              "Activer les analyses avancees, les affiliations pertinentes et un suivi plus regulier pour passer de croissance a liberte financiere pilotee.",
-            priority: "medium",
-            type: "subscription",
-            score: 80,
-          },
-        ];
+  const maxDifficulty = allowedDifficultyRank(plan);
+  const strategySignals = opportunities.filter(isStrategySignal);
+  const actionableOpportunities = opportunities.filter(
+    (opportunity) => !isStrategySignal(opportunity)
+  );
+  const planAlignedOpportunities = actionableOpportunities.filter(
+    (opportunity) => difficultyRank(opportunity) <= maxDifficulty
+  );
+  const visibleBase =
+    planAlignedOpportunities.length > 0
+      ? planAlignedOpportunities
+      : actionableOpportunities;
+  const visibleOpportunities = visibleBase.slice(0, 3);
+  const topOpportunity = visibleOpportunities[0];
+  const secondaryOpportunities = visibleOpportunities.slice(1, 3);
+  const restOpportunities = actionableOpportunities.filter(
+    (opportunity) => !visibleOpportunities.includes(opportunity)
+  );
+  const nextBestAction =
+    topOpportunity?.next_action ||
+    topOpportunity?.why_now ||
+    topOpportunity?.impact_potential;
+
+  const classificationCounts = actionableOpportunities.reduce<
+    Record<string, number>
+  >((acc, opportunity) => {
+    const label = classifyOpportunity(opportunity).label;
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
+  const renderOpportunityCard = (
+    opportunity: Opportunity,
+    index: number,
+    variant: "primary" | "standard" = "standard",
+    showAction = true
+  ) => {
+    const priority = opportunity.priority || "medium";
+    const badgeClass = priorityClasses[priority] || priorityClasses.medium;
+    const summary = opportunitySummary(opportunity);
+    const lens = classifyOpportunity(opportunity);
+
+    return (
+      <button
+        type="button"
+        key={`${opportunity.type || opportunity.title}-${index}-${variant}`}
+        onClick={() => setSelectedOpportunity(opportunity)}
+        className={`rounded-2xl border p-4 text-left transition hover:border-[#3fa9f5]/50 ${
+          variant === "primary"
+            ? "border-[#3fa9f5]/35 bg-[#3fa9f5]/10"
+            : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#3fa9f5]">
+              {variant === "primary" ? "Priorite du moment" : "Signal priorise"}
+            </p>
+            <h3 className="mt-2 font-bold text-white">
+              {opportunity.title || "Opportunite"}
+            </h3>
+            {summary && (
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                {summary}
+              </p>
+            )}
+          </div>
+
+          <span
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs uppercase ${badgeClass}`}
+          >
+            {priority}
+          </span>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span
+            className={`rounded-full border px-3 py-1 text-xs ${lens.className}`}
+          >
+            {lens.label}
+          </span>
+          {opportunity.difficulty && (
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+              {opportunity.difficulty}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+          {showAction && opportunity.next_action && (
+            <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+              <p className="text-gray-500">Action</p>
+              <p className="mt-1 text-gray-300">{opportunity.next_action}</p>
+            </div>
+          )}
+          {(opportunity.profile_compatibility || opportunity.difficulty) && (
+            <div className="rounded-xl border border-white/10 bg-black/25 p-2">
+              <p className="text-gray-500">Profil</p>
+              <p className="mt-1 text-gray-300">
+                {opportunity.profile_compatibility || opportunity.difficulty}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {opportunity.premium && (
+          <p className="mt-3 text-xs text-yellow-300">Signal premium</p>
+        )}
+      </button>
+    );
+  };
 
   return (
     <section className="bg-zinc-950 border border-white/10 rounded-2xl p-5">
       <div className="flex flex-col gap-1 mb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Opportunites</h2>
+          <h2 className="text-2xl font-bold">Intelligence des opportunites</h2>
           <p className="text-sm text-gray-400">
-            Signaux personnalises selon ton profil et ton portefeuille
+            Les signaux sont priorises pour faire ressortir ce qui merite vraiment ton attention.
           </p>
         </div>
 
         <span className="text-sm text-[#3fa9f5]">
-          {detectedCount} detectee
-          {detectedCount > 1 ? "s" : ""}
+          Top {visibleOpportunities.length} / {detectedCount} suivis
         </span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {enrichedOpportunities.slice(0, 6).map((opportunity, index) => {
-            const priority = opportunity.priority || "medium";
-            const badgeClass =
-              priorityClasses[priority] || priorityClasses.medium;
-
-            return (
-              <button
-                type="button"
-                key={`${opportunity.type || opportunity.title}-${index}`}
-                onClick={() => setSelectedOpportunity(opportunity)}
-                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-[#3fa9f5]/40 hover:bg-white/[0.07]"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-bold text-white">
-                      {opportunity.title || "Opportunite"}
-                    </h3>
-                    <p className="text-sm text-gray-400 mt-2">
-                      {opportunity.description ||
-                        buildOpportunityInsight(opportunity, globalScore)}
-                    </p>
-                  </div>
-
-                  <span
-                    className={`shrink-0 rounded-full border px-3 py-1 text-xs uppercase ${badgeClass}`}
-                  >
-                    {priority}
-                  </span>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-gray-500 uppercase">
-                    {opportunity.type || "signal"}
-                  </span>
-                  <span className="font-black text-[#3fa9f5]">
-                    {opportunity.score || 0}/100
-                  </span>
-                </div>
-
-                {opportunity.premium && (
-                  <p className="mt-3 text-xs text-yellow-300">
-                    Signal premium
-                  </p>
-                )}
-              </button>
-            );
-          })}
+      {opportunities.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-gray-400">
+          Aucun signal disponible pour le moment.
         </div>
+      ) : (
+        <div className="space-y-4">
+          {nextBestAction && (
+            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">
+                Prochaine meilleure action
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-emerald-50">
+                {nextBestAction}
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {["Wealth Building", "Income Building", "Opportunistic"].map(
+              (label) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                >
+                  <p className="text-xs uppercase tracking-widest text-gray-500">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-white">
+                    {classificationCounts[label] || 0}
+                  </p>
+                </div>
+              )
+            )}
+          </div>
+
+          {topOpportunity && renderOpportunityCard(topOpportunity, 0, "primary", false)}
+
+          {secondaryOpportunities.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Top 3 priorisees
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {secondaryOpportunities.map((opportunity, index) =>
+                  renderOpportunityCard(opportunity, index + 1)
+                )}
+              </div>
+            </div>
+          )}
+
+          {restOpportunities.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Autres signaux suivis
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowMore((current) => !current)}
+                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 hover:border-[#3fa9f5]/50 hover:text-white"
+                >
+                  {showMore ? "Masquer" : "Voir plus"}
+                </button>
+              </div>
+
+              {showMore && (
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {restOpportunities.map((opportunity, index) =>
+                    renderOpportunityCard(opportunity, index + 3)
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {strategySignals.length > 0 && (
+            <div className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#3fa9f5]">
+                Strategie long terme
+              </p>
+              <p className="mt-2 text-sm text-gray-300">
+                Ces elements relevent davantage de la trajectoire long terme que
+                d'une opportunite immediate.
+              </p>
+              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {strategySignals.slice(0, 2).map((opportunity, index) =>
+                  renderOpportunityCard(opportunity, index, "standard")
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {selectedOpportunity && (
         <div className="mt-5 rounded-2xl border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                Détail opportunité
+                Detail opportunite
               </p>
               <h3 className="mt-1 text-lg font-bold text-white">
-                {selectedOpportunity.title || "Opportunité"}
+                {selectedOpportunity.title || "Opportunite"}
               </h3>
             </div>
             <button
@@ -213,10 +359,11 @@ export default function OpportunitiesModule({
               Fermer
             </button>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-gray-300">
-            {selectedOpportunity.description ||
-              buildOpportunityInsight(selectedOpportunity, globalScore)}
-          </p>
+          {opportunitySummary(selectedOpportunity) && (
+            <p className="mt-3 text-sm leading-relaxed text-gray-300">
+              {opportunitySummary(selectedOpportunity)}
+            </p>
+          )}
           <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div className="rounded-xl border border-white/10 bg-black/30 p-3">
               <p className="text-xs text-gray-500">Type</p>
@@ -225,21 +372,39 @@ export default function OpportunitiesModule({
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-gray-500">Priorité</p>
+              <p className="text-xs text-gray-500">Priorite</p>
               <p className="mt-1 font-bold text-white">
                 {selectedOpportunity.priority || "medium"}
               </p>
             </div>
             <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-gray-500">Score</p>
+              <p className="text-xs text-gray-500">Difficulte</p>
               <p className="mt-1 font-bold text-[#3fa9f5]">
-                {selectedOpportunity.score || 0}/100
+                {selectedOpportunity.difficulty || "non renseignee"}
               </p>
             </div>
           </div>
-          <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
-            {buildOpportunityNextStep(selectedOpportunity)}
-          </p>
+          {(selectedOpportunity.why_now || selectedOpportunity.impact_potential) && (
+            <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              {selectedOpportunity.why_now && (
+                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-xs text-gray-500">Pourquoi maintenant</p>
+                  <p className="mt-1 text-gray-300">{selectedOpportunity.why_now}</p>
+                </div>
+              )}
+              {selectedOpportunity.impact_potential && (
+                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-xs text-gray-500">Impact potentiel</p>
+                  <p className="mt-1 text-gray-300">{selectedOpportunity.impact_potential}</p>
+                </div>
+              )}
+            </div>
+          )}
+          {selectedOpportunity.next_action && (
+            <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
+              {selectedOpportunity.next_action}
+            </p>
+          )}
         </div>
       )}
     </section>
