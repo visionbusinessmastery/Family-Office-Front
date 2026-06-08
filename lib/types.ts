@@ -16,6 +16,62 @@ export type FinancePayload = {
 
 export type FinanceData = Record<FinanceType, FinanceEntry[]>;
 
+export type FinanceOverviewData = {
+  version?: string;
+  source?: string;
+  totals?: {
+    income?: number | string;
+    expenses?: number | string;
+    cashflow?: number | string;
+    living_margin?: number | string;
+    savings?: number | string;
+    debt?: number | string;
+  };
+  ratios?: {
+    savings_rate?: number | string;
+    debt_to_income?: number | string;
+    liquid_months?: number | string;
+  };
+  counts?: Partial<Record<FinanceType, number>>;
+  reading?: string;
+  priority?: string;
+};
+
+export type AdvisorContextSummary = {
+  version?: string;
+  plan?: string;
+  mode?: string;
+  depth?: string;
+  memory?: {
+    reading?: string;
+    profile?: Record<string, unknown>;
+    last_topic?: string | null;
+  };
+  decision_framework?: string[];
+};
+
+export type ChildAccount = {
+  id: number;
+  child_name: string;
+  goal?: string | null;
+  target_amount?: number | string;
+  current_amount?: number | string;
+  monthly_contribution?: number | string;
+  horizon?: string | null;
+  notes?: string | null;
+  progress_percent?: number | string;
+};
+
+export type ChildAccountsData = {
+  plan?: string;
+  accounts?: ChildAccount[];
+  totals?: {
+    target_amount?: number | string;
+    current_amount?: number | string;
+    monthly_contribution?: number | string;
+  };
+};
+
 export type PortfolioAsset = {
   id: number;
   asset_name?: string;
@@ -37,6 +93,20 @@ export type PortfolioAsset = {
   currency_quote?: string;
   ticker?: string;
   source?: string;
+  market_data_status?: string;
+  market_data?: {
+    status?: string;
+    ticker?: string;
+    source?: string;
+    message?: string | null;
+  };
+};
+
+export type RubricBreakdownItem = {
+  label: string;
+  value: number;
+  count?: number;
+  has_market_data_issue?: boolean;
 };
 
 export type PortfolioPayload = {
@@ -64,6 +134,42 @@ export type ProductMission = {
   xp?: number;
   module?: string;
   recommended_plan?: string;
+  validation?: string;
+  context_reason?: string;
+  completed?: boolean;
+  status?: "pending" | "completed" | "verified" | string;
+};
+
+export type ProductSignal = {
+  title?: string;
+  description?: string;
+  action?: string;
+  status?: string;
+  confidence?: string;
+  xp?: number;
+};
+
+export type ProductBenchmarkDelta = {
+  previous_value?: number;
+  delta_value?: number;
+  delta_percent?: number;
+};
+
+export type ProductOpportunityRadarItem = {
+  key?: string;
+  title?: string;
+  why_fit?: string;
+  time_fit?: string;
+  impact?: string;
+  next_action?: string;
+  priority?: string;
+};
+
+export type ProductDependencySignal = {
+  type?: string;
+  title?: string;
+  description?: string;
+  severity?: string;
 };
 
 export type ProductContext = {
@@ -78,6 +184,10 @@ export type ProductContext = {
   entitlements?: {
     plan?: string;
     max_assets?: number | null;
+    max_real_estate_assets?: number | null;
+    real_estate_depth?: string;
+    max_business_assets?: number | null;
+    business_depth?: string;
     ai_level?: string;
     modules?: string[];
     features?: string[];
@@ -101,14 +211,496 @@ export type ProductContext = {
     real_estate_count?: number;
     yield_count?: number;
     venture_count?: number;
+    total_assets_count?: number;
     completed_steps?: number;
     completion_percent?: number;
+    monthly_income?: number;
+    monthly_expenses?: number;
+    monthly_savings?: number;
+    monthly_capacity?: number;
+    debt_total?: number;
+    portfolio_value?: number;
+    real_estate_value?: number;
+    yield_value?: number;
+    venture_value?: number;
+    business_value?: number;
+    current_wealth?: number;
+  };
+  life_profile?: {
+    goals?: string[];
+    professional_context?: string | null;
+    motivation?: string | null;
+    has_children?: boolean;
+    transmission_goal?: string | null;
+    governance_need?: string | null;
   };
   modules?: {
     visible?: ProductModule[];
     locked?: ProductModule[];
   };
   missions?: ProductMission[];
+  strategic_brief?: {
+    priority?: string;
+    main_lever?: string;
+    main_risk?: string;
+    opportunity?: string;
+    next_action?: string;
+    context_basis?: {
+      goals?: string[];
+      has_children?: boolean;
+      professional_context?: string | null;
+    };
+  };
+  mission_control?: {
+    risk?: ProductSignal;
+    opportunity?: ProductSignal;
+    decision?: ProductSignal;
+    mission?: ProductSignal;
+    future_signal?: ProductSignal;
+  };
+  future_view?: {
+    title?: string;
+    current_wealth?: number;
+    monthly_capacity?: number;
+    annual_return?: number;
+    confidence?: string;
+    assumption?: string;
+    scenarios?: Array<{
+      label?: string;
+      years?: number;
+      value?: number;
+    }>;
+  };
+  wealth_timeline?: {
+    current_wealth?: number;
+    progress_percent?: number;
+    next_milestone?: {
+      label?: string;
+      target?: number;
+      months_to_target?: number | null;
+      estimated_date?: string | null;
+      estimated_label?: string | null;
+    } | null;
+    stages?: Array<{
+      label?: string;
+      target?: number;
+      status?: string;
+      progress_percent?: number;
+      distance_remaining?: number;
+      months_to_target?: number | null;
+      estimated_date?: string | null;
+      estimated_label?: string | null;
+    }>;
+  };
+  family_office_view?: {
+    title?: string;
+    summary?: string;
+    global_wealth?: number;
+    active_domains?: number;
+    plan?: string;
+    allocation?: Array<{
+      key?: string;
+      label?: string;
+      value?: number;
+      description?: string;
+    }>;
+  };
+  wealth_gps?: {
+    title?: string;
+    current_position?: number;
+    next_destination?: number;
+    assumption?: string;
+    routes?: Array<{
+      key?: string;
+      label?: string;
+      annual_return?: number;
+      monthly_multiplier?: number;
+      value_10y?: number;
+      years_to_next_milestone?: number | null;
+      description?: string;
+    }>;
+  };
+  digital_twin?: {
+    title?: string;
+    basis?: string;
+    scenarios?: Array<{
+      key?: string;
+      label?: string;
+      monthly_delta?: number;
+      annual_return?: number;
+      value_5y?: number;
+      value_10y?: number;
+      description?: string;
+    }>;
+  };
+  weak_signals?: {
+    title?: string;
+    signals?: Array<{
+      type?: string;
+      title?: string;
+      description?: string;
+      severity?: string;
+    }>;
+  };
+  self_benchmark?: {
+    title?: string;
+    current_wealth?: number;
+    six_months?: ProductBenchmarkDelta | null;
+    twelve_months?: ProductBenchmarkDelta | null;
+    basis?: string;
+  };
+  wealth_story?: {
+    title?: string;
+    events?: Array<{
+      label?: string;
+      title?: string;
+      description?: string;
+    }>;
+  };
+  opportunity_radar?: {
+    title?: string;
+    principle?: string;
+    items?: ProductOpportunityRadarItem[];
+  };
+  decision_engine?: {
+    title?: string;
+    decisions?: Array<{
+      key?: string;
+      label?: string;
+      cashflow?: string;
+      liquidity?: string;
+      risk?: string;
+      freedom_impact?: string;
+      fit?: string;
+      comment?: string;
+    }>;
+  };
+  time_value?: {
+    title?: string;
+    hourly_value?: number;
+    monthly_capacity?: number;
+    basis?: string;
+    levers?: Array<{
+      label?: string;
+      time_cost?: string;
+      leverage?: string;
+      reading?: string;
+    }>;
+  };
+  wealth_blocks?: {
+    title?: string;
+    blocks?: Array<{
+      key?: string;
+      label?: string;
+      value?: number;
+      status?: string;
+      description?: string;
+    }>;
+  };
+  dependency_detector?: {
+    title?: string;
+    signals?: ProductDependencySignal[];
+  };
+  personal_command_center?: {
+    title?: string;
+    situation?: string;
+    threat?: ProductDependencySignal | null;
+    opportunity?: ProductOpportunityRadarItem | ProductSignal | null;
+    mission?: ProductSignal | null;
+    next_step?: string;
+    time_value?: ProductContext["time_value"];
+  };
+  wealth_map?: {
+    title?: string;
+    destination?: {
+      label?: string;
+      target?: number;
+      months_to_target?: number | null;
+      estimated_label?: string | null;
+    } | null;
+    current_position?: number;
+    progress_percent?: number;
+    distance_remaining?: number;
+    monthly_velocity?: number;
+    estimated_label?: string | null;
+    months_to_destination?: number | null;
+  };
+  invisible_wealth?: {
+    title?: string;
+    current_wealth?: number;
+    projected_wealth?: number;
+    untapped_capital?: number;
+    story?: string;
+    best_path?: {
+      key?: string;
+      label?: string;
+      value_10y?: number;
+      value_5y?: number;
+      description?: string;
+    } | null;
+  };
+  family_office_radar?: {
+    title?: string;
+    items?: Array<{
+      key?: string;
+      label?: string;
+      score?: number;
+      status?: "green" | "amber" | "red" | string;
+    }>;
+  };
+  hidden_wealth?: {
+    title?: string;
+    visible_wealth?: number;
+    activable_wealth?: number;
+    total_potential?: number;
+    basis?: string;
+    items?: Array<{
+      key?: string;
+      label?: string;
+      potential_value?: number;
+      confidence?: string;
+      description?: string;
+    }>;
+  };
+  gravity_center?: {
+    title?: string;
+    visible?: Array<{ key?: string; label?: string; value?: number; weight?: number }>;
+    future?: Array<{ key?: string; label?: string; value?: number; weight?: number }>;
+    dominant_visible?: string;
+    dominant_future?: string;
+    reading?: string;
+    hidden_count?: number;
+  };
+  stress_tests?: {
+    title?: string;
+    base_value?: number;
+    tests?: Array<{
+      key?: string;
+      label?: string;
+      result_value?: number;
+      delta?: number;
+      reading?: string;
+    }>;
+  };
+  leverage_engine?: {
+    title?: string;
+    main_lever?: {
+      key?: string;
+      label?: string;
+      impact_score?: number;
+      reason?: string;
+    } | null;
+    levers?: Array<{
+      key?: string;
+      label?: string;
+      impact_score?: number;
+      reason?: string;
+    }>;
+  };
+  life_wealth?: {
+    title?: string;
+    dimensions?: Array<{ key?: string; label?: string; score?: number }>;
+  };
+  future_film?: {
+    title?: string;
+    chapters?: Array<{
+      year?: number;
+      title?: string;
+      wealth?: number;
+      narrative?: string;
+    }>;
+  };
+  family_office_scorecard?: {
+    title?: string;
+    dimensions?: Array<{ key?: string; label?: string; score?: number }>;
+  };
+  board_briefing?: {
+    title?: string;
+    headline?: string;
+    what_changed?: string;
+    main_risk?: string;
+    main_opportunity?: string;
+    next_step?: string;
+    stress_watch?: {
+      label?: string;
+      result_value?: number;
+      delta?: number;
+      reading?: string;
+    } | null;
+  };
+  wealth_narrative?: {
+    title?: string;
+    headline?: string;
+    narrative?: string;
+    memorable_insight?: string;
+    why_it_matters?: string;
+    visible_wealth?: number;
+    activable_wealth?: number;
+    total_potential?: number;
+    next_milestone?: {
+      label?: string;
+      target?: number;
+      estimated_label?: string | null;
+      months_to_target?: number | null;
+    } | null;
+    main_lever?: {
+      label?: string;
+      impact_score?: number;
+      reason?: string;
+    } | null;
+    gravity_reading?: string;
+  };
+  wealth_intelligence?: {
+    title?: string;
+    question?: string;
+    headline?: string;
+    narrative?: string;
+    memorable_insight?: string;
+    why_it_matters?: string;
+    visible_wealth?: number;
+    activable_wealth?: number;
+    total_potential?: number;
+    gravity_reading?: string;
+    domains?: NonNullable<ProductContext["family_office_view"]>["allocation"];
+    hidden_items?: NonNullable<ProductContext["hidden_wealth"]>["items"];
+  };
+  future_intelligence?: {
+    title?: string;
+    question?: string;
+    why_it_matters?: string;
+    time_to_next?: string | null;
+    position?: {
+      current?: number;
+      destination?: {
+        label?: string;
+        target?: number;
+        estimated_label?: string | null;
+      } | null;
+      progress_percent?: number;
+      distance_remaining?: number;
+      monthly_velocity?: number;
+      estimated_label?: string | null;
+    };
+    timeline?: NonNullable<ProductContext["wealth_timeline"]>["stages"];
+    routes?: NonNullable<ProductContext["wealth_gps"]>["routes"];
+    simulations?: NonNullable<ProductContext["digital_twin"]>["scenarios"];
+    film?: NonNullable<ProductContext["future_film"]>["chapters"];
+  };
+  strategic_intelligence?: {
+    title?: string;
+    question?: string;
+    cards?: Array<{
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    }>;
+    decision_matrix?: NonNullable<ProductContext["decision_engine"]>["decisions"];
+  } | null;
+  decision_intelligence?: {
+    title?: string;
+    question?: string;
+    why_it_matters?: string;
+    decision?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    risk?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    opportunity?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    leverage?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    next_action?: string;
+    cards?: Array<{
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    }>;
+  } | null;
+  family_office_intelligence?: {
+    title?: string;
+    question?: string;
+    scorecard?: NonNullable<ProductContext["family_office_scorecard"]>["dimensions"];
+    stress_tests?: NonNullable<ProductContext["stress_tests"]>["tests"];
+    dependencies?: ProductDependencySignal[];
+    weak_signals?: ProductDependencySignal[];
+    life_dimensions?: NonNullable<ProductContext["life_wealth"]>["dimensions"];
+    radar?: NonNullable<ProductContext["family_office_radar"]>["items"];
+  } | null;
+  family_office_ceo?: {
+    title?: string;
+    question?: string;
+    operating_reading?: string;
+    wealth?: number;
+    monthly_income?: number;
+    monthly_expenses?: number;
+    monthly_capacity?: number;
+    burn_rate?: number;
+    runway_months?: number | string | null;
+    debt_total?: number;
+    active_projects?: number;
+    objective?: string;
+    decision?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    risk?: {
+      key?: string;
+      label?: string;
+      title?: string;
+      description?: string;
+      action?: string;
+      score?: number;
+    } | null;
+    weakest_dimension?: {
+      key?: string;
+      label?: string;
+      score?: number;
+    } | null;
+    mission?: ProductMission | null;
+  } | null;
+};
+
+export type AssetAccess = {
+  plan?: string;
+  count?: number;
+  limit?: number | null;
+  remaining?: number | null;
+  depth?: string;
+  depth_label?: string;
+  is_unlimited?: boolean;
 };
 
 export type LegacyOverview = {
@@ -162,6 +754,7 @@ export type RealEstatePayload = {
 
 export type RealEstateData = {
   assets: RealEstateAsset[];
+  access?: AssetAccess | null;
   totals: {
     total_purchase?: number | string;
     total_estimated_value?: number | string;
@@ -234,6 +827,7 @@ export type VentureAssetPayload = {
 
 export type VentureAssetData = {
   assets: VentureAsset[];
+  access?: AssetAccess | null;
   totals: {
     total_revenue?: number | string;
     total_charges?: number | string;
@@ -244,6 +838,33 @@ export type VentureAssetData = {
   };
 };
 
+export type BusinessIntelligenceData = {
+  version?: string;
+  access?: AssetAccess | null;
+  metrics?: {
+    revenue?: number | string;
+    charges?: number | string;
+    result?: number | string;
+    debts?: number | string;
+    valuation?: number | string;
+    private_capital?: number | string;
+    projected_gain?: number | string;
+    total_business_value?: number | string;
+    assets_count?: number | string;
+  };
+  narrative?: {
+    title?: string;
+    text?: string;
+    emphasis?: string;
+  };
+  decision?: {
+    title?: string;
+    description?: string;
+    timeframe?: string;
+    impact?: string;
+  };
+};
+
 export type Opportunity = {
   type?: string;
   title?: string;
@@ -251,6 +872,12 @@ export type Opportunity = {
   priority?: "high" | "medium" | "low" | string;
   score?: number;
   premium?: boolean;
+  why_this_opportunity?: string;
+  why_now?: string;
+  impact_potential?: string;
+  difficulty?: string;
+  profile_compatibility?: string;
+  next_action?: string;
 };
 
 export type OpportunityData = {
@@ -392,6 +1019,13 @@ export type CommandCenter = {
     details?: ScoreDetails;
   };
   advice?: string[];
+  module_signals?: Array<{
+    module?: string;
+    domain?: string;
+    signal?: string;
+    severity?: string;
+    label?: string;
+  }>;
   opportunities?: OpportunityData | Opportunity[];
   opportunities_count?: number;
   modules?: Record<string, { score?: number }>;
@@ -399,11 +1033,31 @@ export type CommandCenter = {
 };
 
 export type OnboardingData = {
+  age?: number | null;
+  situation_pro?: string | null;
   revenus_mensuels?: number;
   charges_mensuelles?: number;
   monthly_income?: number;
   monthly_expenses?: number;
   profile_completed?: boolean;
+};
+
+export type WealthProfile = {
+  first_name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  goals?: string[];
+  horizon?: string | null;
+  investor_profile?: string | null;
+  risk_level?: string | null;
+  main_currency?: string | null;
+  motivation?: string | null;
+  has_children?: boolean;
+  transmission_goal?: string | null;
+  expatriation_interest?: string | null;
+  governance_need?: string | null;
+  confidentiality_need?: string | null;
+  family_strategy?: string | null;
 };
 
 export type UserProfile = OnboardingData & {
@@ -447,6 +1101,22 @@ export type GamificationData = {
     title?: string;
     description?: string;
   };
+};
+
+export type ProgressionTimelineItem = {
+  date?: string | null;
+  type?: string;
+  title?: string;
+  description?: string;
+  impact?: string;
+  xp?: number;
+  source?: string;
+};
+
+export type ProgressionTimelineData = {
+  version?: string;
+  plan?: string;
+  timeline?: ProgressionTimelineItem[];
 };
 
 export type DashboardSummary = {
