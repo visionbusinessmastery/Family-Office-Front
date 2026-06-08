@@ -3,16 +3,21 @@
 import { FormEvent, useMemo, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+import { apiFetch } from "@/lib/api-client";
 
 const loginMessages = [
   "Bon retour. On reprend le cap.",
   "Ton cockpit t'attend.",
   "Une petite action aujourd'hui peut clarifier tout le mois.",
 ];
+
+type LoginResponse = {
+  access_token?: string;
+};
+
+type ApiErrorPayload = {
+  action?: string;
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,31 +36,13 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      const data = await apiFetch<LoginResponse>("/auth/login", null, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
           password,
         }),
-      }).catch((err) => {
-        console.error("FETCH ERROR:", err);
-        throw new Error("Backend injoignable");
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        if (data?.action === "set_password_required") {
-          localStorage.setItem("verified_email", email);
-          window.location.href = "/set-password";
-          return;
-        }
-
-        throw new Error(data?.detail || "Erreur login");
-      }
 
       if (data?.access_token) {
         localStorage.setItem("token", data.access_token);
@@ -67,7 +54,14 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       }, 1400);
     } catch (err: unknown) {
-      setMessage(err instanceof Error ? err.message : JSON.stringify(err));
+      const payload = (err as { payload?: ApiErrorPayload })?.payload;
+      if (payload?.action === "set_password_required") {
+        localStorage.setItem("verified_email", email);
+        window.location.href = "/set-password";
+        return;
+      }
+
+      setMessage(err instanceof Error ? err.message : "Connexion impossible");
       setLoading(false);
     }
   };
@@ -169,7 +163,7 @@ export default function LoginPage() {
           <SocialLoginButtons disabled={loading} compact />
 
           <p className="mt-3 text-center text-xs leading-relaxed text-gray-500">
-            En continuant avec un provider social, tu confirmes vouloir acceder
+            En continuant avec cette connexion, tu confirmes vouloir acceder
             a WHITE ROCK avec une authentification securisee.
           </p>
 
