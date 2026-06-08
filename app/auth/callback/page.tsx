@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import BrandMark from "@/components/BrandMark";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 
 export default function OAuthCallbackPage() {
   const [message, setMessage] = useState("Connexion securisee en cours...");
@@ -23,7 +23,7 @@ export default function OAuthCallbackPage() {
       return;
     }
 
-    apiRequest<{ access_token?: string; state?: string }>(
+    apiFetch<{ access_token?: string; state?: string }>(
       `/auth/oauth/session/${session}`,
       null,
       { method: "POST" }
