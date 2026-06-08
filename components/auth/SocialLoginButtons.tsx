@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/lib/api";
+import { apiFetch, getApiUrl } from "@/lib/api-client";
 
 type Provider = {
   id: string;
@@ -38,8 +38,7 @@ export default function SocialLoginButtons({
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/oauth/providers`)
-      .then((response) => response.json())
+    apiFetch<{ providers?: Provider[] }>("/auth/oauth/providers")
       .then((data) => {
         if (Array.isArray(data?.providers)) {
           setProviders(
@@ -54,18 +53,18 @@ export default function SocialLoginButtons({
 
   const startOAuth = (provider: Provider) => {
     if (disabled) {
-      window.alert("Accepte les conditions requises avant de continuer avec un provider social.");
+      window.alert("Accepte les conditions requises avant de continuer avec cette connexion.");
       return;
     }
 
     if (!provider.enabled || provider.coming_soon) {
-      window.alert(`${provider.label} OAuth est en cours de configuration.`);
+      window.alert(`${provider.label} sera disponible prochainement.`);
       return;
     }
 
     setLoadingProvider(provider.id);
     window.location.assign(
-      `${API_BASE_URL}/auth/oauth/${provider.id}/start?redirect=${encodeURIComponent(redirect)}`
+      getApiUrl(`/auth/oauth/${provider.id}/start?redirect=${encodeURIComponent(redirect)}`)
     );
   };
 
@@ -77,7 +76,7 @@ export default function SocialLoginButtons({
         const helperText = provider.coming_soon
           ? "Bientôt disponible"
           : !provider.enabled
-            ? "Configuration en cours"
+            ? "Bientot disponible"
             : disabled
               ? "Consentements requis"
               : null;
