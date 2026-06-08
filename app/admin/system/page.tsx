@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 
 type Diagnostics = {
@@ -42,7 +42,7 @@ export default function SystemAdminPage() {
       return;
     }
 
-    apiRequest<Diagnostics>("/system/admin/diagnostics", token)
+    apiFetch<Diagnostics>("/system/admin/diagnostics", token)
       .then(setData)
       .catch((error) => {
         setToast(error instanceof Error ? error.message : "Diagnostics indisponibles.");
@@ -60,13 +60,13 @@ export default function SystemAdminPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-              System Diagnostics
+              Etat White Rock
             </p>
             <h1 className="mt-2 text-3xl font-black sm:text-5xl">
               Readiness production
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-300">
-              Sante des dependances, feature flags, cache, Stripe, OpenAI et couts Ethan.
+              Etat des services, fonctions actives, memoire, paiements et couts Ethan.
             </p>
           </div>
           <CockpitBackLink />
@@ -86,7 +86,7 @@ export default function SystemAdminPage() {
             <section className="grid gap-3 sm:grid-cols-4">
               <MetricCard label="Statut systeme" value={data.health.status} tone={data.health.status === "ok" ? "success" : "danger"} />
               <MetricCard label="Dependances degradees" value={degraded} tone={degraded ? "danger" : "success"} />
-              <MetricCard label="Feature flags" value={data.feature_flags.length} tone="primary" />
+              <MetricCard label="Fonctions actives" value={data.feature_flags.length} tone="primary" />
               <MetricCard label="Cout Ethan 7j" value={`$${data.ethan_costs_7d.reduce((sum, item) => sum + item.estimated_cost_usd, 0).toFixed(4)}`} />
             </section>
 
@@ -106,7 +106,7 @@ export default function SystemAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/45 p-5 backdrop-blur-xl">
-                <h2 className="text-2xl font-black">Feature flags</h2>
+                <h2 className="text-2xl font-black">Fonctions actives</h2>
                 <div className="mt-4 space-y-2">
                   {data.feature_flags.map((flag) => (
                     <div key={flag.key} className="rounded-xl bg-white/[0.04] px-4 py-3 text-sm">
@@ -131,7 +131,7 @@ export default function SystemAdminPage() {
                     <div key={row.plan} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3 text-sm">
                       <span>{row.plan || "UNKNOWN"}</span>
                       <span className="text-gray-400">
-                        {row.requests} req · ${row.estimated_cost_usd.toFixed(4)} · cache {Math.round(row.cache_hit_ratio * 100)}%
+                        {row.requests} demandes · ${row.estimated_cost_usd.toFixed(4)} · memoire {Math.round(row.cache_hit_ratio * 100)}%
                       </span>
                     </div>
                   ))}
@@ -144,7 +144,7 @@ export default function SystemAdminPage() {
                   {data.ethan_models_7d.map((row) => (
                     <div key={row.model} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3 text-sm">
                       <span>{row.model || "UNKNOWN"}</span>
-                      <span className="text-gray-400">{row.requests} req · ${row.estimated_cost_usd.toFixed(4)}</span>
+                      <span className="text-gray-400">{row.requests} demandes · ${row.estimated_cost_usd.toFixed(4)}</span>
                     </div>
                   ))}
                 </div>
