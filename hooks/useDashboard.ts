@@ -1,22 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiRequest, clearAuthSession, isJwtExpired } from "@/lib/api";
+import { apiFetch, clearAuthSession, isJwtExpired } from "@/lib/api-client";
 import type {
-  CommandCenter,
+  AdvisorContextSummary,
+  BusinessIntelligenceData,
   CategoryOpportunityData,
+  CommandCenter,
   DashboardSummary,
   FinanceData,
+  FinanceOverviewData,
   GamificationData,
   LegacyOverview,
   OnboardingData,
   PortfolioAsset,
   PortfolioHistoryPoint,
+  ProgressionTimelineData,
   ProductContext,
   RealEstateData,
   ScoreDetails,
   UserIntelligence,
   UserProfile,
+  RubricBreakdownItem,
   VentureAssetData,
   WorkspaceData,
   YieldAssetData,
@@ -31,10 +36,29 @@ const emptyFinance: FinanceData = {
 
 const DASHBOARD_LIVE_REFRESH_MS = 60_000;
 const DASHBOARD_SESSION_CACHE_PREFIX = "whiteRockDashboardSession:";
+const PLAN_ORDER: Record<string, number> = {
+  FREE: 0,
+  GOLD: 1,
+  ELITE: 2,
+  LIBERTY: 3,
+  LEGACY: 4,
+};
 
 type BillingSubscription = {
   plan?: string;
   status?: string;
+  current_period_end?: string | number | null;
+  renewal_at?: string | number | null;
+  effective_at?: string | number | null;
+  cancel_at?: string | number | null;
+  cancel_at_period_end?: boolean;
+  pending_plan?: string | null;
+  future_plan?: string | null;
+  amount?: number | string | null;
+  price?: string | null;
+  display_amount?: string | null;
+  interval?: string | null;
+  currency?: string | null;
   founder?: {
     is_founder?: boolean;
     tier?: string | null;
@@ -46,6 +70,7 @@ type PortfolioResponse =
   | PortfolioAsset[]
   | {
       portfolio?: PortfolioAsset[] | { assets?: PortfolioAsset[] };
+      allocation_by_type?: RubricBreakdownItem[];
       assets?: PortfolioAsset[];
       data?: PortfolioAsset[] | { portfolio?: PortfolioAsset[]; assets?: PortfolioAsset[] };
       items?: PortfolioAsset[];
@@ -57,21 +82,26 @@ type DashboardSessionSnapshot = {
   dashboard: DashboardSummary | null;
   score: number;
   scoreDetails: ScoreDetails | null;
-  scoreAdvice: string[];
   commandCenter: CommandCenter | null;
   gamification: GamificationData | null;
   portfolio: PortfolioAsset[];
+  portfolioAllocation: RubricBreakdownItem[];
   history: PortfolioHistoryPoint[];
   realEstate: RealEstateData | null;
   yieldAssets: YieldAssetData | null;
   ventureAssets: VentureAssetData | null;
+  businessIntelligence: BusinessIntelligenceData | null;
   onboarding: OnboardingData | null;
   intelligence: UserIntelligence | null;
   categoryOpportunities: CategoryOpportunityData | null;
   workspaces: WorkspaceData | null;
   legacyOverview: LegacyOverview | null;
   product: ProductContext | null;
+  billingSubscription?: BillingSubscription | null;
+  progressionTimeline: ProgressionTimelineData | null;
   finance: FinanceData;
+  financeOverview: FinanceOverviewData | null;
+  advisorContext: AdvisorContextSummary | null;
 };
 
 const extractPortfolio = (data: PortfolioResponse | null) => {
@@ -101,6 +131,11 @@ const extractPortfolio = (data: PortfolioResponse | null) => {
   return candidates.find(Array.isArray) || null;
 };
 
+const extractPortfolioAllocation = (data: PortfolioResponse | null) => {
+  if (!data || Array.isArray(data)) return [];
+  return Array.isArray(data.allocation_by_type) ? data.allocation_by_type : [];
+};
+
 const readCachedDashboard = (): DashboardSummary | null => {
   if (typeof window === "undefined") return null;
 
@@ -114,6 +149,17 @@ const readCachedDashboard = (): DashboardSummary | null => {
 
 const getDashboardSessionCacheKey = (token: string | null) =>
   token ? `${DASHBOARD_SESSION_CACHE_PREFIX}${token.slice(-24)}` : null;
+
+const normalizePlan = (plan?: string | null) => {
+  const value = String(plan || "FREE").trim().toUpperCase();
+  if (value === "GROWTH") return "GOLD";
+  if (value === "PLATINUM" || value === "WEALTH_OS") return "ELITE";
+  if (value === "DYNASTY" || value === "DYNASTY_OFFICE") return "LEGACY";
+  return PLAN_ORDER[value] === undefined ? "FREE" : value;
+};
+
+const planAllows = (plan: string | undefined | null, required: string) =>
+  PLAN_ORDER[normalizePlan(plan)] >= PLAN_ORDER[normalizePlan(required)];
 
 const readCachedDashboardSession = (
   token: string | null
@@ -176,14 +222,16 @@ export function useDashboard() {
   );
   const [score, setScore] = useState<number>(0);
   const [scoreDetails, setScoreDetails] = useState<ScoreDetails | null>(null);
-  const [scoreAdvice, setScoreAdvice] = useState<string[]>([]);
   const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(null);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
+  const [portfolioAllocation, setPortfolioAllocation] = useState<RubricBreakdownItem[]>([]);
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
   const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
   const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
   const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
+  const [businessIntelligence, setBusinessIntelligence] =
+    useState<BusinessIntelligenceData | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [categoryOpportunities, setCategoryOpportunities] =
@@ -191,7 +239,15 @@ export function useDashboard() {
   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
   const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
   const [product, setProduct] = useState<ProductContext | null>(null);
+  const [billingSubscription, setBillingSubscription] =
+    useState<BillingSubscription | null>(null);
+  const [progressionTimeline, setProgressionTimeline] =
+    useState<ProgressionTimelineData | null>(null);
   const [finance, setFinance] = useState<FinanceData>(emptyFinance);
+  const [financeOverview, setFinanceOverview] =
+    useState<FinanceOverviewData | null>(null);
+  const [advisorContext, setAdvisorContext] =
+    useState<AdvisorContextSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const applyUserProfile = useCallback((userData: UserProfile | null) => {
@@ -200,6 +256,8 @@ export function useDashboard() {
     setUser(userData);
 
     setOnboarding({
+      age: userData?.age ?? null,
+      situation_pro: userData?.situation_pro ?? null,
       revenus_mensuels: userData?.revenus_mensuels || 0,
       charges_mensuelles: userData?.charges_mensuelles || 0,
       profile_completed: userData?.profile_completed || false,
@@ -223,7 +281,7 @@ export function useDashboard() {
       if (!token) return null;
 
       try {
-        return await apiRequest<T>(url, token);
+        return await apiFetch<T>(url, token);
       } catch {
         return null;
       }
@@ -236,21 +294,26 @@ export function useDashboard() {
     setDashboard(snapshot.dashboard);
     setScore(snapshot.score);
     setScoreDetails(snapshot.scoreDetails);
-    setScoreAdvice(snapshot.scoreAdvice);
     setCommandCenter(snapshot.commandCenter);
     setGamification(snapshot.gamification);
     setPortfolio(snapshot.portfolio);
+    setPortfolioAllocation(snapshot.portfolioAllocation || []);
     setHistory(snapshot.history);
     setRealEstate(snapshot.realEstate);
     setYieldAssets(snapshot.yieldAssets);
     setVentureAssets(snapshot.ventureAssets);
+    setBusinessIntelligence(snapshot.businessIntelligence || null);
     setOnboarding(snapshot.onboarding);
     setIntelligence(snapshot.intelligence);
     setCategoryOpportunities(snapshot.categoryOpportunities);
     setWorkspaces(snapshot.workspaces);
     setLegacyOverview(snapshot.legacyOverview);
     setProduct(snapshot.product);
+    setBillingSubscription(snapshot.billingSubscription || null);
+    setProgressionTimeline(snapshot.progressionTimeline || null);
     setFinance(snapshot.finance);
+    setFinanceOverview(snapshot.financeOverview || null);
+    setAdvisorContext(snapshot.advisorContext || null);
   }, []);
 
   const loadUserProfile = useCallback(async () => {
@@ -262,6 +325,14 @@ export function useDashboard() {
   const loadGamification = useCallback(async () => {
     const data = await safeFetch<GamificationData>("/gamification/");
     setGamification(data);
+  }, [safeFetch]);
+
+  const loadProgressionTimeline = useCallback(async () => {
+    const data = await safeFetch<ProgressionTimelineData>(
+      "/gamification/progression-timeline"
+    );
+    setProgressionTimeline(data || { timeline: [] });
+    return data;
   }, [safeFetch]);
 
   const loadProductContext = useCallback(async () => {
@@ -283,10 +354,12 @@ export function useDashboard() {
         });
       }
     }
+    return data;
   }, [safeFetch]);
 
   const loadBillingSubscription = useCallback(async () => {
     const data = await safeFetch<BillingSubscription>("/billing/current-subscription");
+    setBillingSubscription(data);
     if (data?.plan) {
       setDashboard((current) => {
         const nextDashboard = preserveHighestDashboard(current, {
@@ -325,16 +398,35 @@ export function useDashboard() {
     setFinance({ ...emptyFinance, ...data });
   }, [safeFetch]);
 
+  const loadFinanceOverview = useCallback(async () => {
+    const data = await safeFetch<FinanceOverviewData>("/finance/overview");
+    setFinanceOverview(data || null);
+    return data;
+  }, [safeFetch]);
+
+  const loadAdvisorContext = useCallback(async () => {
+    const data = await safeFetch<AdvisorContextSummary>("/advisor/context-summary");
+    setAdvisorContext(data || null);
+    return data;
+  }, [safeFetch]);
+
   const loadPortfolio = useCallback(async () => {
     const data = await safeFetch<PortfolioResponse>("/portfolio/");
     const nextPortfolio = extractPortfolio(data);
+    const nextAllocation = extractPortfolioAllocation(data);
 
     if (nextPortfolio) {
       setPortfolio(nextPortfolio);
     }
+    setPortfolioAllocation(nextAllocation);
   }, [safeFetch]);
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async (plan?: string | null) => {
+    if (!planAllows(plan, "GOLD")) {
+      setHistory([]);
+      return;
+    }
+
     const data = await safeFetch<{ history?: PortfolioHistoryPoint[] }>(
       "/portfolio/history"
     );
@@ -356,6 +448,14 @@ export function useDashboard() {
     setVentureAssets(data || { assets: [], totals: {} });
   }, [safeFetch]);
 
+  const loadBusinessIntelligence = useCallback(async () => {
+    const data = await safeFetch<BusinessIntelligenceData>(
+      "/business-intelligence/"
+    );
+    setBusinessIntelligence(data || null);
+    return data;
+  }, [safeFetch]);
+
   const loadIntelligence = useCallback(async () => {
     const intel = await safeFetch<UserIntelligence & { onboarding?: OnboardingData }>(
       "/intelligence/user-intelligence"
@@ -375,28 +475,31 @@ export function useDashboard() {
   const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
     const intel = await loadIntelligence();
 
-    setOnboarding(
-      intel?.onboarding || {
+    setOnboarding({
+      age: fallbackUser?.age ?? intel?.onboarding?.age ?? null,
+      situation_pro:
+        fallbackUser?.situation_pro ?? intel?.onboarding?.situation_pro ?? null,
+      ...(intel?.onboarding || {
+        age: fallbackUser?.age ?? null,
+        situation_pro: fallbackUser?.situation_pro ?? null,
         revenus_mensuels: fallbackUser?.revenus_mensuels || 0,
         charges_mensuelles: fallbackUser?.charges_mensuelles || 0,
-      }
-    );
+      }),
+    });
   }, [loadIntelligence]);
 
   const recalcScore = useCallback(async () => {
     if (!token) return;
 
-    const data = await apiRequest<{
+    const data = await apiFetch<{
       score?: number;
       details?: ScoreDetails;
-      advice?: string[];
     }>("/intelligence/score/recalculate", token, {
       method: "POST",
     });
 
     setScore(Number(data.score) || 0);
     setScoreDetails(data.details || null);
-    setScoreAdvice(data.advice || []);
   }, [token]);
 
   const loadCommandCenter = useCallback(async () => {
@@ -409,38 +512,46 @@ export function useDashboard() {
     setCommandCenter(data);
     setScore(Number(data.global_score || 0));
     setScoreDetails(data.family_office_score?.details || null);
-    setScoreAdvice(data.advice || []);
   }, [safeFetch]);
 
   const refreshAll = useCallback(async () => {
     await loadBillingSubscription();
-    await loadProductContext();
+    const productData = await loadProductContext();
     const userData = await loadUserProfile();
+    const effectivePlan = productData?.plan || userData?.plan;
 
     await Promise.all([
       loadPortfolio(),
       loadWorkspaces(),
       loadLegacyOverview(),
-      loadHistory(),
+      loadHistory(effectivePlan),
       loadRealEstate(),
       loadYieldAssets(),
       loadVentureAssets(),
+      loadBusinessIntelligence(),
       loadFinance(),
+      loadFinanceOverview(),
       loadCategoryOpportunities(),
       loadOnboarding(userData),
       loadCommandCenter(),
+      loadAdvisorContext(),
       loadGamification(),
+      loadProgressionTimeline(),
     ]);
   }, [
     loadCommandCenter,
+    loadAdvisorContext,
     loadFinance,
+    loadFinanceOverview,
     loadCategoryOpportunities,
     loadGamification,
+    loadProgressionTimeline,
     loadHistory,
     loadLegacyOverview,
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
+    loadBusinessIntelligence,
     loadOnboarding,
     loadPortfolio,
     loadBillingSubscription,
@@ -454,14 +565,22 @@ export function useDashboard() {
       loadBillingSubscription(),
       loadProductContext(),
       loadCommandCenter(),
+      loadAdvisorContext(),
       loadCategoryOpportunities(),
+      loadBusinessIntelligence(),
+      loadFinanceOverview(),
       loadGamification(),
+      loadProgressionTimeline(),
     ]);
   }, [
     loadBillingSubscription,
     loadCategoryOpportunities,
     loadCommandCenter,
+    loadAdvisorContext,
+    loadBusinessIntelligence,
+    loadFinanceOverview,
     loadGamification,
+    loadProgressionTimeline,
     loadProductContext,
   ]);
 
@@ -523,27 +642,36 @@ export function useDashboard() {
       dashboard,
       score,
       scoreDetails,
-      scoreAdvice,
       commandCenter,
       gamification,
       portfolio,
+      portfolioAllocation,
       history,
       realEstate,
       yieldAssets,
       ventureAssets,
+      businessIntelligence,
       onboarding,
       intelligence,
       categoryOpportunities,
       workspaces,
       legacyOverview,
       product,
+      billingSubscription,
+      progressionTimeline,
       finance,
+      financeOverview,
+      advisorContext,
     });
   }, [
+    advisorContext,
+    billingSubscription,
+    businessIntelligence,
     categoryOpportunities,
     commandCenter,
     dashboard,
     finance,
+    financeOverview,
     gamification,
     history,
     intelligence,
@@ -551,10 +679,11 @@ export function useDashboard() {
     loading,
     onboarding,
     portfolio,
+    portfolioAllocation,
     product,
+    progressionTimeline,
     realEstate,
     score,
-    scoreAdvice,
     scoreDetails,
     token,
     user,
@@ -568,22 +697,29 @@ export function useDashboard() {
     dashboard,
     score,
     scoreDetails,
-    scoreAdvice,
     commandCenter,
     portfolio,
+    portfolioAllocation,
     history,
     realEstate,
     yieldAssets,
     ventureAssets,
+    businessIntelligence,
     onboarding,
     intelligence,
     categoryOpportunities,
     workspaces,
     legacyOverview,
     product,
+    billingSubscription,
+    progressionTimeline,
     finance,
+    financeOverview,
+    advisorContext,
     gamification,
+    loadAdvisorContext,
     loadFinance,
+    loadFinanceOverview,
     loadPortfolio,
     loadProductContext,
     loadWorkspaces,
@@ -592,10 +728,12 @@ export function useDashboard() {
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
+    loadBusinessIntelligence,
     loadOnboarding,
     loadIntelligence,
     loadCategoryOpportunities,
     loadGamification,
+    loadProgressionTimeline,
     recalcScore,
     refreshAll,
     refreshAfterMutation,
