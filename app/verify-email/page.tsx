@@ -4,11 +4,12 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import { ActionButton, WealthToast } from "@/components/ui/WealthUI";
+import { apiFetch } from "@/lib/api-client";
 
 type State = "loading" | "success" | "error";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://family-office-api-n4sv.onrender.com";
+type VerifyResponse = {
+  email?: string;
+};
 
 export default function VerifyEmailPage() {
   return (
@@ -37,22 +38,12 @@ function VerifyEmailContent() {
     const run = async () => {
       if (!token) {
         setState("error");
-        setMessage("Lien invalide (token manquant)");
+        setMessage("Lien invalide ou incomplet");
         return;
       }
 
       try {
-        const res = await fetch(`${API_BASE_URL}/auth/verify-email?token=${token}`).catch(
-          () => {
-            throw new Error("Backend injoignable (Failed to fetch)");
-          }
-        );
-
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok) {
-          throw new Error(data?.detail || "Erreur de verification");
-        }
+        const data = await apiFetch<VerifyResponse>(`/auth/verify-email?token=${token}`);
 
         const verifiedEmail = data?.email;
 
@@ -87,24 +78,15 @@ function VerifyEmailContent() {
     try {
       setResending(true);
 
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+      await apiFetch("/auth/register", null, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           accept: "application/json",
         },
         body: JSON.stringify({
           email: emailToUse.toLowerCase().trim(),
         }),
-      }).catch(() => {
-        throw new Error("Backend injoignable (Failed to fetch)");
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.message || "Erreur resend");
-      }
 
       setToast({ message: "Email de verification renvoye.", type: "success" });
     } catch (err: unknown) {
