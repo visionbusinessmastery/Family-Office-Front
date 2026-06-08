@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
+import { useDashboard } from "@/hooks/useDashboard";
 
 type BillingInterval = "monthly" | "yearly";
 
@@ -212,48 +213,79 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
+  const { billingSubscription } = useDashboard();
+  const subscription =
+    billingSubscription ?? { plan: "FREE", status: "inactive" };
+
+  const openPortal = async () => {
+    if (!token) return;
+    try {
+      const resp = await apiFetch<{ url?: string }>("/billing/create-portal-session", token, {
+        method: "POST",
+      });
+      if (resp?.url) {
+        window.location.assign(resp.url);
+      }
+    } catch (err) {
+      setMessage("Stripe portal unavailable.");
+    }
+  };
+
   const startCheckout = async (plan: Plan) => {
-    if (!token) {
-      window.location.assign(
-        `/login?next=${encodeURIComponent(
-          `/plans/${mode === "founder" ? "founder" : "standard"}`
-        )}`
-      );
+  if (!token) {
+    window.location.assign(
+      `/login?next=${encodeURIComponent(
+        `/plans/${mode === "founder" ? "founder" : "standard"}`
+      )}`
+    );
+    return;
+  }
+
+  setMessage("");
+
+  const currentPlan = subscription?.plan || subscription?.pending_plan || "FREE";
+
+  const activeStatuses = ["active", "trialing", "past_due"];
+
+  const isActive = activeStatuses.includes(subscription?.status ?? "");
+
+  // 🔥 SI USER A UN ABONNEMENT ACTIF → STRIPE CUSTOMER PORTAL
+  if (isActive && currentPlan !== "FREE") {
+    await openPortal();
+    return;
+  }
+
+  setLoadingPlan(plan.id);
+
+  try {
+    const response = await apiFetch<{ url?: string }>(
+      "/billing/create-checkout-session",
+      token,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          plan: plan.id,
+          interval,
+          founder,
+        }),
+      }
+    );
+
+    if (response.url) {
+      window.location.assign(response.url);
       return;
     }
 
-    setLoadingPlan(plan.id);
-    setMessage("");
-
-    try {
-      const response = await apiRequest<{ url?: string }>(
-        "/billing/create-checkout-session",
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            plan: plan.id,
-            interval,
-            founder,
-          }),
-        }
-      );
-
-      if (response.url) {
-        window.location.assign(response.url);
-        return;
-      }
-
-      setMessage("Checkout Stripe indisponible pour le moment.");
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "Impossible d'ouvrir Stripe. Vérifie la configuration billing ou réessaie dans quelques instants."
-      );
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+    setMessage("Checkout Stripe indisponible pour le moment.");
+  } catch (err) {
+    console.error(err);
+    setMessage(
+      "Impossible d'ouvrir Stripe. Vérifie la configuration billing ou réessaie dans quelques instants."
+    );
+  } finally {
+    setLoadingPlan(null);
+  }
+};
 
   return (
     <main className="min-h-screen overflow-hidden bg-black px-4 py-8 text-white">
