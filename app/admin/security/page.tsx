@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 
 type SecuritySummary = {
@@ -30,7 +30,7 @@ export default function SecurityAdminPage() {
       return;
     }
 
-    apiRequest<SecuritySummary>("/security/admin/summary", token)
+    apiFetch<SecuritySummary>("/security/admin/summary", token)
       .then(setData)
       .catch((error) => {
         setToast(error instanceof Error ? error.message : "Acces securite indisponible.");
@@ -93,7 +93,7 @@ export default function SecurityAdminPage() {
                   {data.rate_limits.map((item) => (
                     <div key={item.scope} className="flex justify-between rounded-xl bg-white/[0.04] px-4 py-3 text-sm">
                       <span>{item.scope}</span>
-                      <span className="text-gray-400">{item.requests} req · {item.actors} acteurs</span>
+                      <span className="text-gray-400">{item.requests} demandes · {item.actors} acteurs</span>
                     </div>
                   ))}
                 </div>
