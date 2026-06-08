@@ -1,6 +1,6 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+  "https://family-office-api-1.onrender.com";
 
 export const apiFetch = async (
   url: string,
