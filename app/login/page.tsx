@@ -77,7 +77,11 @@ export default function LoginPage() {
             Preparation de ton cockpit patrimonial. On synchronise ton profil,
             ton plan et ta progression.
           </p>
-          <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-t-[#3fa9f5] border-r-amber-300 animate-spin" />
+          <div className="relative mt-8 h-16 w-16" aria-label="Chargement du cockpit">
+            <div className="absolute inset-0 rounded-full border-4 border-white/15 shadow-[0_0_28px_rgba(63,169,245,0.22)]" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-r-[#ffd21a] border-t-[#3fa9f5] shadow-[0_0_18px_rgba(255,210,26,0.28)]" />
+            <div className="absolute inset-5 rounded-full bg-[#3fa9f5]/35 shadow-[0_0_18px_rgba(63,169,245,0.45)]" />
+          </div>
         </div>
       </main>
     );

@@ -4,7 +4,7 @@ export function monitoringEnabled() {
 
 export function captureFrontendError(error: unknown, context: Record<string, unknown> = {}) {
   if (process.env.NODE_ENV !== "production") {
-    console.error("WHITE ROCK frontend error", error, context);
+    console.error("WHITE ROCK client error", error, context);
   }
 }
 

@@ -172,6 +172,12 @@ export default function HomeExecutiveSummary({
     }))
     .filter((item) => item.year && item.wealth > 0)
     .slice(0, 5);
+  const patrimonialMixData = [
+    { label: "Liquidite", value: liquidWealth, fill: "#3fa9f5" },
+    { label: "Invest.", value: portfolioValue, fill: "#16d99a" },
+    { label: "Immobilier", value: realEstateValue, fill: "#f7d154" },
+    { label: "Business", value: businessValue, fill: "#c084fc" },
+  ].filter((item) => item.value > 0);
 
   return (
     <section className="space-y-5">
@@ -227,6 +233,31 @@ export default function HomeExecutiveSummary({
           <p className="text-sm text-gray-400">
             Les principaux indicateurs consolidés du cockpit.
           </p>
+        </div>
+
+        <div className="mt-5 h-72 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          {patrimonialMixData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={patrimonialMixData} margin={{ left: 4, right: 4, top: 12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={56} />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  formatter={(value) => formatChartMoney(String(value))}
+                />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {patrimonialMixData.map((item) => (
+                    <Cell key={item.label} fill={item.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-gray-500">
+              Ajoute tes premieres donnees pour afficher la repartition.
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

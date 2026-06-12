@@ -3,6 +3,11 @@ import type { DashboardSummary } from "@/lib/types";
 
 type BillingSubscriptionPlan = {
   plan?: string | null;
+  founder?: {
+    is_founder?: boolean;
+    tier?: string | null;
+    discount?: number;
+  };
 };
 
 type HeaderProps = {
@@ -23,7 +28,11 @@ export default function Header({
       ? String(dashboard.plan).toUpperCase()
       : undefined;
   const level = dashboard?.level || null;
-  const isFounder = Boolean(dashboard?.is_founder);
+  const isFounder = Boolean(
+    billingSubscription?.founder?.is_founder || dashboard?.is_founder
+  );
+  const founderTier =
+    billingSubscription?.founder?.tier || dashboard?.founder_tier || null;
   const nextPlan = dashboard?.next_plan || null;
 
   const ctaLabel =
@@ -98,7 +107,7 @@ export default function Header({
                     Cercle
                   </p>
                   <span className="rounded border border-amber-300/40 bg-amber-300/10 px-2 py-1 text-xs font-semibold text-amber-100">
-                    FOUNDING MEMBER
+                    {founderTier ? `FOUNDER ${String(founderTier).toUpperCase()}` : "FOUNDING MEMBER"}
                   </span>
                 </div>
               )}

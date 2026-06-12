@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --wr-blue: #3fa9f5;
+  --wr-blue-deep: #2588d2;
+  --wr-blue-soft: #8bd0ff;
+  --wr-gold: #ffd21a;
+  --wr-gold-soft: #ffe37a;
+  --wr-gold-deep: #c99700;
+  --wr-green: #16d99a;
+  --wr-green-soft: #7dffd0;
+  --wr-green-deep: #0ca678;
 }
 
 :root[data-theme="dark"],
@@ -37,6 +46,29 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+html,
+body,
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 :root[data-theme="light"] {
   --wr-surface: #ffffff;
   --wr-surface-soft: rgba(255, 255, 255, 0.88);
@@ -47,7 +79,12 @@ body {
   --wr-subtle: #667085;
   --wr-border: rgba(17, 24, 39, 0.12);
   --wr-blue: #0f86d9;
-  --wr-amber: #c2410c;
+  --wr-amber: #b68a00;
+  --wr-gold: #c99700;
+  --wr-gold-soft: #9f7300;
+  --wr-green: #0ca678;
+  --wr-green-soft: #087f5b;
+  --wr-green-deep: #056244;
 }
 
 :root[data-theme="light"] .bg-black,
@@ -89,6 +126,56 @@ body {
   background-image: linear-gradient(90deg, #ffffff, #f7fbff 55%, #fff7ed) !important;
 }
 
+:root[data-theme="light"] [class*="bg-[radial-gradient"],
+:root[data-theme="light"] [class*="bg-[linear-gradient"] {
+  background-image: radial-gradient(circle at top right, rgba(15, 134, 217, 0.08), transparent 34%),
+    linear-gradient(135deg, #ffffff, #f7fbff 58%, #eefbf7) !important;
+}
+
+:root[data-theme="light"] .from-black,
+:root[data-theme="light"] .via-black,
+:root[data-theme="light"] .to-black,
+:root[data-theme="light"] .from-\[\#07111f\],
+:root[data-theme="light"] .from-\[\#070707\],
+:root[data-theme="light"] .from-\[\#080808\],
+:root[data-theme="light"] .from-\[\#080b12\],
+:root[data-theme="light"] .from-\[\#070912\],
+:root[data-theme="light"] .via-\[\#111827\],
+:root[data-theme="light"] .to-\[\#061827\],
+:root[data-theme="light"] .to-\[\#071827\],
+:root[data-theme="light"] .to-\[\#101923\],
+:root[data-theme="light"] .to-\[\#101724\],
+:root[data-theme="light"] .to-\[\#020202\] {
+  --tw-gradient-from: #ffffff var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #f7fbff var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #eefbf7 var(--tw-gradient-to-position) !important;
+}
+
+:root[data-theme="light"] button.bg-gradient-to-r,
+:root[data-theme="light"] a.bg-gradient-to-r,
+:root[data-theme="light"] .bg-gradient-to-r.from-\[\#3fa9f5\] {
+  background-image: linear-gradient(90deg, var(--wr-blue), var(--wr-green)) !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] button.bg-gradient-to-r *,
+:root[data-theme="light"] a.bg-gradient-to-r * {
+  color: #ffffff !important;
+}
+
+:root[data-theme="light"] .bg-\[\#07111f\],
+:root[data-theme="light"] .bg-\[\#061827\],
+:root[data-theme="light"] .bg-\[\#071827\],
+:root[data-theme="light"] .bg-\[\#080808\],
+:root[data-theme="light"] .bg-\[\#070707\],
+:root[data-theme="light"] .bg-\[\#090909\],
+:root[data-theme="light"] .bg-\[\#101923\],
+:root[data-theme="light"] .bg-\[\#101724\],
+:root[data-theme="light"] .bg-\[\#1b1503\],
+:root[data-theme="light"] .bg-\[\#1c1303\] {
+  background-color: var(--wr-surface-soft) !important;
+}
+
 :root[data-theme="light"] .border-white\/10,
 :root[data-theme="light"] .border-white\/15,
 :root[data-theme="light"] .border-gray-700,
@@ -112,6 +199,11 @@ body {
   color: var(--wr-muted) !important;
 }
 
+:root[data-theme="light"] .placeholder\:text-gray-500::placeholder,
+:root[data-theme="light"] .placeholder\:text-gray-600::placeholder {
+  color: var(--wr-subtle) !important;
+}
+
 :root[data-theme="light"] .text-\[\#3fa9f5\],
 :root[data-theme="light"] .text-\[\#8bd0ff\],
 :root[data-theme="light"] .text-blue-100,
@@ -124,13 +216,31 @@ body {
 :root[data-theme="light"] .text-yellow-400,
 :root[data-theme="light"] .text-amber-100,
 :root[data-theme="light"] .text-amber-200,
-:root[data-theme="light"] .text-amber-300 {
+:root[data-theme="light"] .text-amber-300,
+:root[data-theme="light"] .text-\[\#ffd21a\] {
   color: var(--wr-amber) !important;
 }
 
+:root[data-theme="light"] .text-emerald-100,
+:root[data-theme="light"] .text-emerald-200,
+:root[data-theme="light"] .text-emerald-300,
+:root[data-theme="light"] .text-emerald-400,
+:root[data-theme="light"] .text-green-400,
+:root[data-theme="light"] .text-\[\#20c997\],
+:root[data-theme="light"] .text-\[\#16d99a\] {
+  color: var(--wr-green-deep) !important;
+}
+
 :root[data-theme="light"] .bg-yellow-500\/10,
-:root[data-theme="light"] .bg-amber-300\/10 {
+:root[data-theme="light"] .bg-amber-300\/10,
+:root[data-theme="light"] .bg-\[\#ffd21a\]\/10 {
   background-color: rgba(255, 237, 213, 0.9) !important;
+}
+
+:root[data-theme="light"] .bg-emerald-300\/10,
+:root[data-theme="light"] .bg-emerald-400\/10,
+:root[data-theme="light"] .bg-emerald-500\/10 {
+  background-color: rgba(12, 166, 120, 0.14) !important;
 }
 
 :root[data-theme="light"] .border-yellow-500\/30,
@@ -138,8 +248,19 @@ body {
 :root[data-theme="light"] .border-amber-300\/25,
 :root[data-theme="light"] .border-amber-300\/30,
 :root[data-theme="light"] .border-amber-300\/35,
-:root[data-theme="light"] .border-amber-300\/40 {
+:root[data-theme="light"] .border-amber-300\/40,
+:root[data-theme="light"] .border-\[\#ffd21a\]\/30,
+:root[data-theme="light"] .border-\[\#ffd21a\]\/35 {
   border-color: rgba(194, 65, 12, 0.28) !important;
+}
+
+:root[data-theme="light"] .border-emerald-300\/20,
+:root[data-theme="light"] .border-emerald-300\/25,
+:root[data-theme="light"] .border-emerald-300\/30,
+:root[data-theme="light"] .border-emerald-300\/40,
+:root[data-theme="light"] .border-emerald-500\/25,
+:root[data-theme="light"] .border-emerald-500\/30 {
+  border-color: rgba(12, 166, 120, 0.3) !important;
 }
 
 :root[data-theme="light"] .bg-\[\#3fa9f5\],
@@ -150,8 +271,19 @@ body {
 :root[data-theme="light"] .bg-\[\#3fa9f5\].text-white,
 :root[data-theme="light"] .bg-\[\#2588d2\].text-white,
 :root[data-theme="light"] button.bg-\[\#3fa9f5\],
-:root[data-theme="light"] button.bg-\[\#2588d2\] {
+:root[data-theme="light"] button.bg-\[\#2588d2\],
+:root[data-theme="light"] button.bg-emerald-300,
+:root[data-theme="light"] button.bg-emerald-400,
+:root[data-theme="light"] button.bg-emerald-500,
+:root[data-theme="light"] button.bg-green-500 {
   color: #ffffff !important;
+}
+
+:root[data-theme="light"] button.bg-amber-300,
+:root[data-theme="light"] button.bg-yellow-300,
+:root[data-theme="light"] button.bg-yellow-400,
+:root[data-theme="light"] button.bg-yellow-500 {
+  color: #111827 !important;
 }
 
 :root[data-theme="light"] .bg-\[\#3fa9f5\]\/10,
@@ -167,6 +299,125 @@ body {
 :root[data-theme="light"] .border-\[\#3fa9f5\]\/50,
 :root[data-theme="light"] .border-\[\#3fa9f5\]\/60 {
   border-color: rgba(15, 134, 217, 0.26) !important;
+}
+
+.text-\[\#f0b429\],
+.text-\[\#ffd166\],
+.text-yellow-100,
+.text-yellow-200,
+.text-yellow-300,
+.text-yellow-400,
+.text-amber-100,
+.text-amber-200,
+.text-amber-300 {
+  color: var(--wr-gold-soft) !important;
+}
+
+.bg-\[\#f0b429\],
+.bg-\[\#ffd166\],
+.bg-yellow-300,
+.bg-yellow-400,
+.bg-yellow-500,
+.bg-amber-200,
+.bg-amber-300 {
+  background-color: var(--wr-gold) !important;
+}
+
+.bg-\[\#f0b429\]\/10,
+.bg-yellow-300\/10,
+.bg-yellow-300\/14,
+.bg-yellow-300\/16,
+.bg-yellow-500\/10,
+.bg-amber-200\/\[0\.07\],
+.bg-amber-200\/\[0\.08\],
+.bg-amber-200\/10,
+.bg-amber-300\/10,
+.bg-amber-300\/12,
+.bg-amber-300\/15,
+.bg-amber-300\/20,
+.bg-amber-300\/30 {
+  background-color: color-mix(in srgb, var(--wr-gold) 13%, transparent) !important;
+}
+
+.border-\[\#f0b429\]\/30,
+.border-\[\#f0b429\]\/35,
+.border-yellow-300\/55,
+.border-yellow-300\/60,
+.border-yellow-500\/30,
+.border-amber-200\/25,
+.border-amber-200\/35,
+.border-amber-200\/45,
+.border-amber-300\/20,
+.border-amber-300\/25,
+.border-amber-300\/30,
+.border-amber-300\/35,
+.border-amber-300\/40,
+.border-amber-300\/45,
+.border-amber-300\/50,
+.border-amber-300\/55,
+.border-amber-300,
+.border-r-amber-300 {
+  border-color: color-mix(in srgb, var(--wr-gold) 42%, transparent) !important;
+}
+
+.text-amber-100\/80,
+.text-amber-100\/90,
+.text-amber-200\/80 {
+  color: color-mix(in srgb, var(--wr-gold-soft) 80%, transparent) !important;
+}
+
+.from-amber-200\/20,
+.from-amber-300\/30,
+.from-yellow-300\/36 {
+  --tw-gradient-from: color-mix(in srgb, var(--wr-gold) 26%, transparent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: color-mix(in srgb, var(--wr-gold) 0%, transparent) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.via-amber-300\/20,
+.via-orange-300\/12 {
+  --tw-gradient-to: color-mix(in srgb, var(--wr-gold) 0%, transparent) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), color-mix(in srgb, var(--wr-gold) 16%, transparent) var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.text-green-400,
+.text-emerald-100,
+.text-emerald-200,
+.text-emerald-300,
+.text-emerald-400 {
+  color: var(--wr-green-soft) !important;
+}
+
+.bg-green-500,
+.bg-emerald-300,
+.bg-emerald-400,
+.bg-emerald-500 {
+  background-color: var(--wr-green) !important;
+}
+
+.bg-green-500\/10,
+.bg-emerald-300\/10,
+.bg-emerald-400\/10,
+.bg-emerald-500\/10 {
+  background-color: color-mix(in srgb, var(--wr-green) 18%, transparent) !important;
+}
+
+.border-green-500\/30,
+.border-emerald-300\/20,
+.border-emerald-300\/25,
+.border-emerald-300\/30,
+.border-emerald-300\/40,
+.border-emerald-300\/45,
+.border-emerald-500\/25,
+.border-emerald-500\/30 {
+  border-color: color-mix(in srgb, var(--wr-green) 48%, transparent) !important;
+}
+
+.shadow-emerald-300\/10,
+.shadow-emerald-300\/20,
+.shadow-emerald-400\/20,
+.shadow-emerald-500\/20 {
+  --tw-shadow-color: color-mix(in srgb, var(--wr-green) 26%, transparent) !important;
 }
 
 :root[data-theme="light"] input,
@@ -202,7 +453,7 @@ body {
 
 .wealth-line-two {
   animation: wealth-flow 18s linear infinite reverse;
-  stroke: rgba(244, 201, 93, 0.5);
+  stroke: rgba(240, 180, 41, 0.72);
 }
 
 @keyframes wealth-flow {

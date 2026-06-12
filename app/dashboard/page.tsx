@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -236,6 +236,129 @@ function SectionHeader({
         {description}
       </p>
     </div>
+  );
+}
+
+type ImportResult = {
+  status?: string;
+  inserted?: number;
+  skipped?: number;
+  detail?: string;
+};
+
+function DataImportPanel({
+  title,
+  description,
+  endpoint,
+  scope,
+  token,
+  onImported,
+  onMessage,
+}: {
+  title: string;
+  description: string;
+  endpoint: string;
+  scope: string;
+  token?: string | null;
+  onImported: () => Promise<void>;
+  onMessage: (message: string, type?: "success" | "error") => void;
+}) {
+  const [importing, setImporting] = useState(false);
+
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("scope", scope);
+
+    try {
+      setImporting(true);
+      const result = await apiFetch<ImportResult>(endpoint, token, {
+        method: "POST",
+        body: formData,
+      });
+      await onImported();
+      onMessage(
+        `${result.inserted ?? 0} ligne(s) importee(s), ${result.skipped ?? 0} ignoree(s).`,
+        "success"
+      );
+    } catch (err) {
+      onMessage(
+        err instanceof Error ? err.message : "Import impossible pour le moment.",
+        "error"
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#8bd0ff]">
+            Import controle
+          </p>
+          <h2 className="mt-1 text-xl font-black text-white">{title}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-300">
+            {description}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-gray-500">
+            CSV attendu: colonnes <span className="text-gray-300">type</span>,{" "}
+            <span className="text-gray-300">name</span>,{" "}
+            <span className="text-gray-300">amount</span> ou equivalent selon le module.
+            Les PDF sont refuses proprement tant que le parseur documentaire n'est pas branche.
+          </p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/15">
+          {importing ? "Import en cours..." : "Importer CSV / PDF"}
+          <input
+            type="file"
+            accept=".csv,.pdf,text/csv,application/pdf"
+            className="hidden"
+            disabled={importing}
+            onChange={handleFile}
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function ActivationCard({
+  eyebrow,
+  title,
+  description,
+  actionLabel,
+  onActivate,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onActivate: () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#ffd21a]/25 bg-[radial-gradient(circle_at_top_left,_rgba(255,210,26,0.18),_transparent_32%),linear-gradient(135deg,#080808,#111827_58%,#020202)] p-6">
+      <div className="max-w-2xl">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#ffd21a]">
+          {eyebrow}
+        </p>
+        <h2 className="mt-2 text-2xl font-black text-white">{title}</h2>
+        <p className="mt-3 text-sm leading-relaxed text-gray-300">
+          {description}
+        </p>
+        <button
+          onClick={onActivate}
+          className="mt-5 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2588d2]"
+        >
+          {actionLabel}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -1419,7 +1542,11 @@ export default function Dashboard() {
               Le cockpit se materialise progressivement. Synchronisation du plan,
               des modules et de la progression.
             </p>
-            <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-r-amber-300 border-t-[#3fa9f5] animate-spin" />
+            <div className="relative mt-8 h-16 w-16" aria-label="Chargement du cockpit">
+              <div className="absolute inset-0 rounded-full border-4 border-white/15 shadow-[0_0_28px_rgba(63,169,245,0.22)]" />
+              <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-r-[#ffd21a] border-t-[#3fa9f5] shadow-[0_0_18px_rgba(255,210,26,0.28)]" />
+              <div className="absolute inset-5 rounded-full bg-[#3fa9f5]/35 shadow-[0_0_18px_rgba(63,169,245,0.45)]" />
+            </div>
           </div>
         </div>
       </main>
@@ -1501,6 +1628,17 @@ export default function Dashboard() {
     billingSubscription?.price ||
     product?.entitlements?.copy?.price ||
     "Visible dans le portail";
+  const isFounderMember = Boolean(
+    billingSubscription?.founder?.is_founder ||
+      product?.founder?.is_founder ||
+      dashboard?.is_founder
+  );
+  const founderTierLabel = compactText(
+    billingSubscription?.founder?.tier ||
+      product?.founder?.tier ||
+      dashboard?.founder_tier,
+    ""
+  );
   const futurePlanName = compactText(
     billingSubscription?.future_plan || billingSubscription?.pending_plan,
     ""
@@ -1561,8 +1699,18 @@ export default function Dashboard() {
   const navigation: NavigationItem[] = [
     {
       key: "home",
-      label: "Home",
+      label: "White Rock Center",
       description: "Vue globale",
+    },
+    {
+      key: "finances",
+      label: "Situation Mensuelle",
+      description: "Revenus et Charges",
+    },
+    {
+      key: "balance_sheet",
+      label: "Bilan Patrimonial",
+      description: "Epargnes et Dettes",
     },
     {
       key: "wealth",
@@ -1575,39 +1723,24 @@ export default function Dashboard() {
       description: "Futur",
     },
     {
-      key: "opportunities",
-      label: "Opportunites",
-      description: "Signaux",
-    },
-    {
-      key: "ai",
-      label: "Conseiller",
-      description: "Conseiller",
-    },
-    {
-      key: "finances",
-      label: "Cashflow",
-      description: "Cashflow",
-    },
-    {
-      key: "balance_sheet",
-      label: "Bilan",
-      description: "Long terme",
-    },
-    {
-      key: "investments",
-      label: "Investments",
-      description: "Allocation",
-    },
-    {
       key: "real_estate",
       label: "Immobilier",
       description: "Biens",
     },
     {
+      key: "investments",
+      label: "Investissement",
+      description: "Allocation",
+    },
+    {
       key: "ventures",
       label: "Business",
       description: "Ventures",
+    },
+    {
+      key: "opportunities",
+      label: "Rechercher une opportunite",
+      description: "Signaux",
     },
     ...(legacyNavigationEnabled
       ? [
@@ -1637,6 +1770,11 @@ export default function Dashboard() {
       key: "settings",
       label: "Family Office",
       description: "Gouvernance",
+    },
+    {
+      key: "ai",
+      label: "Conseiller",
+      description: "Ethan",
     },
   ];
   const handleUpdateOnboarding = async () => {
@@ -2646,9 +2784,9 @@ export default function Dashboard() {
           {activeSection === "home" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Accueil"
-                title="Command Center"
-                description="L'essentiel uniquement: situation, trajectoire, action et signal prioritaire."
+                eyebrow="White Rock Center"
+                title="Vue Globale"
+                description="La premiere lecture de ton Family Office: patrimoine, cashflow, trajectoire et prochaine action utile."
               />
 
               <HomeExecutiveSummary
@@ -2743,9 +2881,19 @@ export default function Dashboard() {
           {activeSection === "finances" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Cashflow"
-                title="Finances court terme"
+                eyebrow="Situation Mensuelle"
+                title="Revenus et Charges"
                 description="Revenus, charges, reste a vivre et marge mensuelle. Cette page suit uniquement les flux du mois."
+              />
+
+              <DataImportPanel
+                title="Importer des revenus ou charges"
+                description="Ajoute des lignes mensuelles depuis un fichier CSV. Le backend valide les types revenus/charges avant de mettre a jour la base."
+                endpoint="/finance/import"
+                scope="cashflow"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
@@ -2776,9 +2924,19 @@ export default function Dashboard() {
           {activeSection === "balance_sheet" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Bilan"
+                eyebrow="Bilan Patrimonial"
                 title="Bilan Patrimonial"
-                description="Epargne, dettes, liquidite et engagements. Cette page suit les stocks financiers de long terme."
+                description="Epargnes, dettes, liquidite et engagements. Cette page suit les stocks financiers de long terme."
+              />
+
+              <DataImportPanel
+                title="Importer des epargnes ou dettes"
+                description="Ajoute des lignes de bilan depuis un fichier CSV. Le backend accepte uniquement epargne/dettes pour cette section."
+                endpoint="/finance/import"
+                scope="balance"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
@@ -2800,47 +2958,69 @@ export default function Dashboard() {
           {activeSection === "investments" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Investments"
-                title="Allocation & multi-assets"
-                description="Stocks, ETF, crypto, forex, commodities, diversification et exposition. Pas de trading complexe: uniquement pilotage patrimonial."
+                eyebrow="Investissement"
+                title="Espace Investissement"
+                description="Actions, ETF, crypto et autres placements. Cette page reste dediee au suivi patrimonial des placements financiers."
               />
 
-              {hasModule("diversification") ? (
-                <section className="grid grid-cols-1 gap-5">
-                  {eliteChartsEnabled ? (
-                    <RubricBreakdownChart
-                      title="Repartition investissements"
-                      description="Vue limitee aux rubriques de l'onglet Investments."
-                      items={investmentRubrics}
-                    />
+              <DataImportPanel
+                title="Importer des investissements"
+                description="Ajoute des actifs financiers depuis un fichier CSV. Le backend valide nom, classe d'actif, quantite et prix d'achat."
+                endpoint="/portfolio/import"
+                scope="investments"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
+              />
+
+              {portfolio.length === 0 ? (
+                <ActivationCard
+                  eyebrow="Espace Investissement"
+                  title="Ajoutez votre premier investissement"
+                  description="Suivez vos actions, ETF, crypto et autres placements."
+                  actionLabel="+ Activer l'espace Investissement"
+                  onActivate={() => handleAddPortfolioAsset()}
+                />
+              ) : (
+                <>
+                  {hasModule("diversification") ? (
+                    <section className="grid grid-cols-1 gap-5">
+                      {eliteChartsEnabled ? (
+                        <RubricBreakdownChart
+                          title="Repartition investissements"
+                          description="Vue limitee aux rubriques de l'onglet Investissement."
+                          items={investmentRubrics}
+                        />
+                      ) : (
+                        <LockedSection
+                          title="Graphique Investissement"
+                          description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                          onUpgrade={handleUpgradePlan}
+                          plan="elite"
+                        />
+                      )}
+                    </section>
                   ) : (
                     <LockedSection
-                      title="Graphique Investments"
-                      description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                      title="Analytics d'allocation"
+                      description="L'exposition avancee et les graphiques d'allocation se debloquent progressivement avec la phase Growth."
                       onUpgrade={handleUpgradePlan}
-                      plan="elite"
+                      plan="gold"
                     />
                   )}
-                </section>
-              ) : (
-                <LockedSection
-                  title="Analytics d'allocation"
-                  description="L'exposition avancee et les graphiques d'allocation se debloquent progressivement avec la phase Growth."
-                  onUpgrade={handleUpgradePlan}
-                  plan="gold"
-                />
-              )}
 
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <h2 className="mb-4 text-2xl font-bold">Portfolio</h2>
-                <PortfolioModule
-                  portfolio={portfolio}
-                  onAdd={handleAddPortfolioAsset}
-                  onUpdate={handleUpdatePortfolioAsset}
-                  onDelete={handleDeletePortfolioAsset}
-                  opportunities={financialOpportunities}
-                />
-              </section>
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <h2 className="mb-4 text-2xl font-bold">Portfolio</h2>
+                    <PortfolioModule
+                      portfolio={portfolio}
+                      onAdd={handleAddPortfolioAsset}
+                      onUpdate={handleUpdatePortfolioAsset}
+                      onDelete={handleDeletePortfolioAsset}
+                      opportunities={financialOpportunities}
+                    />
+                  </section>
+                </>
+              )}
             </div>
           )}
 
@@ -2848,32 +3028,44 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Immobilier"
-                title="Biens & rendement"
-                description="Residence principale, locatif, achat/revente, valorisation et plus-value potentielle."
+                title="Espace Immobilier"
+                description="Une lecture simple de tes biens, emprunts, valeurs et patrimoine immobilier."
               />
 
-              {eliteChartsEnabled ? (
-                <RubricBreakdownChart
-                  title="Repartition immobilier"
-                  description="Vue limitee aux rubriques de l'onglet Immobilier."
-                  items={realEstateRubrics}
+              {realEstateAssets.length === 0 ? (
+                <ActivationCard
+                  eyebrow="Patrimoine immobilier"
+                  title="Ajoutez votre premier bien immobilier"
+                  description="Suivez la valeur de vos biens, vos emprunts et votre patrimoine immobilier."
+                  actionLabel="+ Activer l'espace immobilier"
+                  onActivate={() => handleAddRealEstate("primary_residence")}
                 />
               ) : (
-                <LockedSection
-                  title="Graphique immobilier"
-                  description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
-                  onUpgrade={handleUpgradePlan}
-                  plan="elite"
-                />
-              )}
+                <>
+                  {eliteChartsEnabled ? (
+                    <RubricBreakdownChart
+                      title="Repartition immobilier"
+                      description="Vue limitee aux rubriques de l'onglet Immobilier."
+                      items={realEstateRubrics}
+                    />
+                  ) : (
+                    <LockedSection
+                      title="Graphique immobilier"
+                      description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                      onUpgrade={handleUpgradePlan}
+                      plan="elite"
+                    />
+                  )}
 
-              <RealEstateModule
-                data={realEstate}
-                onAdd={handleAddRealEstate}
-                onUpdate={handleUpdateRealEstate}
-                onDelete={handleDeleteRealEstate}
-                opportunity={findOpportunity("real_estate")}
-              />
+                  <RealEstateModule
+                    data={realEstate}
+                    onAdd={handleAddRealEstate}
+                    onUpdate={handleUpdateRealEstate}
+                    onDelete={handleDeleteRealEstate}
+                    opportunity={findOpportunity("real_estate")}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -2881,10 +3073,20 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Business & Ventures"
-                title="Entreprises, startups et rendement prive"
-                description="Une lecture investisseur: intelligence business, actifs suivis, puis opportunites a explorer."
+                title="Espace Business"
+                description="Entreprises, startups, revenus, charges et valorisation. Cette page suit les moteurs business de ton patrimoine."
               />
 
+              {(ventureAssets?.assets?.length || 0) + (yieldAssets?.assets?.length || 0) === 0 ? (
+                <ActivationCard
+                  eyebrow="Business"
+                  title="Ajoutez votre premiere entreprise"
+                  description="Suivez une activite, une startup, un investissement prive ou une ligne business pour commencer la lecture investisseur."
+                  actionLabel="+ Activer l'espace Business"
+                  onActivate={() => handleAddVentureAsset("business")}
+                />
+              ) : (
+                <>
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="max-w-3xl">
@@ -2996,6 +3198,8 @@ export default function Dashboard() {
                   ["crowdfunding", "private_equity"].includes(item.key || "")
                 )}
               />
+                </>
+              )}
 
             </div>
           )}
@@ -3003,8 +3207,8 @@ export default function Dashboard() {
           {activeSection === "opportunities" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Opportunites"
-                title="Centre d'opportunites"
+                eyebrow="Rechercher une opportunite"
+                title="Rechercher une opportunite"
                 description="Recherche, exploration et signaux centralises. Les pages metier restent dediees au pilotage."
               />
 
@@ -3473,6 +3677,13 @@ export default function Dashboard() {
                   <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
                     {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}
                   </span>
+                  {isFounderMember && (
+                    <span className="rounded-full border border-amber-300/45 bg-amber-300/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-100">
+                      {founderTierLabel
+                        ? `Founder ${founderTierLabel}`
+                        : "Founding Member"}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
