@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import CockpitBackLink from "@/components/CockpitBackLink";
 import { apiFetch } from "@/lib/api-client";
 
@@ -24,10 +24,14 @@ const STRIPE_PUBLISHABLE_KEY =
 
 export default function PricingPlans({ mode }: PricingPlansProps) {
   const [session, setSession] = useState<PricingTableSession | null>(null);
+  const [useCustomerSession, setUseCustomerSession] = useState(true);
   const [message, setMessage] = useState("");
   const pricingTableId = STRIPE_PRICING_TABLE_IDS[mode];
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = useSyncExternalStore(
+    () => () => undefined,
+    () => localStorage.getItem("token"),
+    () => null
+  );
 
   useEffect(() => {
     if (!token) return;
@@ -37,14 +41,16 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
       method: "POST",
     })
       .then((data) => {
-        if (alive) setSession(data);
+        if (alive) {
+          setSession(data);
+          setUseCustomerSession(true);
+        }
       })
       .catch((err) => {
         console.error(err);
         if (alive) {
-          setMessage(
-            "Impossible de preparer la grille Stripe. Verifie ta session puis reessaie."
-          );
+          setUseCustomerSession(false);
+          setMessage("");
         }
       });
 
@@ -110,28 +116,46 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
           </section>
         )}
 
-        {token && !session && !message && (
+        {token && !session && useCustomerSession && !message && (
           <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6 text-sm text-gray-300">
             Preparation securisee de la grille Stripe...
           </section>
         )}
 
-        {session?.client_secret && (
+        {token && (!useCustomerSession || session?.client_secret) && (
           <section className="mt-6 overflow-x-auto rounded-[1.75rem] border border-white/10 bg-white p-1 text-black shadow-2xl">
             <div className="min-w-[1440px]">
-            {/*
-              Stripe Pricing Table receives a server-generated Customer Session.
-              This keeps Stripe tied to the existing customer instead of creating duplicates.
-            */}
-            {/*
-              @ts-expect-error Stripe registers this custom element from js.stripe.com.
-            */}
-            <stripe-pricing-table
-              pricing-table-id={pricingTableId}
-              publishable-key={STRIPE_PUBLISHABLE_KEY}
-              customer-session-client-secret={session.client_secret}
-              client-reference-id={session.client_reference_id}
-            />
+            {useCustomerSession && session?.client_secret ? (
+              <>
+                {/*
+                  Stripe Pricing Table receives a server-generated Customer Session.
+                  This keeps Stripe tied to the existing customer instead of creating duplicates.
+                */}
+                {/*
+                  @ts-expect-error Stripe registers this custom element from js.stripe.com.
+                */}
+                <stripe-pricing-table
+                  pricing-table-id={pricingTableId}
+                  publishable-key={STRIPE_PUBLISHABLE_KEY}
+                  customer-session-client-secret={session.client_secret}
+                  client-reference-id={session.client_reference_id}
+                />
+              </>
+            ) : (
+              <>
+                {/*
+                  Compatibility fallback for staging backends that do not expose
+                  /billing/pricing-table-session yet.
+                */}
+                {/*
+                  @ts-expect-error Stripe registers this custom element from js.stripe.com.
+                */}
+                <stripe-pricing-table
+                  pricing-table-id={pricingTableId}
+                  publishable-key={STRIPE_PUBLISHABLE_KEY}
+                />
+              </>
+            )}
             </div>
           </section>
         )}
