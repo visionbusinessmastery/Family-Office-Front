@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type { WealthProfile } from "@/lib/types";
 
 type ReferralData = {
@@ -196,7 +196,7 @@ export default function ProfileReferralPanel({
     const load = async () => {
       if (mode !== "referral") {
         try {
-          const profileData = await apiRequest<{ profile?: WealthProfile }>(
+          const profileData = await apiFetch<{ profile?: WealthProfile }>(
             "/profile/me",
             token
           );
@@ -208,7 +208,7 @@ export default function ProfileReferralPanel({
 
       if (mode !== "identity") {
         try {
-          const referralData = await apiRequest<ReferralData>("/referrals/me", token);
+          const referralData = await apiFetch<ReferralData>("/referrals/me", token);
           setReferral(referralData);
         } catch {
           setReferral(null);
@@ -240,7 +240,7 @@ export default function ProfileReferralPanel({
     setSaving(true);
 
     try {
-      await apiRequest("/profile/me", token, {
+      await apiFetch("/profile/me", token, {
         method: "PUT",
         body: JSON.stringify({
           ...profile,

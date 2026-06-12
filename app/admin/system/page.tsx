@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 
 type Diagnostics = {
@@ -42,7 +42,7 @@ export default function SystemAdminPage() {
       return;
     }
 
-    apiRequest<Diagnostics>("/system/admin/diagnostics", token)
+    apiFetch<Diagnostics>("/system/admin/diagnostics", token)
       .then(setData)
       .catch((error) => {
         setToast(error instanceof Error ? error.message : "Diagnostics indisponibles.");

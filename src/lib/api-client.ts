@@ -1,6 +1,14 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+
+export function getApiUrl(url = "") {
+  if (/^https?:\/\//i.test(url)) return url;
+  if (!API_BASE_URL) {
+    throw new Error("NEXT_PUBLIC_API_URL manquant");
+  }
+
+  const path = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${path}`;
+}
 
 export function clearAuthSession() {
   if (typeof window === "undefined") return;
@@ -36,7 +44,9 @@ export function redirectToLogin(reason = "session_expired") {
   window.location.assign(`/login?reason=${reason}&next=${next}`);
 }
 
-export async function apiRequest<T>(
+type ApiError = Error & { payload?: unknown; status?: number };
+
+export async function apiFetch<T>(
   url: string,
   token?: string | null,
   options: RequestInit = {}
@@ -48,7 +58,10 @@ export async function apiRequest<T>(
 
   const headers = new Headers(options.headers);
 
-  if (!headers.has("Content-Type") && options.body) {
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (!headers.has("Content-Type") && options.body && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -64,10 +77,16 @@ export async function apiRequest<T>(
     }
   }
 
-  const res = await fetch(`${API_BASE_URL}${url}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(getApiUrl(url), {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    console.error("NETWORK ERROR:", err);
+    throw err;
+  }
 
   if (!res.ok) {
     if (res.status === 401) {
@@ -76,13 +95,18 @@ export async function apiRequest<T>(
 
     const body = await res.text();
     let message = body || "Service indisponible";
+    let payload: unknown;
     try {
       const parsed = JSON.parse(body);
+      payload = parsed;
       message = parsed.detail || parsed.message || message;
     } catch {
       // Keep the raw service body when it is not JSON.
     }
-    throw new Error(message);
+    const error = new Error(message) as ApiError;
+    error.payload = payload;
+    error.status = res.status;
+    throw error;
   }
 
   if (res.status === 204) {

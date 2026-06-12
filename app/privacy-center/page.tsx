@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { API_BASE_URL, apiRequest } from "@/lib/api";
+import { apiFetch, getApiUrl } from "@/lib/api-client";
 import {
   ActionButton,
   MetricCard,
@@ -163,12 +163,12 @@ export default function PrivacyCenterPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const downloadBase = useMemo(() => API_BASE_URL.replace(/\/$/, ""), []);
+  const downloadBase = useMemo(() => getApiUrl("").replace(/\/$/, ""), []);
 
   const load = async (nextToken: string) => {
     setLoading(true);
     try {
-      const response = await apiRequest<PrivacyCenterData>("/privacy/center", nextToken);
+      const response = await apiFetch<PrivacyCenterData>("/privacy/center", nextToken);
       setData(response);
       setConsents(
         Object.fromEntries(
@@ -199,7 +199,7 @@ export default function PrivacyCenterPage() {
     const params = new URLSearchParams(window.location.search);
     const confirmToken = params.get("confirm_delete");
     if (confirmToken) {
-      apiRequest(`/privacy/delete-account/confirm/${confirmToken}`, token, {
+      apiFetch(`/privacy/delete-account/confirm/${confirmToken}`, token, {
         method: "POST",
       })
         .then(() => {
@@ -214,7 +214,7 @@ export default function PrivacyCenterPage() {
   const saveConsents = async () => {
     if (!token) return;
     try {
-      await apiRequest("/privacy/consents", token, {
+      await apiFetch("/privacy/consents", token, {
         method: "PUT",
         body: JSON.stringify(consents),
       });
@@ -228,7 +228,7 @@ export default function PrivacyCenterPage() {
   const saveEmailPreferences = async () => {
     if (!token) return;
     try {
-      await apiRequest("/privacy/email-preferences", token, {
+      await apiFetch("/privacy/email-preferences", token, {
         method: "PUT",
         body: JSON.stringify(emailPreferences),
       });
@@ -242,7 +242,7 @@ export default function PrivacyCenterPage() {
   const requestExport = async (format: "json" | "csv" | "pdf") => {
     if (!token) return;
     try {
-      const response = await apiRequest<{ download_url: string }>(
+      const response = await apiFetch<{ download_url: string }>(
         "/privacy/export",
         token,
         {
@@ -260,7 +260,7 @@ export default function PrivacyCenterPage() {
   const requestDeletion = async () => {
     if (!token) return;
     try {
-      await apiRequest("/privacy/delete-account", token, {
+      await apiFetch("/privacy/delete-account", token, {
         method: "POST",
         body: JSON.stringify({ password: deletePassword, reason: deleteReason }),
       });
@@ -279,7 +279,7 @@ export default function PrivacyCenterPage() {
   const cancelDeletion = async () => {
     if (!token) return;
     try {
-      await apiRequest("/privacy/delete-account/cancel", token, { method: "POST" });
+      await apiFetch("/privacy/delete-account/cancel", token, { method: "POST" });
       setToast({ type: "success", message: "Demande de suppression annulee." });
       await load(token);
     } catch (error) {

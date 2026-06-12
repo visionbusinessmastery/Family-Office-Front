@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type { ChildAccountsData } from "@/lib/types";
 import { ActionButton, EmptyState, TextField, WealthModal } from "@/components/ui/WealthUI";
 
@@ -33,7 +33,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
     if (!token) return;
 
     let cancelled = false;
-    apiRequest<ChildAccountsData>("/finance/child-accounts", token)
+    apiFetch<ChildAccountsData>("/finance/child-accounts", token)
       .then((payload) => {
         if (!cancelled) setData(payload);
       })
@@ -80,7 +80,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
 
     setLoading(true);
     try {
-      await apiRequest("/finance/child-accounts", token, {
+      await apiFetch("/finance/child-accounts", token, {
         method: "POST",
         body: JSON.stringify({
           ...values,
@@ -89,7 +89,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
           monthly_contribution: Number(values.monthly_contribution || 0),
         }),
       });
-      const payload = await apiRequest<ChildAccountsData>("/finance/child-accounts", token);
+      const payload = await apiFetch<ChildAccountsData>("/finance/child-accounts", token);
       setData(payload);
       setOpen(false);
       setValues({

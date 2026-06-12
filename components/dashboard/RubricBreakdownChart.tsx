@@ -72,7 +72,7 @@ export default function RubricBreakdownChart({
                 paddingAngle={2}
               >
                 {data.map((entry, index) => (
-                  <Cell key={entry.label} fill={colors[index % colors.length]} />
+                  <Cell key={`${entry.label}-${index}`} fill={colors[index % colors.length]} />
                 ))}
               </Pie>
               <Tooltip
@@ -89,7 +89,7 @@ export default function RubricBreakdownChart({
             const color = colors[index % colors.length];
 
             return (
-              <div key={item.label}>
+              <div key={`${item.label}-${index}`}>
                 <div className="flex items-center justify-between gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <span

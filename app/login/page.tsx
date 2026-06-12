@@ -3,16 +3,21 @@
 import { FormEvent, useMemo, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://family-office-api-n4sv.onrender.com";
+import { apiFetch } from "@/lib/api-client";
 
 const loginMessages = [
   "Bon retour. On reprend le cap.",
   "Ton cockpit t'attend.",
   "Une petite action aujourd'hui peut clarifier tout le mois.",
 ];
+
+type LoginResponse = {
+  access_token?: string;
+};
+
+type ApiErrorPayload = {
+  action?: string;
+};
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -31,31 +36,13 @@ export default function LoginPage() {
     setMessage("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      const data = await apiFetch<LoginResponse>("/auth/login", null, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           email: email.toLowerCase().trim(),
           password,
         }),
-      }).catch((err) => {
-        console.error("FETCH ERROR:", err);
-        throw new Error("Service momentanement indisponible");
       });
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        if (data?.action === "set_password_required") {
-          localStorage.setItem("verified_email", email);
-          window.location.href = "/set-password";
-          return;
-        }
-
-        throw new Error(data?.detail || "Connexion impossible");
-      }
 
       if (data?.access_token) {
         localStorage.setItem("token", data.access_token);
@@ -67,6 +54,13 @@ export default function LoginPage() {
         window.location.href = "/dashboard";
       }, 1400);
     } catch (err: unknown) {
+      const payload = (err as { payload?: ApiErrorPayload })?.payload;
+      if (payload?.action === "set_password_required") {
+        localStorage.setItem("verified_email", email);
+        window.location.href = "/set-password";
+        return;
+      }
+
       setMessage(err instanceof Error ? err.message : "Connexion impossible");
       setLoading(false);
     }
@@ -83,7 +77,11 @@ export default function LoginPage() {
             Preparation de ton cockpit patrimonial. On synchronise ton profil,
             ton plan et ta progression.
           </p>
-          <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-t-[#3fa9f5] border-r-amber-300 animate-spin" />
+          <div className="relative mt-8 h-16 w-16" aria-label="Chargement du cockpit">
+            <div className="absolute inset-0 rounded-full border-4 border-white/15 shadow-[0_0_28px_rgba(63,169,245,0.22)]" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-r-[#ffd21a] border-t-[#3fa9f5] shadow-[0_0_18px_rgba(255,210,26,0.28)]" />
+            <div className="absolute inset-5 rounded-full bg-[#3fa9f5]/35 shadow-[0_0_18px_rgba(63,169,245,0.45)]" />
+          </div>
         </div>
       </main>
     );

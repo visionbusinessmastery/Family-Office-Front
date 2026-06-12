@@ -12,7 +12,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { FinanceOverviewData, ProductContext } from "@/lib/types";
+import type {
+  FinanceOverviewData,
+  PortfolioAsset,
+  ProductContext,
+  RealEstateData,
+  VentureAssetData,
+} from "@/lib/types";
 
 const money = new Intl.NumberFormat("fr-FR", {
   maximumFractionDigits: 0,
@@ -26,13 +32,43 @@ const formatChartMoney = (value: number | string) =>
 type HomeExecutiveSummaryProps = {
   product?: ProductContext | null;
   financeOverview?: FinanceOverviewData | null;
+  portfolio?: PortfolioAsset[];
+  realEstate?: RealEstateData | null;
+  ventureAssets?: VentureAssetData | null;
   plan?: string | null;
   level?: string | null;
 };
 
+type SummaryCardProps = {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: "blue" | "green" | "red";
+};
+
+function SummaryCard({ label, value, detail, tone = "blue" }: SummaryCardProps) {
+  const toneClasses =
+    tone === "green"
+      ? "border border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+      : tone === "red"
+      ? "border border-red-400/20 bg-red-400/10 text-red-100"
+      : "border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 text-[#bfe8ff]";
+
+  return (
+    <div className={`rounded-2xl p-4 ${toneClasses}`}>
+      <p className="text-xs uppercase tracking-widest text-current/70">{label}</p>
+      <p className="mt-2 text-2xl font-black text-white">{value}</p>
+      {detail ? <p className="mt-1 text-xs text-current/60">{detail}</p> : null}
+    </div>
+  );
+}
+
 export default function HomeExecutiveSummary({
   product,
   financeOverview,
+  portfolio,
+  realEstate,
+  ventureAssets,
   plan,
   level,
 }: HomeExecutiveSummaryProps) {
@@ -43,6 +79,63 @@ export default function HomeExecutiveSummary({
   const cashflow = n(financeOverview?.totals?.cashflow);
   const visibleWealth =
     n(product?.data_profile?.current_wealth) || n(wealth?.visible_wealth);
+  const liquidWealth = n(financeOverview?.totals?.savings);
+  const liquidMonths = n(financeOverview?.ratios?.liquid_months);
+  const debtTotal = n(financeOverview?.totals?.debt);
+  const debtToIncome = n(financeOverview?.ratios?.debt_to_income);
+
+  const portfolioAssets = portfolio || [];
+  const portfolioValue = portfolioAssets.reduce(
+    (acc, asset) => acc + n(asset.value ?? asset.current_value),
+    0
+  );
+  const portfolioCost = portfolioAssets.reduce(
+    (acc, asset) =>
+      acc + n(asset.cost ?? (n(asset.quantity) * n(asset.purchase_price))),
+    0
+  );
+  const portfolioGain = portfolioValue - portfolioCost;
+  const portfolioGainPercent =
+    portfolioCost > 0 ? (portfolioGain / portfolioCost) * 100 : 0;
+  const portfolioAllocation = portfolioAssets
+    .reduce<Array<{ label: string; value: number }>>((acc, asset) => {
+      const label = String(asset.asset_type || asset.type || "Autre")
+        .replace(/_/g, " ")
+        .toUpperCase();
+      const value = n(asset.value ?? asset.current_value);
+      const existing = acc.find((item) => item.label === label);
+      if (existing) existing.value += value;
+      else acc.push({ label, value });
+      return acc;
+    }, [])
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const dominantExposure = portfolioAllocation[0];
+  const dominantExposureLabel = dominantExposure
+    ? `${dominantExposure.label} ${
+        portfolioValue > 0
+          ? `${((dominantExposure.value / portfolioValue) * 100).toFixed(0)}%`
+          : "0%"
+      }`
+    : "A qualifier";
+
+  const realEstateTotals = realEstate?.totals || {};
+  const realEstateValue = n(realEstateTotals.total_estimated_value);
+  const realEstateGain = n(realEstateTotals.total_potential_gain);
+  const realEstatePerformance = n(realEstateTotals.total_potential_gain_percent);
+  const realEstateYield = n(realEstateTotals.average_rental_yield);
+
+  const ventureTotals = ventureAssets?.totals || {};
+  const businessRevenue = n(ventureTotals.total_revenue);
+  const businessCharges = n(ventureTotals.total_charges);
+  const businessPerformance = n(ventureTotals.total_result);
+  const businessValue = n(ventureTotals.total_final_value);
+
+  const formatMoney = (value: number) => `${money.format(value)} EUR`;
+  const formatSignedMoney = (value: number) =>
+    `${value >= 0 ? "+" : ""}${money.format(value)} EUR`;
+  const formatPercent = (value: number) => `${value.toFixed(2)}%`;
+
   const mainInsight =
     wealth?.memorable_insight ||
     wealth?.headline ||
@@ -79,6 +172,12 @@ export default function HomeExecutiveSummary({
     }))
     .filter((item) => item.year && item.wealth > 0)
     .slice(0, 5);
+  const patrimonialMixData = [
+    { label: "Liquidite", value: liquidWealth, fill: "#3fa9f5" },
+    { label: "Invest.", value: portfolioValue, fill: "#16d99a" },
+    { label: "Immobilier", value: realEstateValue, fill: "#f7d154" },
+    { label: "Business", value: businessValue, fill: "#c084fc" },
+  ].filter((item) => item.value > 0);
 
   return (
     <section className="space-y-5">
@@ -118,6 +217,141 @@ export default function HomeExecutiveSummary({
             {level || product?.progression?.level || plan || "A confirmer"}
           </p>
           <p className="mt-1 text-sm text-gray-400">{plan || product?.plan}</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+              Synthèse patrimoniale
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-white">
+              Bilan, investissements et business
+            </h2>
+          </div>
+          <p className="text-sm text-gray-400">
+            Les principaux indicateurs consolidés du cockpit.
+          </p>
+        </div>
+
+        <div className="mt-5 h-72 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          {patrimonialMixData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={patrimonialMixData} margin={{ left: 4, right: 4, top: 12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={56} />
+                <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  formatter={(value) => formatChartMoney(String(value))}
+                />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {patrimonialMixData.map((item) => (
+                    <Cell key={item.label} fill={item.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-gray-500">
+              Ajoute tes premieres donnees pour afficher la repartition.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Patrimoine liquide"
+            value={formatMoney(liquidWealth)}
+            detail="Mois de sécurité"
+            tone="blue"
+          />
+          <SummaryCard
+            label="Mois de sécurité"
+            value={liquidMonths.toFixed(1)}
+            detail="base charges mensuelles"
+            tone="green"
+          />
+          <SummaryCard
+            label="Dette totale"
+            value={formatMoney(debtTotal)}
+            tone="red"
+          />
+          <SummaryCard
+            label="Dette / revenus"
+            value={`${debtToIncome.toFixed(2)}x`}
+            tone="red"
+          />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Valeur totale"
+            value={formatMoney(portfolioValue)}
+            tone="blue"
+          />
+          <SummaryCard
+            label="Plus / moins-value"
+            value={formatSignedMoney(portfolioGain)}
+            tone={portfolioGain >= 0 ? "green" : "red"}
+          />
+          <SummaryCard
+            label="Performance"
+            value={formatPercent(portfolioGainPercent)}
+            tone={portfolioGainPercent >= 0 ? "green" : "red"}
+          />
+          <SummaryCard
+            label="Exposition dominante"
+            value={dominantExposureLabel}
+            tone="blue"
+          />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Valeur totale"
+            value={formatMoney(realEstateValue)}
+            tone="blue"
+          />
+          <SummaryCard
+            label="Plus-value latente"
+            value={formatSignedMoney(realEstateGain)}
+            tone={realEstateGain >= 0 ? "green" : "red"}
+          />
+          <SummaryCard
+            label="Performance globale"
+            value={formatPercent(realEstatePerformance)}
+            tone={realEstatePerformance >= 0 ? "green" : "red"}
+          />
+          <SummaryCard
+            label="Rendement locatif"
+            value={formatPercent(realEstateYield)}
+            tone={realEstateYield >= 0 ? "green" : "red"}
+          />
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Chiffre d'affaires"
+            value={formatMoney(businessRevenue)}
+            tone="blue"
+          />
+          <SummaryCard
+            label="Charges"
+            value={formatMoney(businessCharges)}
+            tone="red"
+          />
+          <SummaryCard
+            label="Performance"
+            value={formatSignedMoney(businessPerformance)}
+            tone={businessPerformance >= 0 ? "green" : "red"}
+          />
+          <SummaryCard
+            label="Valeur suivie"
+            value={formatMoney(businessValue)}
+            tone="blue"
+          />
         </div>
       </div>
 

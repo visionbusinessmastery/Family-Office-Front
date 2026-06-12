@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { useDashboard } from "@/hooks/useDashboard";
 import {
   Bar,
@@ -29,8 +29,11 @@ import {
   WealthToast,
 } from "@/components/ui/WealthUI";
 import type {
+  CommandCenter,
   FinanceEntry,
   FinancePayload,
+  Opportunity,
+  OpportunityData,
   PortfolioAsset,
   PortfolioPayload,
   ProductContext,
@@ -233,6 +236,438 @@ function SectionHeader({
         {description}
       </p>
     </div>
+  );
+}
+
+type ImportResult = {
+  status?: string;
+  inserted?: number;
+  skipped?: number;
+  detail?: string;
+};
+
+function DataImportPanel({
+  title,
+  description,
+  endpoint,
+  scope,
+  token,
+  onImported,
+  onMessage,
+}: {
+  title: string;
+  description: string;
+  endpoint: string;
+  scope: string;
+  token?: string | null;
+  onImported: () => Promise<void>;
+  onMessage: (message: string, type?: "success" | "error") => void;
+}) {
+  const [importing, setImporting] = useState(false);
+
+  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("scope", scope);
+
+    try {
+      setImporting(true);
+      const result = await apiFetch<ImportResult>(endpoint, token, {
+        method: "POST",
+        body: formData,
+      });
+      await onImported();
+      onMessage(
+        `${result.inserted ?? 0} ligne(s) importee(s), ${result.skipped ?? 0} ignoree(s).`,
+        "success"
+      );
+    } catch (err) {
+      onMessage(
+        err instanceof Error ? err.message : "Import impossible pour le moment.",
+        "error"
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#8bd0ff]">
+            Import controle
+          </p>
+          <h2 className="mt-1 text-xl font-black text-white">{title}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-300">
+            {description}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed text-gray-500">
+            CSV attendu: colonnes <span className="text-gray-300">type</span>,{" "}
+            <span className="text-gray-300">name</span>,{" "}
+            <span className="text-gray-300">amount</span> ou equivalent selon le module.
+            Les PDF sont refuses proprement tant que le parseur documentaire n'est pas branche.
+          </p>
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/15">
+          {importing ? "Import en cours..." : "Importer CSV / PDF"}
+          <input
+            type="file"
+            accept=".csv,.pdf,text/csv,application/pdf"
+            className="hidden"
+            disabled={importing}
+            onChange={handleFile}
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function ActivationCard({
+  eyebrow,
+  title,
+  description,
+  actionLabel,
+  onActivate,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onActivate: () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#ffd21a]/25 bg-[radial-gradient(circle_at_top_left,_rgba(255,210,26,0.18),_transparent_32%),linear-gradient(135deg,#080808,#111827_58%,#020202)] p-6">
+      <div className="max-w-2xl">
+        <p className="text-xs font-bold uppercase tracking-widest text-[#ffd21a]">
+          {eyebrow}
+        </p>
+        <h2 className="mt-2 text-2xl font-black text-white">{title}</h2>
+        <p className="mt-3 text-sm leading-relaxed text-gray-300">
+          {description}
+        </p>
+        <button
+          onClick={onActivate}
+          className="mt-5 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2588d2]"
+        >
+          {actionLabel}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+const normalizeCommandCenterOpportunities = (
+  opportunities?: CommandCenter["opportunities"]
+): Opportunity[] => {
+  if (Array.isArray(opportunities)) return opportunities;
+  if (!opportunities) return [];
+  return (opportunities as OpportunityData).opportunities || [];
+};
+
+const opportunityDifficultyRank = (opportunity: Opportunity) => {
+  const value = String(
+    opportunity.difficulty || opportunity.profile_compatibility || ""
+  ).toLowerCase();
+
+  if (/advanced|expert|complex|hard|eleve|difficile/.test(value)) return 3;
+  if (/medium|intermediate|moyen|modere/.test(value)) return 2;
+  if (/easy|simple|low|faible|debutant/.test(value)) return 1;
+  return 1;
+};
+
+const requiredPlanForDifficultyRank = (rank: number) => {
+  if (rank <= 1) return "FREE";
+  if (rank === 2) return "GOLD";
+  if (rank === 3) return "ELITE";
+  return "LIBERTY";
+};
+
+const getNextLockedPlan = (
+  opportunities: Opportunity[],
+  currentPlanKey: string
+) => {
+  const availableRank = planOrder[currentPlanKey] ?? 0;
+  const lockedPlans = opportunities
+    .map((opportunity) => ({
+      rank: opportunityDifficultyRank(opportunity),
+      plan: requiredPlanForDifficultyRank(
+        opportunityDifficultyRank(opportunity)
+      ),
+    }))
+    .filter((item) => planOrder[item.plan] > availableRank)
+    .sort((a, b) => planOrder[a.plan] - planOrder[b.plan]);
+
+  return lockedPlans.length ? lockedPlans[0].plan : null;
+};
+
+function DashboardUpgradeBanner({
+  currentPlanKey,
+  score,
+  onUpgrade,
+}: {
+  currentPlanKey: string;
+  score: number;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const progress = Number.isFinite(score) ? Math.round(score) : 0;
+  const showGold = currentPlanKey === "FREE";
+  const showElite = currentPlanKey === "GOLD";
+  const showLiberty = currentPlanKey === "ELITE";
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#08131e] p-6 text-white shadow-xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+            Evolution du cockpit
+          </p>
+          <h2 className="mt-2 text-2xl font-black">Votre patrimoine est structuré à {progress}%.</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-300">
+            Gold permet d'identifier les leviers prioritaires. Elite permet d'orchestrer l'ensemble du Family Office.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {showGold && (
+            <button
+              onClick={() => onUpgrade?.("gold")}
+              className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+            >
+              Debloquer Gold
+            </button>
+          )}
+          {showElite && (
+            <button
+              onClick={() => onUpgrade?.("elite")}
+              className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-400/20"
+            >
+              Debloquer Elite
+            </button>
+          )}
+          {showLiberty && (
+            <button
+              onClick={() => onUpgrade?.("liberty")}
+              className="rounded-xl bg-[#f4c95d] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#d2b44e]"
+            >
+              Debloquer Liberty
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PremiumOpportunityCounter({
+  commandCenter,
+  currentPlan,
+  onUpgrade,
+}: {
+  commandCenter?: CommandCenter | null;
+  currentPlan: string;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const opportunities = normalizeCommandCenterOpportunities(
+    commandCenter?.opportunities
+  );
+  const total =
+    typeof commandCenter?.opportunities_count === "number"
+      ? commandCenter.opportunities_count
+      : opportunities.length;
+  const allowedRank = planOrder[normalizePlan(currentPlan)] ?? 0;
+  const available = opportunities.filter(
+    (opportunity) => opportunityDifficultyRank(opportunity) <= allowedRank
+  ).length;
+  const locked = Math.max(total - available, 0);
+  const nextPlan = getNextLockedPlan(opportunities, normalizePlan(currentPlan));
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Opportunités premium</p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-2xl font-black text-white">{total} opportunités détectées</h3>
+          <p className="mt-1 text-sm leading-relaxed text-gray-400">
+            {available} sont disponibles avec votre plan actuel.
+            {locked > 0 && nextPlan ? ` ${locked} nécessitent ${nextPlan}.` : ""}
+          </p>
+        </div>
+        {locked > 0 && nextPlan && (
+          <button
+            onClick={() => onUpgrade?.(nextPlan.toLowerCase())}
+            className="rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+          >
+            Débloquer {nextPlan}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LockedWealthIntelligenceCallout({
+  score,
+  onUpgrade,
+}: {
+  score: number;
+  onUpgrade?: (plan: string) => void;
+}) {
+  const value = Number.isFinite(score) ? Math.round(score) : 0;
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-[#08131e] p-6">
+      <p className="text-xs uppercase tracking-widest text-[#ffd21a]">Wealth Intelligence</p>
+      <h2 className="mt-2 text-2xl font-black text-white">Votre score patrimonial est de {value}.</h2>
+      <p className="mt-3 text-sm leading-relaxed text-gray-300">
+        Les analyses détaillées, projections et recommandations IA sont disponibles avec GOLD.
+      </p>
+      <button
+        onClick={() => onUpgrade?.("gold")}
+        className="mt-5 rounded-xl bg-[#3fa9f5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d91d5]"
+      >
+        Debloquer Gold
+      </button>
+    </section>
+  );
+}
+
+function ElitePreviewPanel({
+  onUpgrade,
+}: {
+  onUpgrade?: (plan: string) => void;
+}) {
+  const cards = [
+    {
+      title: "Wealth Intelligence",
+      description:
+        "Lecture multiactifs, corrigé de trajectoire et suivi de performance consolidé.",
+    },
+    {
+      title: "Advanced Analytics",
+      description:
+        "Simulations, scénarios et projections pour prioriser les décisions patrimoniales.",
+    },
+    {
+      title: "Opportunity Ranking",
+      description:
+        "Classement des opportunités par impact, risque et cohérence de portefeuille.",
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Elite preview</p>
+          <h2 className="mt-2 text-2xl font-black text-white">Ce que vous gagnez en Elite</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+            Aperçu flouté des principales capacités sans dévoiler les analyses complètes.
+          </p>
+        </div>
+        <button
+          onClick={() => onUpgrade?.("elite")}
+          className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-emerald-400/20"
+        >
+          Débloquer Elite
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {cards.map((card) => (
+          <div
+            key={card.title}
+            className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 text-white backdrop-blur-xl"
+          >
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative">
+              <h3 className="text-lg font-black">{card.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                {card.description}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PlanComparisonWidget({
+  currentPlanKey,
+}: {
+  currentPlanKey: string;
+}) {
+  const rows = [
+    {
+      label: "Score patrimonial",
+      free: true,
+      gold: true,
+      elite: true,
+    },
+    {
+      label: "Analyses IA",
+      free: false,
+      gold: true,
+      elite: true,
+    },
+    {
+      label: "Opportunity Ranking",
+      free: false,
+      gold: false,
+      elite: true,
+    },
+  ];
+
+  const currentPlanStyles: Record<string, string> = {
+    FREE: "border-white/10 bg-white/5",
+    GOLD: "border-yellow-500/30 bg-yellow-500/10",
+    ELITE: "border-[#3fa9f5]/30 bg-[#3fa9f5]/10",
+  };
+
+  return (
+    <section className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Comparaison de plans</p>
+          <h2 className="mt-2 text-2xl font-black text-white">FREE, GOLD, ELITE</h2>
+          <p className="mt-2 text-sm leading-relaxed text-gray-400">
+            Les jalons clés pour passer d'une lecture basique à un pilotage avancé du patrimoine.
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            currentPlanStyles[currentPlanKey] || "border-white/10 bg-white/5"
+          }`}
+        >
+          Plan actuel : {currentPlanKey}
+        </span>
+      </div>
+
+      <div className="grid gap-3 text-sm">
+        <div className="grid grid-cols-[1.8fr_1fr_1fr_1fr] items-center gap-3 text-xs uppercase tracking-widest text-gray-500">
+          <span>Fonction</span>
+          <span className="text-center">FREE</span>
+          <span className="text-center">GOLD</span>
+          <span className="text-center">ELITE</span>
+        </div>
+        {rows.map((row) => (
+          <div
+            key={row.label}
+            className="grid grid-cols-[1.8fr_1fr_1fr_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+          >
+            <span>{row.label}</span>
+            <span className="text-center">{row.free ? "✓" : "🔒"}</span>
+            <span className="text-center">{row.gold ? "✓" : "🔒"}</span>
+            <span className="text-center">{row.elite ? "✓" : "🔒"}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -977,6 +1412,7 @@ export default function Dashboard() {
   const {
     dashboard,
     portfolio,
+    portfolioAllocation,
     realEstate,
     yieldAssets,
     ventureAssets,
@@ -1014,20 +1450,24 @@ export default function Dashboard() {
     setToast({ message, type });
   };
 
-  const loadWealthProfile = useCallback(async () => {
-    if (!token) return null;
+  const fetchWealthProfile = useCallback(
+    async (currentToken: string | null) => {
+      if (!currentToken) return null;
 
-    try {
-      const data = await apiRequest<{ profile?: WealthProfile }>("/profile/me", token);
-      const profile = data.profile || {};
-      setWealthProfile(profile);
-      return profile;
-    } catch (err) {
-      console.error(err);
-      setWealthProfile({});
-      return {};
-    }
-  }, [token]);
+      try {
+        const data = await apiFetch<{ profile?: WealthProfile }>(
+          "/profile/me",
+          currentToken
+        );
+
+        return data.profile || {};
+      } catch (err) {
+        console.error(err);
+        return {};
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1045,10 +1485,14 @@ export default function Dashboard() {
   }, [router]);
 
   useEffect(() => {
-    if (!["profile", "settings"].includes(activeSection) || !token) return;
-    loadWealthProfile();
-  }, [activeSection, loadWealthProfile, token]);
+    if (!token) return;
+    if (!["profile", "settings"].includes(activeSection)) return;
 
+    fetchWealthProfile(token).then((profile) => {
+      if (profile) setWealthProfile(profile);
+    });
+  }, [activeSection, token, fetchWealthProfile]);
+  
   const updateModalValue = (key: string, value: string) => {
     setFormModal((current) =>
       current
@@ -1098,7 +1542,11 @@ export default function Dashboard() {
               Le cockpit se materialise progressivement. Synchronisation du plan,
               des modules et de la progression.
             </p>
-            <div className="mt-8 h-16 w-16 rounded-full border-2 border-[#3fa9f5]/30 border-r-amber-300 border-t-[#3fa9f5] animate-spin" />
+            <div className="relative mt-8 h-16 w-16" aria-label="Chargement du cockpit">
+              <div className="absolute inset-0 rounded-full border-4 border-white/15 shadow-[0_0_28px_rgba(63,169,245,0.22)]" />
+              <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-r-[#ffd21a] border-t-[#3fa9f5] shadow-[0_0_18px_rgba(255,210,26,0.28)]" />
+              <div className="absolute inset-5 rounded-full bg-[#3fa9f5]/35 shadow-[0_0_18px_rgba(63,169,245,0.45)]" />
+            </div>
           </div>
         </div>
       </main>
@@ -1108,10 +1556,7 @@ export default function Dashboard() {
   const globalScore =
     Number(commandCenter?.global_score ?? 0) || 0;
   const realEstateAssets = realEstate?.assets || [];
-  const investmentRubrics = portfolio.map((asset) => ({
-    label: String(asset.asset_type || asset.type || "Autre").replace(/_/g, " ").toUpperCase(),
-    value: getAssetValue(asset),
-  }));
+  const investmentRubrics = portfolioAllocation;
   const realEstateRubrics = realEstateAssets.map((asset) => ({
     label: String(asset.property_type || "Immobilier").replace(/_/g, " ").toUpperCase(),
     value: Number(asset.estimated_value || asset.resale_price || asset.purchase_price || 0),
@@ -1151,7 +1596,8 @@ export default function Dashboard() {
       ?.filter((module) => module.state === "active")
       .map((module) => module.key) || []
   );
-  const currentPlan = product?.plan || dashboard?.plan;
+  const currentPlan =
+    billingSubscription?.plan || product?.plan || dashboard?.plan || "FREE";
   const currentPlanKey = normalizePlan(currentPlan);
   const currentPlanCopy =
     planExperienceCopy[currentPlanKey] || planExperienceCopy.FREE;
@@ -1182,6 +1628,17 @@ export default function Dashboard() {
     billingSubscription?.price ||
     product?.entitlements?.copy?.price ||
     "Visible dans le portail";
+  const isFounderMember = Boolean(
+    billingSubscription?.founder?.is_founder ||
+      product?.founder?.is_founder ||
+      dashboard?.is_founder
+  );
+  const founderTierLabel = compactText(
+    billingSubscription?.founder?.tier ||
+      product?.founder?.tier ||
+      dashboard?.founder_tier,
+    ""
+  );
   const futurePlanName = compactText(
     billingSubscription?.future_plan || billingSubscription?.pending_plan,
     ""
@@ -1242,8 +1699,18 @@ export default function Dashboard() {
   const navigation: NavigationItem[] = [
     {
       key: "home",
-      label: "Home",
+      label: "White Rock Center",
       description: "Vue globale",
+    },
+    {
+      key: "finances",
+      label: "Situation Mensuelle",
+      description: "Revenus et Charges",
+    },
+    {
+      key: "balance_sheet",
+      label: "Bilan Patrimonial",
+      description: "Epargnes et Dettes",
     },
     {
       key: "wealth",
@@ -1256,39 +1723,24 @@ export default function Dashboard() {
       description: "Futur",
     },
     {
-      key: "opportunities",
-      label: "Opportunites",
-      description: "Signaux",
-    },
-    {
-      key: "ai",
-      label: "Conseiller",
-      description: "Conseiller",
-    },
-    {
-      key: "finances",
-      label: "Cashflow",
-      description: "Cashflow",
-    },
-    {
-      key: "balance_sheet",
-      label: "Bilan",
-      description: "Long terme",
-    },
-    {
-      key: "investments",
-      label: "Investments",
-      description: "Allocation",
-    },
-    {
       key: "real_estate",
       label: "Immobilier",
       description: "Biens",
     },
     {
+      key: "investments",
+      label: "Investissement",
+      description: "Allocation",
+    },
+    {
       key: "ventures",
       label: "Business",
       description: "Ventures",
+    },
+    {
+      key: "opportunities",
+      label: "Rechercher une opportunite",
+      description: "Signaux",
     },
     ...(legacyNavigationEnabled
       ? [
@@ -1319,9 +1771,15 @@ export default function Dashboard() {
       label: "Family Office",
       description: "Gouvernance",
     },
+    {
+      key: "ai",
+      label: "Conseiller",
+      description: "Ethan",
+    },
   ];
   const handleUpdateOnboarding = async () => {
-    const profile = (await loadWealthProfile()) || wealthProfile || {};
+    const profile =
+      (await fetchWealthProfile(token)) || wealthProfile || {};
 
     setFormModal({
       kind: "onboarding",
@@ -1354,7 +1812,7 @@ export default function Dashboard() {
 
   const handleUpgradePlan = async (plan: string) => {
     try {
-      const data = await apiRequest<{ url?: string }>("/billing/create-checkout-session", token, {
+      const data = await apiFetch<{ url?: string }>("/billing/create-checkout-session", token, {
         method: "POST",
         body: JSON.stringify({ plan }),
       });
@@ -1380,7 +1838,7 @@ export default function Dashboard() {
 
   const handleOpenBillingPortal = async () => {
     try {
-      const data = await apiRequest<{ url?: string }>("/billing/customer-portal", token, {
+      const data = await apiFetch<{ url?: string }>("/billing/customer-portal", token, {
         method: "POST",
       });
 
@@ -1427,7 +1885,7 @@ export default function Dashboard() {
     method: "POST" | "PUT",
     payload: PortfolioPayload
   ) => {
-    await apiRequest(url, token, {
+    await apiFetch(url, token, {
       method,
       body: JSON.stringify(payload),
     });
@@ -1477,7 +1935,7 @@ export default function Dashboard() {
       title: "Supprimer cet actif ?",
       description: "Cette action retire la ligne du portefeuille.",
       onConfirm: async () => {
-        await apiRequest(`/portfolio/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/portfolio/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Actif supprime.", "success");
       },
@@ -1485,7 +1943,7 @@ export default function Dashboard() {
   };
 
   const handleAddFinance = async (data: FinancePayload) => {
-    await apiRequest("/finance/", token, {
+    await apiFetch("/finance/", token, {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -1494,7 +1952,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteFinance = async (id: number) => {
-    await apiRequest(`/finance/${id}`, token, {
+    await apiFetch(`/finance/${id}`, token, {
       method: "DELETE",
     });
 
@@ -1502,7 +1960,7 @@ export default function Dashboard() {
   };
 
   const handleUpdateFinance = async (item: FinanceEntry) => {
-    await apiRequest(`/finance/${item.id}`, token, {
+    await apiFetch(`/finance/${item.id}`, token, {
       method: "PUT",
       body: JSON.stringify({
         name: item.name || item.label || "",
@@ -1561,7 +2019,7 @@ export default function Dashboard() {
       title: "Supprimer ce bien ?",
       description: "Cette action retire ce bien de la rubrique immobilier.",
       onConfirm: async () => {
-        await apiRequest(`/real-estate/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/real-estate/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Bien supprime.", "success");
       },
@@ -1605,7 +2063,7 @@ export default function Dashboard() {
       title: "Supprimer cet investissement ?",
       description: "Cette action retire cet actif de la rubrique rendement prive.",
       onConfirm: async () => {
-        await apiRequest(`/yield-assets/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/yield-assets/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Investissement supprime.", "success");
       },
@@ -1653,7 +2111,7 @@ export default function Dashboard() {
       title: "Supprimer ce business ?",
       description: "Cette action retire cette ligne de la rubrique Business & Ventures.",
       onConfirm: async () => {
-        await apiRequest(`/venture-assets/${id}`, token, { method: "DELETE" });
+        await apiFetch(`/venture-assets/${id}`, token, { method: "DELETE" });
         await refreshAfterMutation();
         showToast("Business supprime.", "success");
       },
@@ -1681,7 +2139,7 @@ export default function Dashboard() {
           .map((item) => String(item || "").trim())
           .filter(Boolean);
 
-        await apiRequest("/auth/onboarding/update", token, {
+        await apiFetch("/auth/onboarding/update", token, {
           method: "PUT",
           body: JSON.stringify({
             age,
@@ -1691,7 +2149,7 @@ export default function Dashboard() {
           }),
         });
 
-        await apiRequest("/profile/me", token, {
+        await apiFetch("/profile/me", token, {
           method: "PUT",
           body: JSON.stringify({
             first_name: values.first_name || null,
@@ -1712,7 +2170,7 @@ export default function Dashboard() {
           }),
         });
 
-        await loadWealthProfile();
+        await fetchWealthProfile(token);
         await refreshAfterMutation();
         showToast("Profil utilisateur mis a jour.", "success");
       }
@@ -1721,7 +2179,7 @@ export default function Dashboard() {
         const name = requireName(values.name);
         if (!name) throw new Error("Nom requis");
 
-        const data = await apiRequest<{ workspace_id?: number }>("/workspaces/", token, {
+        const data = await apiFetch<{ workspace_id?: number }>("/workspaces/", token, {
           method: "POST",
           body: JSON.stringify({ name }),
         });
@@ -1740,7 +2198,7 @@ export default function Dashboard() {
         const workspaceId = formModal.context?.workspaceId;
         if (!email || !workspaceId) throw new Error("Invitation incomplete");
 
-        const data = await apiRequest<{ invite_url?: string; token?: string }>(
+        const data = await apiFetch<{ invite_url?: string; token?: string }>(
           `/workspaces/${workspaceId}/invite`,
           token,
           {
@@ -1822,7 +2280,7 @@ export default function Dashboard() {
           ]),
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/real-estate/${formModal.context.id}`
             : "/real-estate/",
@@ -1856,7 +2314,7 @@ export default function Dashboard() {
           notes: values.notes || null,
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/yield-assets/${formModal.context.id}`
             : "/yield-assets/",
@@ -1902,7 +2360,7 @@ export default function Dashboard() {
           notes: values.notes || null,
         };
 
-        await apiRequest(
+        await apiFetch(
           formModal.context?.id
             ? `/venture-assets/${formModal.context.id}`
             : "/venture-assets/",
@@ -2262,8 +2720,20 @@ export default function Dashboard() {
 
       <div className="sticky top-0 z-20 backdrop-blur-xl bg-black/80 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <Header dashboard={dashboard} onUpgrade={handleUpgradePlan} />
+          <Header
+            dashboard={dashboard}
+            billingSubscription={billingSubscription}
+            onUpgrade={handleUpgradePlan}
+          />
         </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl p-4">
+        <DashboardUpgradeBanner
+          currentPlanKey={currentPlanKey}
+          score={globalScore}
+          onUpgrade={handleUpgradePlan}
+        />
       </div>
 
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 lg:grid-cols-[260px_1fr]">
@@ -2314,17 +2784,29 @@ export default function Dashboard() {
           {activeSection === "home" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Accueil"
-                title="Command Center"
-                description="L'essentiel uniquement: situation, trajectoire, action et signal prioritaire."
+                eyebrow="White Rock Center"
+                title="Vue Globale"
+                description="La premiere lecture de ton Family Office: patrimoine, cashflow, trajectoire et prochaine action utile."
               />
 
               <HomeExecutiveSummary
                 product={product}
                 financeOverview={financeOverview}
+                portfolio={portfolio}
+                realEstate={realEstate}
+                ventureAssets={ventureAssets}
                 plan={currentPlan}
                 level={product?.progression?.level || commandCenter?.level || dashboard?.level}
               />
+
+              <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+                <PremiumOpportunityCounter
+                  commandCenter={commandCenter}
+                  currentPlan={currentPlan}
+                  onUpgrade={handleUpgradePlan}
+                />
+                <PlanComparisonWidget currentPlanKey={currentPlanKey} />
+              </div>
             </div>
           )}
 
@@ -2335,6 +2817,13 @@ export default function Dashboard() {
                 title="Wealth Intelligence"
                 description="Patrimoine visible, potentiel activable, scorecard et signaux de solidite. Cette page donne la lecture patrimoniale complete."
               />
+
+              {!planAllows(currentPlan, "GOLD") && (
+                <LockedWealthIntelligenceCallout
+                  score={globalScore}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
 
               <WealthIntelligencePanel product={product} />
 
@@ -2353,6 +2842,10 @@ export default function Dashboard() {
               />
 
               <FutureIntelligencePanel product={product} />
+
+              {!planAllows(currentPlan, "ELITE") && (
+                <ElitePreviewPanel onUpgrade={handleUpgradePlan} />
+              )}
 
               {planAllows(currentPlan, "ELITE") ? (
                 <FamilyOfficeCeoPanel product={product} />
@@ -2388,9 +2881,19 @@ export default function Dashboard() {
           {activeSection === "finances" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Cashflow"
-                title="Finances court terme"
+                eyebrow="Situation Mensuelle"
+                title="Revenus et Charges"
                 description="Revenus, charges, reste a vivre et marge mensuelle. Cette page suit uniquement les flux du mois."
+              />
+
+              <DataImportPanel
+                title="Importer des revenus ou charges"
+                description="Ajoute des lignes mensuelles depuis un fichier CSV. Le backend valide les types revenus/charges avant de mettre a jour la base."
+                endpoint="/finance/import"
+                scope="cashflow"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
@@ -2421,9 +2924,19 @@ export default function Dashboard() {
           {activeSection === "balance_sheet" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Bilan"
+                eyebrow="Bilan Patrimonial"
                 title="Bilan Patrimonial"
-                description="Epargne, dettes, liquidite et engagements. Cette page suit les stocks financiers de long terme."
+                description="Epargnes, dettes, liquidite et engagements. Cette page suit les stocks financiers de long terme."
+              />
+
+              <DataImportPanel
+                title="Importer des epargnes ou dettes"
+                description="Ajoute des lignes de bilan depuis un fichier CSV. Le backend accepte uniquement epargne/dettes pour cette section."
+                endpoint="/finance/import"
+                scope="balance"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
               />
 
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
@@ -2445,47 +2958,69 @@ export default function Dashboard() {
           {activeSection === "investments" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Investments"
-                title="Allocation & multi-assets"
-                description="Stocks, ETF, crypto, forex, commodities, diversification et exposition. Pas de trading complexe: uniquement pilotage patrimonial."
+                eyebrow="Investissement"
+                title="Espace Investissement"
+                description="Actions, ETF, crypto et autres placements. Cette page reste dediee au suivi patrimonial des placements financiers."
               />
 
-              {hasModule("diversification") ? (
-                <section className="grid grid-cols-1 gap-5">
-                  {eliteChartsEnabled ? (
-                    <RubricBreakdownChart
-                      title="Repartition investissements"
-                      description="Vue limitee aux rubriques de l'onglet Investments."
-                      items={investmentRubrics}
-                    />
+              <DataImportPanel
+                title="Importer des investissements"
+                description="Ajoute des actifs financiers depuis un fichier CSV. Le backend valide nom, classe d'actif, quantite et prix d'achat."
+                endpoint="/portfolio/import"
+                scope="investments"
+                token={token}
+                onImported={refreshAfterMutation}
+                onMessage={showToast}
+              />
+
+              {portfolio.length === 0 ? (
+                <ActivationCard
+                  eyebrow="Espace Investissement"
+                  title="Ajoutez votre premier investissement"
+                  description="Suivez vos actions, ETF, crypto et autres placements."
+                  actionLabel="+ Activer l'espace Investissement"
+                  onActivate={() => handleAddPortfolioAsset()}
+                />
+              ) : (
+                <>
+                  {hasModule("diversification") ? (
+                    <section className="grid grid-cols-1 gap-5">
+                      {eliteChartsEnabled ? (
+                        <RubricBreakdownChart
+                          title="Repartition investissements"
+                          description="Vue limitee aux rubriques de l'onglet Investissement."
+                          items={investmentRubrics}
+                        />
+                      ) : (
+                        <LockedSection
+                          title="Graphique Investissement"
+                          description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                          onUpgrade={handleUpgradePlan}
+                          plan="elite"
+                        />
+                      )}
+                    </section>
                   ) : (
                     <LockedSection
-                      title="Graphique Investments"
-                      description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                      title="Analytics d'allocation"
+                      description="L'exposition avancee et les graphiques d'allocation se debloquent progressivement avec la phase Growth."
                       onUpgrade={handleUpgradePlan}
-                      plan="elite"
+                      plan="gold"
                     />
                   )}
-                </section>
-              ) : (
-                <LockedSection
-                  title="Analytics d'allocation"
-                  description="L'exposition avancee et les graphiques d'allocation se debloquent progressivement avec la phase Growth."
-                  onUpgrade={handleUpgradePlan}
-                  plan="gold"
-                />
-              )}
 
-              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <h2 className="mb-4 text-2xl font-bold">Portfolio</h2>
-                <PortfolioModule
-                  portfolio={portfolio}
-                  onAdd={handleAddPortfolioAsset}
-                  onUpdate={handleUpdatePortfolioAsset}
-                  onDelete={handleDeletePortfolioAsset}
-                  opportunities={financialOpportunities}
-                />
-              </section>
+                  <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <h2 className="mb-4 text-2xl font-bold">Portfolio</h2>
+                    <PortfolioModule
+                      portfolio={portfolio}
+                      onAdd={handleAddPortfolioAsset}
+                      onUpdate={handleUpdatePortfolioAsset}
+                      onDelete={handleDeletePortfolioAsset}
+                      opportunities={financialOpportunities}
+                    />
+                  </section>
+                </>
+              )}
             </div>
           )}
 
@@ -2493,32 +3028,44 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Immobilier"
-                title="Biens & rendement"
-                description="Residence principale, locatif, achat/revente, valorisation et plus-value potentielle."
+                title="Espace Immobilier"
+                description="Une lecture simple de tes biens, emprunts, valeurs et patrimoine immobilier."
               />
 
-              {eliteChartsEnabled ? (
-                <RubricBreakdownChart
-                  title="Repartition immobilier"
-                  description="Vue limitee aux rubriques de l'onglet Immobilier."
-                  items={realEstateRubrics}
+              {realEstateAssets.length === 0 ? (
+                <ActivationCard
+                  eyebrow="Patrimoine immobilier"
+                  title="Ajoutez votre premier bien immobilier"
+                  description="Suivez la valeur de vos biens, vos emprunts et votre patrimoine immobilier."
+                  actionLabel="+ Activer l'espace immobilier"
+                  onActivate={() => handleAddRealEstate("primary_residence")}
                 />
               ) : (
-                <LockedSection
-                  title="Graphique immobilier"
-                  description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
-                  onUpgrade={handleUpgradePlan}
-                  plan="elite"
-                />
-              )}
+                <>
+                  {eliteChartsEnabled ? (
+                    <RubricBreakdownChart
+                      title="Repartition immobilier"
+                      description="Vue limitee aux rubriques de l'onglet Immobilier."
+                      items={realEstateRubrics}
+                    />
+                  ) : (
+                    <LockedSection
+                      title="Graphique immobilier"
+                      description="La repartition par rubrique de cet onglet est disponible a partir du plan Elite."
+                      onUpgrade={handleUpgradePlan}
+                      plan="elite"
+                    />
+                  )}
 
-              <RealEstateModule
-                data={realEstate}
-                onAdd={handleAddRealEstate}
-                onUpdate={handleUpdateRealEstate}
-                onDelete={handleDeleteRealEstate}
-                opportunity={findOpportunity("real_estate")}
-              />
+                  <RealEstateModule
+                    data={realEstate}
+                    onAdd={handleAddRealEstate}
+                    onUpdate={handleUpdateRealEstate}
+                    onDelete={handleDeleteRealEstate}
+                    opportunity={findOpportunity("real_estate")}
+                  />
+                </>
+              )}
             </div>
           )}
 
@@ -2526,10 +3073,20 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Business & Ventures"
-                title="Entreprises, startups et rendement prive"
-                description="Une lecture investisseur: intelligence business, actifs suivis, puis opportunites a explorer."
+                title="Espace Business"
+                description="Entreprises, startups, revenus, charges et valorisation. Cette page suit les moteurs business de ton patrimoine."
               />
 
+              {(ventureAssets?.assets?.length || 0) + (yieldAssets?.assets?.length || 0) === 0 ? (
+                <ActivationCard
+                  eyebrow="Business"
+                  title="Ajoutez votre premiere entreprise"
+                  description="Suivez une activite, une startup, un investissement prive ou une ligne business pour commencer la lecture investisseur."
+                  actionLabel="+ Activer l'espace Business"
+                  onActivate={() => handleAddVentureAsset("business")}
+                />
+              ) : (
+                <>
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="max-w-3xl">
@@ -2641,6 +3198,8 @@ export default function Dashboard() {
                   ["crowdfunding", "private_equity"].includes(item.key || "")
                 )}
               />
+                </>
+              )}
 
             </div>
           )}
@@ -2648,8 +3207,8 @@ export default function Dashboard() {
           {activeSection === "opportunities" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Opportunites"
-                title="Centre d'opportunites"
+                eyebrow="Rechercher une opportunite"
+                title="Rechercher une opportunite"
                 description="Recherche, exploration et signaux centralises. Les pages metier restent dediees au pilotage."
               />
 
@@ -3118,6 +3677,13 @@ export default function Dashboard() {
                   <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
                     {compactText(product?.entitlements?.copy?.promise || currentPlanCopy.promise)}
                   </span>
+                  {isFounderMember && (
+                    <span className="rounded-full border border-amber-300/45 bg-amber-300/10 px-3 py-1 text-xs font-bold uppercase tracking-widest text-amber-100">
+                      {founderTierLabel
+                        ? `Founder ${founderTierLabel}`
+                        : "Founding Member"}
+                    </span>
+                  )}
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">

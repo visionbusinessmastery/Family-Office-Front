@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import type { ScoreDetails } from "@/lib/types";
 
 type UserIntelligenceResponse = {
@@ -32,7 +32,7 @@ export default function FamilyOfficeScore() {
       }
 
       try {
-        const json = await apiRequest<UserIntelligenceResponse>(
+        const json = await apiFetch<UserIntelligenceResponse>(
           "/intelligence/user-intelligence",
           token
         );

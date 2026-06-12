@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiRequest, clearAuthSession, isJwtExpired } from "@/lib/api";
+import { apiFetch, clearAuthSession, isJwtExpired } from "@/lib/api-client";
 import type {
   AdvisorContextSummary,
   BusinessIntelligenceData,
@@ -21,6 +21,7 @@ import type {
   ScoreDetails,
   UserIntelligence,
   UserProfile,
+  RubricBreakdownItem,
   VentureAssetData,
   WorkspaceData,
   YieldAssetData,
@@ -69,6 +70,7 @@ type PortfolioResponse =
   | PortfolioAsset[]
   | {
       portfolio?: PortfolioAsset[] | { assets?: PortfolioAsset[] };
+      allocation_by_type?: RubricBreakdownItem[];
       assets?: PortfolioAsset[];
       data?: PortfolioAsset[] | { portfolio?: PortfolioAsset[]; assets?: PortfolioAsset[] };
       items?: PortfolioAsset[];
@@ -83,6 +85,7 @@ type DashboardSessionSnapshot = {
   commandCenter: CommandCenter | null;
   gamification: GamificationData | null;
   portfolio: PortfolioAsset[];
+  portfolioAllocation: RubricBreakdownItem[];
   history: PortfolioHistoryPoint[];
   realEstate: RealEstateData | null;
   yieldAssets: YieldAssetData | null;
@@ -126,6 +129,11 @@ const extractPortfolio = (data: PortfolioResponse | null) => {
   ];
 
   return candidates.find(Array.isArray) || null;
+};
+
+const extractPortfolioAllocation = (data: PortfolioResponse | null) => {
+  if (!data || Array.isArray(data)) return [];
+  return Array.isArray(data.allocation_by_type) ? data.allocation_by_type : [];
 };
 
 const readCachedDashboard = (): DashboardSummary | null => {
@@ -217,6 +225,7 @@ export function useDashboard() {
   const [commandCenter, setCommandCenter] = useState<CommandCenter | null>(null);
   const [gamification, setGamification] = useState<GamificationData | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioAsset[]>([]);
+  const [portfolioAllocation, setPortfolioAllocation] = useState<RubricBreakdownItem[]>([]);
   const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
   const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
   const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
@@ -272,7 +281,7 @@ export function useDashboard() {
       if (!token) return null;
 
       try {
-        return await apiRequest<T>(url, token);
+        return await apiFetch<T>(url, token);
       } catch {
         return null;
       }
@@ -288,6 +297,7 @@ export function useDashboard() {
     setCommandCenter(snapshot.commandCenter);
     setGamification(snapshot.gamification);
     setPortfolio(snapshot.portfolio);
+    setPortfolioAllocation(snapshot.portfolioAllocation || []);
     setHistory(snapshot.history);
     setRealEstate(snapshot.realEstate);
     setYieldAssets(snapshot.yieldAssets);
@@ -403,10 +413,12 @@ export function useDashboard() {
   const loadPortfolio = useCallback(async () => {
     const data = await safeFetch<PortfolioResponse>("/portfolio/");
     const nextPortfolio = extractPortfolio(data);
+    const nextAllocation = extractPortfolioAllocation(data);
 
     if (nextPortfolio) {
       setPortfolio(nextPortfolio);
     }
+    setPortfolioAllocation(nextAllocation);
   }, [safeFetch]);
 
   const loadHistory = useCallback(async (plan?: string | null) => {
@@ -479,7 +491,7 @@ export function useDashboard() {
   const recalcScore = useCallback(async () => {
     if (!token) return;
 
-    const data = await apiRequest<{
+    const data = await apiFetch<{
       score?: number;
       details?: ScoreDetails;
     }>("/intelligence/score/recalculate", token, {
@@ -633,6 +645,7 @@ export function useDashboard() {
       commandCenter,
       gamification,
       portfolio,
+      portfolioAllocation,
       history,
       realEstate,
       yieldAssets,
@@ -666,6 +679,7 @@ export function useDashboard() {
     loading,
     onboarding,
     portfolio,
+    portfolioAllocation,
     product,
     progressionTimeline,
     realEstate,
@@ -685,6 +699,7 @@ export function useDashboard() {
     scoreDetails,
     commandCenter,
     portfolio,
+    portfolioAllocation,
     history,
     realEstate,
     yieldAssets,

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
 import { MetricCard, WealthToast } from "@/components/ui/WealthUI";
 import type { CategoryOpportunityData, CategoryOpportunity } from "@/lib/types";
 
@@ -33,7 +33,7 @@ export default function OpportunitiesPage() {
       return;
     }
 
-    apiRequest<CategoryOpportunityData>("/intelligence/category-opportunities", token)
+    apiFetch<CategoryOpportunityData>("/intelligence/category-opportunities", token)
       .then(setData)
       .catch((error) =>
         setToast(error instanceof Error ? error.message : "Opportunités indisponibles.")

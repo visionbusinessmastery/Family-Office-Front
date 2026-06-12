@@ -15,13 +15,17 @@ type PricingTableSession = {
   stripe_customer_id: string;
 };
 
-const STRIPE_PRICING_TABLE_ID = "prctbl_1TgqeoPdcZID0JqGaIVYRhTV";
+const STRIPE_PRICING_TABLE_IDS = {
+  standard: "prctbl_1TgqeoPdcZID0JqGaIVYRhTV",
+  founder: "prctbl_1ThWfQPdcZID0JqGQWCdxYj1",
+};
 const STRIPE_PUBLISHABLE_KEY =
   "pk_test_51TPCCgPdcZID0JqGN8sni4FjrDo9oEwJVq0Cbv1CFfjYrSmY02doRmAZq329Rv5iNTi536G4iLFXq10joSg8grPv00e1uRCd3q";
 
 export default function PricingPlans({ mode }: PricingPlansProps) {
   const [session, setSession] = useState<PricingTableSession | null>(null);
   const [message, setMessage] = useState("");
+  const pricingTableId = STRIPE_PRICING_TABLE_IDS[mode];
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
@@ -58,10 +62,10 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-black px-4 py-8 text-white">
+    <main className="min-h-screen overflow-hidden bg-black px-3 py-8 text-white xl:px-6">
       <Script async src="https://js.stripe.com/v3/pricing-table.js" />
 
-      <section className="mx-auto max-w-7xl">
+      <section className="mx-auto w-full max-w-[1680px]">
         <div className="mb-4 flex justify-end">
           <CockpitBackLink />
         </div>
@@ -113,7 +117,8 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         )}
 
         {session?.client_secret && (
-          <section className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white p-1 text-black shadow-2xl">
+          <section className="mt-6 overflow-x-auto rounded-[1.75rem] border border-white/10 bg-white p-1 text-black shadow-2xl">
+            <div className="min-w-[1440px]">
             {/*
               Stripe Pricing Table receives a server-generated Customer Session.
               This keeps Stripe tied to the existing customer instead of creating duplicates.
@@ -122,11 +127,12 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
               @ts-expect-error Stripe registers this custom element from js.stripe.com.
             */}
             <stripe-pricing-table
-              pricing-table-id={STRIPE_PRICING_TABLE_ID}
+              pricing-table-id={pricingTableId}
               publishable-key={STRIPE_PUBLISHABLE_KEY}
               customer-session-client-secret={session.client_secret}
               client-reference-id={session.client_reference_id}
             />
+            </div>
           </section>
         )}
       </section>
