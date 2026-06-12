@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import CockpitBackLink from "@/components/CockpitBackLink";
-import { apiRequest } from "@/lib/api";
+import { apiFetch } from "@/lib/api-client";
+import { useDashboard } from "@/hooks/useDashboard";
 
 type BillingInterval = "monthly" | "yearly";
 
@@ -33,89 +34,15 @@ type PricingPlansProps = {
   mode: "standard" | "founder";
 };
 
-type BackendPricingGroup = {
-  label: string;
-  items: string[];
-};
+const ladder = [
+  { label: "FREE", role: "Découverte" },
+  { label: "GOLD", role: "Structuration" },
+  { label: "ELITE", role: "Pilotage" },
+  { label: "LIBERTY", role: "Liberté" },
+  { label: "LEGACY", role: "Dynastie" },
+];
 
-type BackendBillingPlan = {
-  id: string;
-  name?: string;
-  entitlements?: {
-    copy?: {
-      promise?: string;
-    };
-    pricing_groups?: BackendPricingGroup[];
-  };
-};
-
-type CurrentSubscription = {
-  plan: string;
-  status: string;
-  subscription_plan?: string;
-  current_period_end?: string | null;
-  pending_plan?: string | null;
-  pending_effective_at?: string | null;
-  pending_change_type?: string | null;
-};
-
-type ScheduleDowngradeResponse = {
-  status: string;
-  current_plan: string;
-  pending_plan: string;
-  pending_effective_at?: string | null;
-  change_type?: string;
-};
-
-const planPromise: Record<Plan["id"], string> = {
-  gold: "Je comprends mon patrimoine.",
-  elite: "J'optimise mon patrimoine.",
-  liberty: "Je pilote mon patrimoine.",
-  legacy: "Je construis un patrimoine transmissible.",
-};
-
-const planTransition: Record<Plan["id"], string> = {
-  gold: "A ce niveau, tu passes de la simple lecture a une comprehension claire de ta trajectoire.",
-  elite: "A ce niveau, tu passes de la comprehension a l'optimisation active.",
-  liberty: "A ce niveau, tu passes de l'optimisation au pilotage Family Office.",
-  legacy: "A ce niveau, tu passes du pilotage a la transmission familiale structuree.",
-};
-
-const nextLevelPreview: Record<Plan["id"], string> = {
-  gold: "Passe a Elite quand tu veux optimiser avec scenarios, stress tests et lecture operationnelle.",
-  elite: "Passe a Liberty quand tu veux piloter plusieurs objectifs, arbitrages et dimensions familiales.",
-  liberty: "Passe a Dynasty quand la transmission, la gouvernance et la protection deviennent centrales.",
-  legacy: "Le niveau le plus complet pour organiser la continuite patrimoniale familiale.",
-};
-
-const isSystemCapacity = (item: string) =>
-  /asset|assets|bien|biens|immobilier|business|illimite|illimites/i.test(item);
-
-const flattenCapabilities = (groups: BackendPricingGroup[]) =>
-  groups.flatMap((group) => group.items.filter((item) => !isSystemCapacity(item)));
-
-const visibleCapabilityLimit: Record<Plan["id"], number> = {
-  gold: 5,
-  elite: 6,
-  liberty: 6,
-  legacy: 6,
-};
-
-const coverageLevel: Record<Plan["id"], string> = {
-  gold: "Coverage Standard",
-  elite: "Coverage Advanced",
-  liberty: "Coverage Family Office",
-  legacy: "Coverage Unlimited",
-};
-
-const intelligenceLayer: Record<Plan["id"], string> = {
-  gold: "Wealth Intelligence",
-  elite: "Decision & Simulation Engine",
-  liberty: "Family Office Engine",
-  legacy: "Dynasty Infrastructure",
-};
-
-const planOrder: Record<string, number> = {
+const planRanks: Record<string, number> = {
   FREE: 0,
   GOLD: 1,
   ELITE: 2,
@@ -123,54 +50,22 @@ const planOrder: Record<string, number> = {
   LEGACY: 4,
 };
 
-const previousPlanByRank: Record<number, string> = {
-  1: "free",
-  2: "gold",
-  3: "elite",
-  4: "liberty",
+const normalizeBillingPlan = (plan?: string | null) => {
+  const value = String(plan || "FREE").toUpperCase();
+  if (value === "DYNASTY") return "LEGACY";
+  return value;
 };
-
-const planDepth: Record<Plan["id"], { label: string; detail: string; tone: string }> = {
-  gold: {
-    label: "Pilotage actif",
-    detail: "Base patrimoniale + decisions",
-    tone: "border-[#3fa9f5]/35 bg-[#3fa9f5]/10 text-[#8bd0ff]",
-  },
-  elite: {
-    label: "Optimisation",
-    detail: "Simulation + lecture CEO",
-    tone: "border-emerald-300/40 bg-emerald-300/10 text-emerald-100",
-  },
-  liberty: {
-    label: "Arbitrages",
-    detail: "Family Office personnel",
-    tone: "border-amber-300/45 bg-amber-300/10 text-amber-100",
-  },
-  legacy: {
-    label: "Dynasty",
-    detail: "Transmission + gouvernance",
-    tone: "border-[#ffe600]/70 bg-[#ffe600]/15 text-[#fff8a6]",
-  },
-};
-
-const ladder = [
-  { label: "FREE", role: "Decouverte", tone: "border-white/10 bg-white/[0.03] text-gray-500" },
-  { label: "GOLD", role: "Trajectoire", tone: "border-[#3fa9f5]/25 bg-[#3fa9f5]/10 text-[#8bd0ff]" },
-  { label: "ELITE", role: "Optimisation", tone: "border-emerald-300/45 bg-emerald-300/10 text-emerald-100" },
-  { label: "LIBERTY", role: "Arbitrages", tone: "border-amber-300/50 bg-amber-300/[0.12] text-amber-100" },
-  { label: "DYNASTY", role: "Transmission", tone: "border-[#ffe600] bg-[#ffe600]/[0.26] text-[#fff8a6] shadow-lg shadow-[#ffe600]/20" },
-];
 
 const plans: Plan[] = [
   {
     id: "gold",
     name: "Gold",
-    subtitle: "Trajectoire patrimoniale active",
+    subtitle: "Fondations financières intelligentes",
     rank: "Niveau 1",
-    badge: "Growth Layer",
-    altBadge: "Ethan flottant",
-    transformation: planTransition.gold,
-    unlock: "Patrimoine activable + Future Intelligence + Decision Intelligence",
+    badge: "Investor Favorite",
+    altBadge: "Most Popular",
+    transformation: "Structurer votre croissance patrimoniale",
+    unlock: "Unlock advanced analytics",
     includes: "Inclut FREE",
     price: {
       monthly: "29 EUR",
@@ -190,15 +85,15 @@ const plans: Plan[] = [
     },
     tone: "border-[#3fa9f5]/45 bg-[#3fa9f5]/10",
     glow: "from-[#3fa9f5]/18 via-transparent to-transparent",
-    cta: "Debloquer Gold",
+    cta: "Débloquer Gold",
     capabilityGroups: [
       {
-        label: "Future Intelligence",
-        items: ["20 assets financiers", "3 biens immobiliers avec lecture cashflow", "2 business structures", "Patrimoine visible et activable", "Wealth Map", "Projection 10 ans"],
+        label: "Wealth Intelligence",
+        items: ["Score patrimonial lisible", "Analytics guidés", "Signaux d'amélioration"],
       },
       {
-        label: "Decision & solidite",
-        items: ["Ethan flottant Gold+", "Reconciliation profil par confirmation", "Action utile", "Risque principal", "Opportunite principale", "Scorecard et stress tests simples"],
+        label: "Opportunity Engine",
+        items: ["Opportunités guidées", "Allocation de départ", "Lecture immobilier/investissements"],
       },
     ],
   },
@@ -207,10 +102,10 @@ const plans: Plan[] = [
     name: "Elite",
     subtitle: "Wealth Operating System",
     rank: "Niveau 2",
-    badge: "Strategic OS",
-    altBadge: "Wealth OS",
-    transformation: planTransition.elite,
-    unlock: "Family Office CEO + simulations avancees",
+    badge: "Wealth OS",
+    altBadge: "Most Popular",
+    transformation: "Piloter votre Wealth OS",
+    unlock: "Unlock Wealth Intelligence",
     includes: "Tout GOLD inclus",
     price: {
       monthly: "79 EUR",
@@ -228,17 +123,17 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-emerald-300/40 bg-emerald-300/10 shadow-lg shadow-emerald-400/10",
-    glow: "from-emerald-300/24 via-[#3fa9f5]/10 to-transparent",
+    tone: "border-white/20 bg-white/[0.06]",
+    glow: "from-white/16 via-[#3fa9f5]/10 to-transparent",
     cta: "Passer Elite",
     capabilityGroups: [
       {
-        label: "Strategic Intelligence",
-        items: ["30 assets financiers", "10 biens immobiliers avec simulations", "5 business avec valorisation", "Family Office CEO", "Runway", "Lecture operationnelle", "Multi-user", "Companies"],
+        label: "Investment Operating System",
+        items: ["Cockpit Family Office", "Consolidation multi-modules", "Priorités patrimoniales"],
       },
       {
-        label: "Family Office Intelligence",
-        items: ["Wealth Narrative enrichi", "Simulations multi-scenarios", "Stress tests avances", "Detecteur de dependances", "Coffre documentaire patrimonial", "Imports assistes", "Graphiques par rubrique", "Allocations avancees"],
+        label: "AI Strategic Guidance",
+        items: ["Ethan avancé", "Guidance contextuelle", "Synthèses exécutives"],
       },
     ],
   },
@@ -247,10 +142,10 @@ const plans: Plan[] = [
     name: "Liberty",
     subtitle: "Freedom Engine",
     rank: "Niveau 3",
-    badge: "Family Office",
+    badge: "Freedom Tier",
     altBadge: "Private Access",
-    transformation: planTransition.liberty,
-    unlock: "Arbitrages Family Office + objectifs avances",
+    transformation: "Construire votre liberté financière",
+    unlock: "Unlock Freedom Systems",
     includes: "Tout ELITE inclus",
     price: {
       monthly: "149 EUR",
@@ -268,28 +163,28 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-amber-300/45 bg-amber-300/12",
-    glow: "from-amber-300/30 via-orange-300/12 to-transparent",
+    tone: "border-orange-300/40 bg-orange-300/10",
+    glow: "from-orange-300/22 via-transparent to-[#3fa9f5]/8",
     cta: "Activer Liberty",
     capabilityGroups: [
       {
-        label: "Family Office personnel",
-        items: ["50 assets financiers", "Immobilier illimite", "Business illimites", "Family Office Mode complet", "Comptes enfants", "Multi-objectifs", "Scenarios de vie avances", "Probabilites d'atteinte", "Architecture patrimoniale", "Dynasty planning"],
+        label: "Freedom Systems",
+        items: ["Pilotage liberté financière", "Cashflow stratégique", "Trajectoire d'indépendance"],
       },
       {
-        label: "Architecture patrimoniale",
-        items: ["Family Office Board", "CFO View", "Investor View", "Entrepreneur View", "Family View", "Priorites d'allocation", "Arbitrages strategiques", "Transmission", "Automation", "Sovereign guidance"],
+        label: "Business Command Center",
+        items: ["Opportunités premium", "Business assets", "Stratégie de croissance"],
       },
     ],
   },
   {
     id: "legacy",
-    name: "Dynasty",
+    name: "Legacy",
     subtitle: "Dynasty Office",
     rank: "Niveau 4",
     badge: "Dynasty Grade",
-    altBadge: "Dynasty Office",
-    transformation: planTransition.legacy,
+    altBadge: "Private Office",
+    transformation: "Créer une dynastie familiale",
     unlock: "Unlock Dynasty Infrastructure",
     includes: "Tout LIBERTY inclus",
     price: {
@@ -308,182 +203,109 @@ const plans: Plan[] = [
       monthly: "par mois founder",
       yearly: "par an founder",
     },
-    tone: "border-[#ffe600] bg-[#ffe600]/[0.22] shadow-2xl shadow-[#ffe600]/25 ring-1 ring-[#fff8a6]/25",
-    glow: "from-[#ffe600]/65 via-[#facc15]/35 to-[#3fa9f5]/10",
-    cta: "Entrer Dynasty",
+    tone: "border-amber-300/45 bg-amber-300/10",
+    glow: "from-amber-300/24 via-orange-300/10 to-transparent",
+    cta: "Entrer Legacy",
     capabilityGroups: [
       {
         label: "Dynasty Layer",
-        items: ["Assets financiers illimites", "Immobilier et business illimites", "Projection 30 ans", "Transmission familiale", "Family Vault", "Heirs mode", "Protection layer", "Asset protection", "Dynasty governance", "Succession planning", "Global strategy", "Dynasty timeline"],
+        items: ["Transmission familiale", "Gouvernance patrimoniale", "Vision générationnelle"],
       },
       {
         label: "Family Office Infrastructure",
-        items: ["Gouvernance familiale", "Multi-entites", "Architecture institutionnelle", "Protection et continuite", "Family governance", "Dynasty guidance", "Heirs intelligence", "Global opportunities", "Vault familial", "Scenario successoral", "Continuite familiale", "Patrimoine generationnel"],
+        items: ["Dynasty Office", "Protection et continuité", "Architecture institutionnelle"],
       },
     ],
   },
 ];
+
 export default function PricingPlans({ mode }: PricingPlansProps) {
   const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [subscription, setSubscription] = useState<CurrentSubscription | null>(null);
-  const [backendPlans, setBackendPlans] = useState<Record<string, BackendBillingPlan>>({});
   const founder = mode === "founder";
   const token =
     typeof window !== "undefined" ? localStorage.getItem("token") : null;
-  const parsePrice = (value: string) => Number(value.replace(/[^\d]/g, ""));
-  const yearlySaving = (plan: Plan) => {
-    const monthly = parsePrice(founder ? plan.founderPrice.monthly : plan.price.monthly);
-    const yearly = parsePrice(founder ? plan.founderPrice.yearly : plan.price.yearly);
-    return monthly * 12 - yearly;
-  };
-  const intervalLabel = interval === "monthly" ? "/ mois" : "/ an";
-  const currentPlan = (subscription?.plan || "FREE").toUpperCase();
-  const pendingPlan = subscription?.pending_plan?.toUpperCase() || null;
-  const currentRank = planOrder[currentPlan] ?? 0;
-  const previousPlanId = previousPlanByRank[currentRank];
-  const previousPlanLabel =
-    previousPlanId === "free"
-      ? "Free"
-      : previousPlanId
-        ? plans.find((plan) => plan.id === previousPlanId)?.name || previousPlanId
-        : null;
-  const formatDate = (value?: string | null) => {
-    if (!value) return null;
-    try {
-      return new Intl.DateTimeFormat("fr-FR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }).format(new Date(value));
-    } catch {
-      return value;
-    }
-  };
 
-  useEffect(() => {
-    if (!token) return;
-
-    let alive = true;
-    apiRequest<CurrentSubscription>("/billing/current-subscription", token)
-      .then((data) => {
-        if (alive) setSubscription(data);
-      })
-      .catch(() => {
-        if (alive) setSubscription(null);
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, [token]);
-
-  useEffect(() => {
-    let alive = true;
-    apiRequest<{ plans?: BackendBillingPlan[] }>("/billing/plans")
-      .then((data) => {
-        if (!alive) return;
-        const indexed = Object.fromEntries(
-          (data.plans || []).map((plan) => [plan.id, plan])
-        );
-        setBackendPlans(indexed);
-      })
-      .catch(() => {
-        if (alive) setBackendPlans({});
-      });
-
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const { billingSubscription } = useDashboard();
+  const subscription =
+    billingSubscription ?? { plan: "FREE", status: "inactive" };
 
   const startCheckout = async (plan: Plan) => {
-    if (!token) {
-      window.location.assign(
-        `/login?next=${encodeURIComponent(
-          `/plans/${mode === "founder" ? "founder" : "standard"}`
-        )}`
-      );
-      return;
-    }
+  if (!token) {
+    window.location.assign(
+      `/login?next=${encodeURIComponent(
+        `/plans/${mode === "founder" ? "founder" : "standard"}`
+      )}`
+    );
+    return;
+  }
 
-    setLoadingPlan(plan.id);
-    setMessage("");
+  setMessage("");
 
-    try {
-      const response = await apiRequest<{ url?: string }>(
-        "/billing/create-checkout-session",
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            plan: plan.id,
-            interval,
-            founder,
-          }),
-        }
-      );
+  const currentPlan = normalizeBillingPlan(subscription?.plan);
+  const targetPlan = normalizeBillingPlan(plan.id);
 
-      if (response.url) {
-        window.location.assign(response.url);
-        return;
-      }
+  const activeStatuses = ["active", "trialing", "past_due"];
 
-      setMessage("Paiement indisponible pour le moment.");
-    } catch (err) {
-      console.error(err);
-      setMessage(
-        "Impossible d'ouvrir le paiement. Reessaie dans quelques instants."
-      );
-    } finally {
-      setLoadingPlan(null);
-    }
-  };
+  const isActive = activeStatuses.includes(subscription?.status ?? "");
 
-  const scheduleDowngrade = async (planId: string) => {
-    if (!token) {
-      window.location.assign(
-        `/login?next=${encodeURIComponent(
-          `/plans/${mode === "founder" ? "founder" : "standard"}`
-        )}`
-      );
-      return;
-    }
+  setLoadingPlan(plan.id);
 
-    setLoadingPlan(planId);
-    setMessage("");
-
-    try {
-      const response = await apiRequest<ScheduleDowngradeResponse>(
-        "/billing/schedule-downgrade",
-        token,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            plan: planId,
-            interval,
-          }),
-        }
-      );
-
-      setSubscription((current) => ({
-        ...(current || {
-          plan: response.current_plan || currentPlan,
-          status: "active",
+  try {
+    if (
+      isActive &&
+      currentPlan !== "FREE" &&
+      planRanks[targetPlan] < planRanks[currentPlan]
+    ) {
+      const response = await apiFetch<{
+        status?: string;
+        pending_plan?: string;
+        pending_effective_at?: string | null;
+      }>("/billing/schedule-downgrade", token, {
+        method: "POST",
+        body: JSON.stringify({
+          plan: plan.id,
+          interval,
         }),
-        pending_plan: response.pending_plan || planId.toUpperCase(),
-        pending_effective_at: response.pending_effective_at || null,
-        pending_change_type: response.change_type || "downgrade",
-      }));
-      setMessage("Changement programme. Vos acces actuels restent actifs jusqu'a la prochaine echeance.");
-    } catch (err) {
-      console.error(err);
-      setMessage("Impossible de programmer ce changement pour le moment.");
-    } finally {
-      setLoadingPlan(null);
+      });
+
+      setMessage(
+        response?.pending_effective_at
+          ? `Changement programme pour la prochaine echeance: ${response.pending_plan}.`
+          : "Changement programme. Stripe synchronisera ton plan a la prochaine echeance."
+      );
+      return;
     }
-  };
+
+    const response = await apiFetch<{ url?: string }>(
+      "/billing/create-checkout-session",
+      token,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          plan: plan.id,
+          interval,
+          founder,
+        }),
+      }
+    );
+
+    if (response.url) {
+      window.location.assign(response.url);
+      return;
+    }
+
+    setMessage("Checkout Stripe indisponible pour le moment.");
+  } catch (err) {
+    console.error(err);
+    setMessage(
+      "Impossible d'ouvrir Stripe. Vérifie la configuration billing ou réessaie dans quelques instants."
+    );
+  } finally {
+    setLoadingPlan(null);
+  }
+};
 
   return (
     <main className="min-h-screen overflow-hidden bg-black px-4 py-8 text-white">
@@ -494,21 +316,21 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
         <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#07111f] via-black to-[#101923] p-6 shadow-2xl sm:p-8">
           <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#3fa9f5]/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-emerald-300/18 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-orange-300/10 blur-3xl" />
 
           <div className="relative">
             <p className="text-xs uppercase tracking-[0.35em] text-[#3fa9f5]">
-              Plans White Rock
+              WHITE ROCK Billing
             </p>
             <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h1 className="max-w-4xl text-3xl font-black leading-tight sm:text-5xl">
-                  {founder ? "Founder Access" : "Choisis ton niveau White Rock"}
+                  {founder ? "Founder Access" : "Montez dans le Wealth OS"}
                 </h1>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-gray-300 sm:text-base">
                   {founder
-                    ? "Une fenetre limitee pour entrer plus tot dans l'architecture White Rock, avec une perception de statut plus rare et plus fondatrice."
-                    : "Chaque niveau represente une maturite patrimoniale plus avancee: comprendre, optimiser, piloter, transmettre."}
+                    ? "Une fenêtre limitée pour entrer plus tôt dans l'architecture White Rock, avec une perception de statut plus rare et plus fondatrice."
+                    : "Chaque niveau inclut le précédent et débloque une couche plus sophistiquée de pilotage patrimonial."}
                 </p>
               </div>
 
@@ -524,7 +346,7 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
                           : "text-gray-400 hover:bg-white/[0.05] hover:text-white"
                       }`}
                     >
-                      {item === "monthly" ? "Mensuel" : "Annuel - 2 mois offerts"}
+                      {item === "monthly" ? "Monthly" : "Yearly"}
                     </button>
                   ))}
                 </div>
@@ -532,12 +354,16 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
             </div>
 
             <div className="mt-7 grid gap-2 sm:grid-cols-5">
-              {ladder.map((step) => (
+              {ladder.map((step, index) => (
                 <div
                   key={step.label}
-                  className={`rounded-2xl border px-4 py-3 ${step.tone}`}
+                  className={`rounded-2xl border px-4 py-3 ${
+                    index === 0
+                      ? "border-white/10 bg-white/[0.03]"
+                      : "border-[#3fa9f5]/20 bg-[#3fa9f5]/8"
+                  }`}
                 >
-                  <p className="text-xs font-black tracking-widest">{step.label}</p>
+                  <p className="text-xs font-black tracking-widest text-gray-500">{step.label}</p>
                   <p className="mt-1 text-sm font-bold text-gray-200">{step.role}</p>
                 </div>
               ))}
@@ -546,9 +372,9 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         </div>
 
         {founder && (
-          <div className="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-sm leading-relaxed text-emerald-100">
-            Founder Access est pense comme une entree rare : meme parcours de paiement,
-            meme securite, mais une presentation plus exclusive pour les premiers membres.
+          <div className="mt-5 rounded-2xl border border-orange-300/25 bg-orange-300/10 p-4 text-sm leading-relaxed text-orange-100">
+            Founder Access est pensé comme une entrée rare : même moteur Stripe,
+            même sécurité, mais une présentation plus exclusive pour les premiers membres.
           </div>
         )}
 
@@ -558,113 +384,10 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
           </div>
         )}
 
-        {token && subscription && (
-          <section className="mt-5 rounded-[1.75rem] border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-[#8bd0ff]">
-                  Transition abonnement
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2 text-sm font-black">
-                  <span className="rounded-full border border-white/15 bg-black/25 px-3 py-1">
-                    Plan actuel : {currentPlan}
-                  </span>
-                  {pendingPlan && (
-                    <span className="rounded-full border border-amber-300/35 bg-amber-300/12 px-3 py-1 text-amber-100">
-                      Plan futur : {pendingPlan}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                  {pendingPlan
-                    ? `Le changement prendra effet a la prochaine echeance${
-                        formatDate(subscription.pending_effective_at)
-                          ? ` : ${formatDate(subscription.pending_effective_at)}`
-                          : ""
-                      }.`
-                    : "Vos droits actifs suivent votre abonnement actuel. Un downgrade planifie garde les acces jusqu'a l'echeance."}
-                </p>
-              </div>
-
-              {previousPlanId && pendingPlan !== previousPlanId.toUpperCase() && (
-                <button
-                  onClick={() => scheduleDowngrade(previousPlanId)}
-                  disabled={loadingPlan !== null}
-                  className="rounded-2xl border border-white/15 bg-black/25 px-4 py-3 text-sm font-black text-white transition hover:border-[#3fa9f5]/45 hover:bg-white/10 disabled:opacity-60"
-                >
-                  {loadingPlan === previousPlanId
-                    ? "Programmation..."
-                    : `Revenir au plan precedent (${previousPlanLabel})`}
-                </button>
-              )}
-            </div>
-          </section>
-        )}
-
-        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
-            <p className="text-xs uppercase tracking-[0.3em] text-emerald-300">
-            Lecture de valeur
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-4">
-              <p className="text-sm font-black">Chaque niveau inclut le precedent</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                La montee en gamme se lit comme une progression, pas comme une liste de cartes separees.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-emerald-300/25 bg-emerald-300/10 p-4">
-              <p className="text-sm font-black">Chaque niveau debloque un univers</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                Analytics, Wealth OS, Freedom Engine puis Dynasty apparaissent comme des paliers de puissance.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
-              <p className="text-sm font-black">Le statut devient visible</p>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                Les badges et la pyramide rendent la valeur plus emotionnelle, premium et aspirationnelle.
-              </p>
-            </div>
-          </div>
-        </section>
-
         <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
-          {plans.map((plan) => {
+          {plans.map((plan, index) => {
             const displayPrice = founder ? plan.founderPrice[interval] : plan.price[interval];
-            const saving = yearlySaving(plan);
-            const targetPlan = plan.id.toUpperCase();
-            const targetRank = planOrder[targetPlan] ?? 0;
-            const backendPlan = backendPlans[plan.id];
-            const displayedPromise =
-              backendPlan?.entitlements?.copy?.promise ||
-              planPromise[plan.id] ||
-              plan.transformation;
-            const displayGroups =
-              backendPlan?.entitlements?.pricing_groups?.length
-                ? backendPlan.entitlements.pricing_groups
-                : plan.capabilityGroups;
-            const capacityItems = displayGroups.flatMap((group) =>
-              group.items.filter(isSystemCapacity)
-            );
-            const visibleCapabilities = flattenCapabilities(displayGroups).slice(
-              0,
-              visibleCapabilityLimit[plan.id]
-            );
-            const discreetCapacity = capacityItems.slice(0, 3).join(" · ");
-            const isCurrentPlan = targetPlan === currentPlan && !pendingPlan;
-            const isPendingPlan = targetPlan === pendingPlan;
-            const isDowngrade = targetRank < currentRank;
-            const depth = planDepth[plan.id];
-            const actionLabel = isCurrentPlan
-              ? "Plan actuel"
-              : isPendingPlan
-                ? "Plan futur programme"
-                : isDowngrade
-                  ? `Programmer ${plan.name}`
-                  : founder
-                    ? `Rejoindre ${plan.name} Founder`
-                    : plan.cta;
-            const isActionDisabled =
-              loadingPlan !== null || isCurrentPlan || isPendingPlan;
+            const displayNote = founder ? plan.founderNote[interval] : plan.priceNote[interval];
 
             return (
               <article
@@ -690,115 +413,63 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
 
                   <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
                     <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                      Promesse
+                      {plan.includes}
                     </p>
                     <div className="mt-3 flex items-end gap-2">
                       <p className="text-3xl font-black tracking-tight">{displayPrice}</p>
-                      <p className="pb-1 text-base font-black text-gray-300">{intervalLabel}</p>
+                      <p className="pb-1 text-xs font-bold text-gray-500">{displayNote}</p>
                     </div>
-                    {interval === "yearly" && saving > 0 && (
-                      <p className="mt-2 rounded-full border border-emerald-300/35 bg-emerald-300/10 px-3 py-1 text-xs font-black text-emerald-100">
-                        2 mois offerts - economie {saving} EUR
-                      </p>
-                    )}
                     <p className="mt-3 text-sm font-semibold text-gray-200">
-                      {displayedPromise}
-                    </p>
-                    <p className="mt-3 text-xs leading-relaxed text-gray-400">
                       {plan.transformation}
                     </p>
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-gray-500">
-                      {plan.includes}
-                    </p>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-gray-400">
-                      {targetRank}/4
-                    </span>
-                    <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-widest ${depth.tone}`}>
-                      {depth.label}
-                    </span>
-                    <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-emerald-100">
-                      {intelligenceLayer[plan.id]}
-                    </span>
+                  <div className="mt-4 rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#8bd0ff]">
+                      Ce que vous débloquez
+                    </p>
+                    <p className="mt-2 text-sm font-black text-white">{plan.unlock}</p>
                   </div>
 
-                  <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: 4 }).map((_, index) => (
-                        <span
-                          key={index}
-                          className={`h-2 flex-1 rounded-full ${
-                            index < targetRank
-                              ? plan.id === "legacy"
-                                ? "bg-[#ffe600] shadow-[0_0_14px_rgba(255,230,0,0.45)]"
-                                : plan.id === "liberty"
-                                  ? "bg-amber-300"
-                                  : plan.id === "elite"
-                                    ? "bg-emerald-300"
-                                    : "bg-[#3fa9f5]"
-                              : "bg-white/10"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-2 text-xs font-semibold text-gray-500">
-                      {depth.detail}
-                    </p>
-                  </div>
-
-                  <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-gray-500">
-                      Capacites principales
-                    </p>
-                    <ul className="mt-3 space-y-2 text-sm text-gray-300">
-                      {visibleCapabilities.map((item) => (
-                        <li key={item} className="flex gap-2">
-                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {capacityItems.length > 0 && (
-                    <p className="mt-4 text-[11px] font-semibold leading-relaxed text-gray-500">
-                      {coverageLevel[plan.id]} · {discreetCapacity}
-                    </p>
-                  )}
-
-                  <div className="mt-4 border-t border-white/10 pt-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-[#8bd0ff]">
-                      Niveau suivant
-                    </p>
-                    <p className="mt-2 text-xs leading-relaxed text-gray-300">
-                      {nextLevelPreview[plan.id]}
-                    </p>
+                  <div className="mt-5 space-y-3">
+                    {plan.capabilityGroups.map((group) => (
+                      <div key={group.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                        <p className="text-xs font-black uppercase tracking-widest text-gray-500">
+                          {group.label}
+                        </p>
+                        <ul className="mt-3 space-y-2 text-sm text-gray-300">
+                          {group.items.map((item) => (
+                            <li key={item} className="flex gap-2">
+                              <span className="text-[#3fa9f5]">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
 
                   <div className="mt-5 flex flex-wrap gap-2">
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-bold text-gray-300">
                       {plan.altBadge}
                     </span>
+                    {index > 1 && (
+                      <span className="rounded-full border border-orange-300/25 bg-orange-300/10 px-3 py-1 text-[11px] font-bold text-orange-200">
+                        Private Office
+                      </span>
+                    )}
                   </div>
 
-                  {isDowngrade && !isPendingPlan && (
-                    <p className="mt-5 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-3 text-xs font-bold leading-relaxed text-amber-100">
-                      Ce changement prendra effet a la prochaine echeance. Vos acces actuels restent ouverts jusque-la.
-                    </p>
-                  )}
-
                   <button
-                    onClick={() => (isDowngrade ? scheduleDowngrade(plan.id) : startCheckout(plan))}
-                    disabled={isActionDisabled}
-                    className="mt-6 w-full rounded-2xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-3 text-sm font-black text-white shadow-lg shadow-emerald-400/20 transition hover:-translate-y-0.5 hover:shadow-emerald-300/30 disabled:opacity-60"
+                    onClick={() => startCheckout(plan)}
+                    disabled={loadingPlan !== null}
+                    className="mt-6 w-full rounded-2xl bg-[#3fa9f5] px-4 py-3 text-sm font-black text-white shadow-lg shadow-[#3fa9f5]/20 transition hover:-translate-y-0.5 hover:bg-[#2588d2] disabled:opacity-60"
                   >
                     {loadingPlan === plan.id
-                      ? isDowngrade
-                        ? "Programmation..."
-                        : "Ouverture du paiement..."
-                      : actionLabel}
+                      ? "Ouverture Stripe..."
+                      : founder
+                        ? `Rejoindre ${plan.name} Founder`
+                        : plan.cta}
                   </button>
                 </div>
               </article>
@@ -806,9 +477,33 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
           })}
         </div>
 
+        <section className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-xs uppercase tracking-[0.3em] text-[#3fa9f5]">
+            Lecture de valeur
+          </p>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Chaque niveau inclut le précédent</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                La montée en gamme se lit comme une progression, pas comme une liste de cartes séparées.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Chaque niveau débloque un univers</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Analytics, Wealth OS, Freedom Engine puis Dynasty Office apparaissent comme des couches.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="text-sm font-black">Le statut devient visible</p>
+              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                Les badges et la pyramide rendent la valeur plus émotionnelle, premium et aspirationnelle.
+              </p>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   );
 }
-
 
