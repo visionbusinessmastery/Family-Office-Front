@@ -307,17 +307,16 @@ function DataImportPanel({
             {description}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-gray-500">
-            CSV attendu: colonnes <span className="text-gray-300">type</span>,{" "}
+            CSV ou Excel attendu: colonnes <span className="text-gray-300">type</span>,{" "}
             <span className="text-gray-300">name</span>,{" "}
             <span className="text-gray-300">amount</span> ou equivalent selon le module.
-            Les PDF sont refuses proprement tant que le parseur documentaire n'est pas branche.
           </p>
         </div>
         <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-bold text-white transition hover:border-[#3fa9f5]/40 hover:bg-[#3fa9f5]/15">
-          {importing ? "Import en cours..." : "Importer CSV / PDF"}
+          {importing ? "Import en cours..." : "Importer CSV / Excel"}
           <input
             type="file"
-            accept=".csv,.pdf,text/csv,application/pdf"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             disabled={importing}
             onChange={handleFile}
@@ -2888,7 +2887,7 @@ export default function Dashboard() {
 
               <DataImportPanel
                 title="Importer des revenus ou charges"
-                description="Ajoute des lignes mensuelles depuis un fichier CSV. Le backend valide les types revenus/charges avant de mettre a jour la base."
+                description="Ajoute des lignes mensuelles depuis un fichier CSV ou Excel. Le backend valide les types revenus/charges avant de mettre a jour la base."
                 endpoint="/finance/import"
                 scope="cashflow"
                 token={token}
@@ -2931,7 +2930,7 @@ export default function Dashboard() {
 
               <DataImportPanel
                 title="Importer des epargnes ou dettes"
-                description="Ajoute des lignes de bilan depuis un fichier CSV. Le backend accepte uniquement epargne/dettes pour cette section."
+                description="Ajoute des lignes de bilan depuis un fichier CSV ou Excel. Le backend accepte uniquement epargne/dettes pour cette section."
                 endpoint="/finance/import"
                 scope="balance"
                 token={token}
@@ -2965,7 +2964,7 @@ export default function Dashboard() {
 
               <DataImportPanel
                 title="Importer des investissements"
-                description="Ajoute des actifs financiers depuis un fichier CSV. Le backend valide nom, classe d'actif, quantite et prix d'achat."
+                description="Ajoute des actifs financiers depuis un fichier CSV ou Excel. Le backend valide nom, classe d'actif, quantite et prix d'achat."
                 endpoint="/portfolio/import"
                 scope="investments"
                 token={token}
