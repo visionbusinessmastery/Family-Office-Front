@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import AuthExperienceShell from "@/components/AuthExperienceShell";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
+import ContactLinks from "@/components/company/ContactLinks";
 import { apiFetch } from "@/lib/api-client";
 
 function isValidEmail(email: string) {
@@ -238,14 +239,7 @@ export default function Home() {
           </div>
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
-          <span>Vision Business Mastery</span>
-          <div className="flex gap-4">
-            <a href="https://vision-business.com">Site web</a>
-            <a href="https://www.linkedin.com">LinkedIn</a>
-            <a href="https://www.instagram.com">Instagram</a>
-          </div>
-        </footer>
+        <ContactLinks variant="footer" />
       </section>
     </AuthExperienceShell>
   );

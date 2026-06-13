@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import BrandMark from "@/components/BrandMark";
+import ContactLinks from "@/components/company/ContactLinks";
 import { apiFetch } from "@/lib/api-client";
 
 const motivations = [
@@ -312,6 +313,9 @@ export default function Onboarding() {
           {message && <p className="mt-4 text-center text-sm text-gray-300">{message}</p>}
         </div>
       </section>
+      <div className="relative z-10 mx-auto max-w-4xl pb-2">
+        <ContactLinks variant="footer" />
+      </div>
     </main>
   );
 }

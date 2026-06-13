@@ -14,6 +14,7 @@ import type {
   GamificationData,
   LegacyOverview,
   OnboardingData,
+  PassionAssetData,
   PortfolioAsset,
   PortfolioHistoryPoint,
   ProgressionTimelineData,
@@ -91,6 +92,7 @@ type DashboardSessionSnapshot = {
   realEstate: RealEstateData | null;
   yieldAssets: YieldAssetData | null;
   ventureAssets: VentureAssetData | null;
+  passionAssets: PassionAssetData | null;
   businessIntelligence: BusinessIntelligenceData | null;
   onboarding: OnboardingData | null;
   intelligence: UserIntelligence | null;
@@ -232,6 +234,7 @@ export function useDashboard() {
   const [realEstate, setRealEstate] = useState<RealEstateData | null>(null);
   const [yieldAssets, setYieldAssets] = useState<YieldAssetData | null>(null);
   const [ventureAssets, setVentureAssets] = useState<VentureAssetData | null>(null);
+  const [passionAssets, setPassionAssets] = useState<PassionAssetData | null>(null);
   const [businessIntelligence, setBusinessIntelligence] =
     useState<BusinessIntelligenceData | null>(null);
   const [onboarding, setOnboarding] = useState<OnboardingData | null>(null);
@@ -306,6 +309,7 @@ export function useDashboard() {
     setRealEstate(snapshot.realEstate);
     setYieldAssets(snapshot.yieldAssets);
     setVentureAssets(snapshot.ventureAssets);
+    setPassionAssets(snapshot.passionAssets || null);
     setBusinessIntelligence(snapshot.businessIntelligence || null);
     setOnboarding(snapshot.onboarding);
     setIntelligence(snapshot.intelligence);
@@ -453,6 +457,11 @@ export function useDashboard() {
     setVentureAssets(data || { assets: [], totals: {} });
   }, [safeFetch]);
 
+  const loadPassionAssets = useCallback(async () => {
+    const data = await safeFetch<PassionAssetData>("/passion-assets/");
+    setPassionAssets(data || { assets: [], totals: {} });
+  }, [safeFetch]);
+
   const loadBusinessIntelligence = useCallback(async () => {
     const data = await safeFetch<BusinessIntelligenceData>(
       "/business-intelligence/"
@@ -538,6 +547,7 @@ export function useDashboard() {
       loadRealEstate(),
       loadYieldAssets(),
       loadVentureAssets(),
+      loadPassionAssets(),
       loadBusinessIntelligence(),
       loadFinance(),
       loadFinanceOverview(),
@@ -563,6 +573,7 @@ export function useDashboard() {
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
+    loadPassionAssets,
     loadBusinessIntelligence,
     loadOnboarding,
     loadPortfolio,
@@ -664,6 +675,7 @@ export function useDashboard() {
       realEstate,
       yieldAssets,
       ventureAssets,
+      passionAssets,
       businessIntelligence,
       onboarding,
       intelligence,
@@ -694,6 +706,7 @@ export function useDashboard() {
     legacyOverview,
     loading,
     onboarding,
+    passionAssets,
     portfolio,
     portfolioAllocation,
     product,
@@ -720,6 +733,7 @@ export function useDashboard() {
     realEstate,
     yieldAssets,
     ventureAssets,
+    passionAssets,
     businessIntelligence,
     onboarding,
     intelligence,
@@ -745,6 +759,7 @@ export function useDashboard() {
     loadRealEstate,
     loadYieldAssets,
     loadVentureAssets,
+    loadPassionAssets,
     loadBusinessIntelligence,
     loadOnboarding,
     loadIntelligence,

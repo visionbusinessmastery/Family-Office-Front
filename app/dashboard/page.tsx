@@ -35,8 +35,11 @@ import type {
   FinancePayload,
   Opportunity,
   OpportunityData,
+  PassionAsset,
+  PassionAssetType,
   PortfolioAsset,
   PortfolioPayload,
+  ProductAcademyLesson,
   ProductContext,
   RealEstateAsset,
   RealEstatePayload,
@@ -53,6 +56,7 @@ import type {
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
 import AffiliatePartnersPanel from "@/components/dashboard/AffiliatePartnersPanel";
+import ContactLinks from "@/components/company/ContactLinks";
 import BalanceSheetModule from "@/components/dashboard/BalanceSheetModule";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import HomeExecutiveSummary from "@/components/dashboard/HomeExecutiveSummary";
@@ -139,12 +143,15 @@ type DashboardSection =
   | "balance_sheet"
   | "investments"
   | "real_estate"
+  | "passion_assets"
   | "ventures"
   | "ai"
   | "progression"
+  | "academy"
   | "legacy"
   | "profile"
   | "billing"
+  | "contact"
   | "settings";
 
 type NavigationItem = {
@@ -162,7 +169,8 @@ type DashboardFormKind =
   | "finance"
   | "real_estate"
   | "yield"
-  | "venture";
+  | "venture"
+  | "passion";
 
 type DashboardFormState = {
   kind: DashboardFormKind;
@@ -175,6 +183,7 @@ type DashboardFormState = {
     propertyType?: RealEstateType;
     yieldType?: YieldAssetType;
     ventureType?: VentureAssetType;
+    passionType?: PassionAssetType;
     financeItem?: FinanceEntry;
   };
 };
@@ -1857,6 +1866,7 @@ export default function Dashboard() {
     realEstate,
     yieldAssets,
     ventureAssets,
+    passionAssets,
     businessIntelligence,
     categoryOpportunities,
     affiliatePartners,
@@ -1887,6 +1897,10 @@ export default function Dashboard() {
   } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [wealthProfile, setWealthProfile] = useState<WealthProfile | null>(null);
+  const [academyCompletingKey, setAcademyCompletingKey] = useState<string | null>(null);
+  const [selectedAcademyLessonKey, setSelectedAcademyLessonKey] = useState<string | null>(null);
+  const [academyLessonModalOpen, setAcademyLessonModalOpen] = useState(false);
+  const [missionCompletingKey, setMissionCompletingKey] = useState<string | null>(null);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
     setToast({ message, type });
@@ -1953,6 +1967,67 @@ export default function Dashboard() {
       window.requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
       });
+    }
+  };
+
+  const openAcademyLesson = (lessonKey?: string | null) => {
+    if (!lessonKey) return;
+    setSelectedAcademyLessonKey(lessonKey);
+    setAcademyLessonModalOpen(true);
+  };
+
+  const handleCompleteAcademyLesson = async (lessonKey?: string) => {
+    if (!lessonKey || academyCompletingKey) return;
+
+    try {
+      setAcademyCompletingKey(lessonKey);
+      const result = await apiFetch<{
+        already_completed?: boolean;
+        xp_awarded?: number;
+        message?: string;
+      }>(`/product/academy/lessons/${lessonKey}/complete`, token, {
+        method: "POST",
+      });
+
+      await refreshAfterMutation();
+      showToast(
+        result.already_completed
+          ? "Lecon deja validee."
+          : `Lecon validee. +${result.xp_awarded || 0} XP.`,
+        "success"
+      );
+    } catch (err) {
+      console.error(err);
+      showToast("Impossible de valider cette lecon pour le moment.", "error");
+    } finally {
+      setAcademyCompletingKey(null);
+    }
+  };
+
+  const handleCompleteMission = async (missionKey?: string) => {
+    if (!missionKey || missionCompletingKey) return;
+
+    try {
+      setMissionCompletingKey(missionKey);
+      const result = await apiFetch<{
+        already_completed?: boolean;
+        xp_awarded?: number;
+      }>(`/product/missions/${missionKey}/complete`, token, {
+        method: "POST",
+      });
+
+      await refreshAfterMutation();
+      showToast(
+        result.already_completed
+          ? "Mission deja validee."
+          : `Mission validee. +${result.xp_awarded || 0} XP.`,
+        "success"
+      );
+    } catch (err) {
+      console.error(err);
+      showToast("Impossible de valider cette mission pour le moment.", "error");
+    } finally {
+      setMissionCompletingKey(null);
     }
   };
 
@@ -2102,6 +2177,9 @@ export default function Dashboard() {
     (module) => module.state === "active"
   ).length;
   const lockedModuleCount = (product?.modules?.locked || []).length;
+  const roadmapFeatures = product?.entitlements?.feature_access || [];
+  const availableRoadmapFeatures = roadmapFeatures.filter((feature) => feature.available);
+  const lockedRoadmapFeatures = roadmapFeatures.filter((feature) => !feature.available);
   const billingRenewalDate =
     formatDate(
       billingSubscription?.renewal_at ||
@@ -2168,7 +2246,91 @@ export default function Dashboard() {
   const eliteChartsEnabled = planAllows(currentPlan, "ELITE");
   const legacyNavigationEnabled = planAllows(currentPlan, "LIBERTY");
   const progressionMissions = product?.missions || [];
+  const wealthAcademy = product?.wealth_academy;
+  const roadmapFeature = (key: string) =>
+    product?.entitlements?.feature_access?.find((feature) => feature.key === key);
+  const academyAccess = roadmapFeature("wealth_academy");
+  const academyUnlocked = academyAccess?.available !== false;
+  const familyBoardAccess = roadmapFeature("family_office_board");
+  const familyBoardUnlocked = familyBoardAccess?.available !== false;
+  const dynastyAccess = roadmapFeature("dynasty_enriched");
+  const dynastyUnlocked = dynastyAccess?.available !== false;
+  const vaultAccess = roadmapFeature("wealth_vault_secure");
+  const vaultUnlocked = vaultAccess?.available !== false;
+  const passionAssetsAccess = roadmapFeature("alternative_assets");
+  const passionAssetsUnlocked = passionAssetsAccess?.available !== false;
+  const academyModules = wealthAcademy?.modules || [];
+  const academyRecommended = wealthAcademy?.recommended;
+  const academyProgress = wealthAcademy?.progress;
+  const academyLessons = academyModules.flatMap((module) =>
+    (module.lessons || []).map((lesson) => ({
+      ...lesson,
+      module_key: module.key,
+      module_title: module.title,
+      module_description: module.description,
+    }))
+  );
+  const selectedAcademyLesson =
+    academyLessons.find((lesson) => lesson.key === selectedAcademyLessonKey) ||
+    academyLessons.find((lesson) => lesson.key === academyRecommended?.lesson_key) ||
+    ({
+      key: academyRecommended?.lesson_key,
+      title: academyRecommended?.lesson_title,
+      duration: academyRecommended?.duration,
+      outcome: academyRecommended?.outcome,
+      reading: academyRecommended?.reading,
+      key_points: academyRecommended?.key_points,
+      exercise: academyRecommended?.exercise,
+      action_steps: academyRecommended?.action_steps,
+      completed: academyRecommended?.completed,
+      module_key: academyRecommended?.module_key,
+      module_title: academyRecommended?.module_title,
+    } as ProductAcademyLesson & {
+      module_key?: string;
+      module_title?: string;
+      module_description?: string;
+    });
   const progressionTimelineItems = progressionTimeline?.timeline || [];
+  const progressionTimelineSummary = progressionTimeline?.summary;
+  const lastProgressEvent = progressionTimelineItems[0];
+  const dailyLoop = product?.ceo_daily_briefing?.daily_loop;
+  const trajectoryImpact = product?.ceo_daily_briefing?.trajectory_impact;
+  const briefingAction = product?.ceo_daily_briefing?.recommended_action;
+  const dailyLoopActions = dailyLoop?.history || [];
+  const dailyLoopTasks = dailyLoop?.tasks || [];
+  const dailyLoopOpenTasks = dailyLoopTasks.filter(
+    (task) => task.status !== "done" && task.status !== "cancelled"
+  );
+  const dailyLoopDoneTasks = dailyLoopTasks.filter((task) => task.status === "done");
+  const dailyLoopXp = dailyLoopActions.reduce(
+    (total, action) => total + Number(action.xp_awarded || 0),
+    0
+  );
+  const trajectoryDoneTasks = dailyLoopTasks.filter((task) => task.status === "done").length;
+  const trajectoryOpenTasks = dailyLoopTasks.filter(
+    (task) => task.status !== "done" && task.status !== "cancelled"
+  ).length;
+  const recentProgressXp = Number(progressionTimelineSummary?.xp_recent || dailyLoopXp || 0);
+  const recentProgressDecisions = Number(progressionTimelineSummary?.decisions || dailyLoopActions.length || 0);
+  const recentProgressMissions = Number(progressionTimelineSummary?.missions_completed || 0);
+  const recentProgressLessons = Number(progressionTimelineSummary?.academy_lessons_completed || 0);
+  const recentProgressTasks = Number(progressionTimelineSummary?.tasks_completed || dailyLoopDoneTasks.length || 0);
+  const dailyLoopStatusLabel = (status?: string) => {
+    if (status === "decided") return "Decision prise";
+    if (status === "ignored") return "Ignore";
+    if (status === "automation_requested") return "Automatisation demandee";
+    if (status === "todo") return "A faire";
+    if (status === "in_progress") return "En cours";
+    if (status === "done") return "Fait";
+    if (status === "cancelled") return "Annule";
+    return "Enregistre";
+  };
+  const dailyLoopActionLabel = (key?: string) => {
+    if (key === "decide") return "Decider";
+    if (key === "ignore") return "Ignorer";
+    if (key === "automate") return "Automatiser";
+    return "Action";
+  };
   const hasModule = (key: string) =>
     visibleModules.has(key);
   const maxAssets = product?.entitlements?.max_assets;
@@ -2214,6 +2376,11 @@ export default function Dashboard() {
       description: "Biens",
     },
     {
+      key: "passion_assets",
+      label: "Passion Assets",
+      description: "Collections",
+    },
+    {
       key: "investments",
       label: "Investissement",
       description: "Allocation",
@@ -2243,6 +2410,11 @@ export default function Dashboard() {
       description: "Statut",
     },
     {
+      key: "academy",
+      label: "Academy",
+      description: "Apprendre",
+    },
+    {
       key: "profile",
       label: "Mon Profil",
       description: "Profil",
@@ -2251,6 +2423,11 @@ export default function Dashboard() {
       key: "billing",
       label: "Plan & Facturation",
       description: "Abonnement",
+    },
+    {
+      key: "contact",
+      label: "Contact & Reseau",
+      description: "Liens",
     },
     {
       key: "settings",
@@ -2604,6 +2781,58 @@ export default function Dashboard() {
     });
   };
 
+  const handleAddPassionAsset = async (type: PassionAssetType = "art") => {
+    setFormModal({
+      kind: "passion",
+      title: "Ajouter un Passion Asset",
+      description: "Declare un actif de collection, sa valeur, son assurance et sa transmission prevue.",
+      values: {
+        name: "",
+        acquisition_value: "0",
+        estimated_value: "0",
+        acquisition_year: "",
+        provenance: "",
+        storage_location: "",
+        insured_value: "0",
+        beneficiary: "",
+        notes: "",
+      },
+      context: { passionType: type },
+    });
+  };
+
+  const handleUpdatePassionAsset = async (asset: PassionAsset) => {
+    setFormModal({
+      kind: "passion",
+      title: "Modifier le Passion Asset",
+      description: "Mets a jour la valeur declaree, l'assurance, la provenance ou la transmission.",
+      values: {
+        name: asset.name || "",
+        acquisition_value: String(asset.acquisition_value ?? 0),
+        estimated_value: String(asset.estimated_value ?? 0),
+        acquisition_year: asset.acquisition_year ? String(asset.acquisition_year) : "",
+        provenance: asset.provenance || "",
+        storage_location: asset.storage_location || "",
+        insured_value: String(asset.insured_value ?? 0),
+        beneficiary: asset.beneficiary || "",
+        notes: asset.notes || "",
+      },
+      context: { id: asset.id, passionType: asset.asset_type },
+    });
+  };
+
+  const handleDeletePassionAsset = async (id: number) => {
+    setConfirmModal({
+      title: "Supprimer ce Passion Asset ?",
+      description: "Cette action retire cet actif alternatif de ton patrimoine declare.",
+      onConfirm: async () => {
+        await apiFetch(`/passion-assets/${id}`, token, { method: "DELETE" });
+        await refreshAfterMutation();
+        showToast("Passion Asset supprime.", "success");
+      },
+    });
+  };
+
   const requireName = (value?: string) => {
     const trimmed = String(value || "").trim();
     return trimmed.length > 0 ? trimmed : null;
@@ -2858,6 +3087,45 @@ export default function Dashboard() {
         );
         await refreshAfterMutation();
         showToast("Business mis a jour.", "success");
+      }
+
+      if (formModal.kind === "passion") {
+        const assetType = formModal.context?.passionType;
+        const name = requireName(values.name);
+        const acquisitionValue = parseNonNegativeNumber(values.acquisition_value);
+        const estimatedValue = parseNonNegativeNumber(values.estimated_value);
+        const insuredValue = parseNonNegativeNumber(values.insured_value);
+        const acquisitionYear = values.acquisition_year
+          ? parsePositiveNumber(values.acquisition_year)
+          : null;
+
+        if (!assetType || !name || acquisitionValue === null || estimatedValue === null || insuredValue === null) {
+          throw new Error("Donnees Passion Assets invalides");
+        }
+
+        await apiFetch(
+          formModal.context?.id
+            ? `/passion-assets/${formModal.context.id}`
+            : "/passion-assets/",
+          token,
+          {
+            method: formModal.context?.id ? "PUT" : "POST",
+            body: JSON.stringify({
+              asset_type: assetType,
+              name,
+              acquisition_value: acquisitionValue,
+              estimated_value: estimatedValue,
+              acquisition_year: acquisitionYear ? Math.round(acquisitionYear) : null,
+              provenance: values.provenance || null,
+              storage_location: values.storage_location || null,
+              insured_value: insuredValue,
+              beneficiary: values.beneficiary || null,
+              notes: values.notes || null,
+            }),
+          }
+        );
+        await refreshAfterMutation();
+        showToast("Passion Asset mis a jour.", "success");
       }
 
       setFormModal(null);
@@ -3152,6 +3420,51 @@ export default function Dashboard() {
       );
     }
 
+    if (formModal.kind === "passion") {
+      return (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Categorie"
+            value={formModal.context?.passionType || "art"}
+            onChange={(value) =>
+              setFormModal((current) =>
+                current
+                  ? {
+                      ...current,
+                      context: {
+                        ...current.context,
+                        passionType: value as PassionAssetType,
+                      },
+                    }
+                  : current
+              )
+            }
+            options={[
+              { label: "Art", value: "art" },
+              { label: "Montre", value: "watch" },
+              { label: "Voiture", value: "car" },
+              { label: "Vins & spiritueux", value: "wine_spirits" },
+              { label: "Bijoux", value: "jewelry" },
+              { label: "Metaux precieux", value: "precious_metals" },
+              { label: "Collection", value: "collectible" },
+              { label: "Autre", value: "other" },
+            ]}
+          />
+          <TextField label="Nom de l'actif" value={values.name || ""} onChange={(value) => updateModalValue("name", value)} />
+          <TextField label="Valeur d'achat" type="number" value={values.acquisition_value || "0"} onChange={(value) => updateModalValue("acquisition_value", value)} />
+          <TextField label="Valeur estimee" type="number" value={values.estimated_value || "0"} onChange={(value) => updateModalValue("estimated_value", value)} />
+          <TextField label="Annee d'achat" type="number" value={values.acquisition_year || ""} onChange={(value) => updateModalValue("acquisition_year", value)} />
+          <TextField label="Valeur assuree" type="number" value={values.insured_value || "0"} onChange={(value) => updateModalValue("insured_value", value)} />
+          <TextField label="Provenance" value={values.provenance || ""} onChange={(value) => updateModalValue("provenance", value)} />
+          <TextField label="Lieu de conservation" value={values.storage_location || ""} onChange={(value) => updateModalValue("storage_location", value)} />
+          <TextField label="Beneficiaire / transmission" value={values.beneficiary || ""} onChange={(value) => updateModalValue("beneficiary", value)} />
+          <div className="sm:col-span-2">
+            <TextField label="Notes" value={values.notes || ""} onChange={(value) => updateModalValue("notes", value)} />
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
 
@@ -3270,14 +3583,17 @@ export default function Dashboard() {
                 portfolio={portfolio}
                 realEstate={realEstate}
                 ventureAssets={ventureAssets}
+                passionAssets={passionAssets}
                 opportunitiesCount={
                   typeof commandCenter?.opportunities_count === "number"
                     ? commandCenter.opportunities_count
                     : normalizeCommandCenterOpportunities(commandCenter?.opportunities).length
                 }
+                progressionSummary={progressionTimeline?.summary}
                 onOpenOpportunities={() => setActiveSection("opportunities")}
                 onOpenWealth={() => setActiveSection("wealth")}
                 onOpenFinances={() => setActiveSection("finances")}
+                onDailyActionComplete={refreshAfterMutation}
               />
             </div>
           )}
@@ -3299,7 +3615,16 @@ export default function Dashboard() {
 
               <WealthIntelligencePanel product={product} />
 
-              <BoardBriefingPanel product={product} />
+              {familyBoardUnlocked ? (
+                <BoardBriefingPanel product={product} />
+              ) : (
+                <LockedSection
+                  title={familyBoardAccess?.label || "Family Board IA"}
+                  description={familyBoardAccess?.description || "Conseil d'administration virtuel pour arbitrages et decisions prioritaires."}
+                  plan={(familyBoardAccess?.required_plan || "liberty").toLowerCase()}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
 
             </div>
           )}
@@ -3324,6 +3649,100 @@ export default function Dashboard() {
               )}
 
               <FutureIntelligencePanel product={product} />
+
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Impact des decisions
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Comment tes actions influencent la trajectoire</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Lecture issue du CEO Daily Briefing et des actions suivies par le backend.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[#16d99a]/25 bg-[#16d99a]/10 px-3 py-1 text-xs font-bold text-[#16d99a]">
+                    {compactText(trajectoryImpact?.dimension, "Pilotage")}
+                  </span>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <MetricCard
+                    label="Decisions"
+                    value={String(dailyLoopActions.length)}
+                    tone="primary"
+                  />
+                  <MetricCard
+                    label="Taches ouvertes"
+                    value={String(trajectoryOpenTasks)}
+                  />
+                  <MetricCard
+                    label="Taches faites"
+                    value={String(trajectoryDoneTasks)}
+                    tone="success"
+                  />
+                  <MetricCard
+                    label="XP briefing"
+                    value={String(dailyLoopXp)}
+                    tone="primary"
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Lecture trajectoire
+                    </p>
+                    <h3 className="mt-2 text-xl font-black text-white">
+                      {compactText(trajectoryImpact?.metric, "Execution")}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                      {compactText(
+                        trajectoryImpact?.reading || trajectoryImpact?.effect,
+                        "Cette action transforme le briefing en progression suivie."
+                      )}
+                    </p>
+                    {briefingAction?.description && (
+                      <p className="mt-3 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3 text-sm leading-relaxed text-[#bfe8ff]">
+                        Action actuelle: {briefingAction.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#16d99a]">
+                      Prochaine priorite
+                    </p>
+                    <h3 className="mt-2 text-xl font-black text-white">
+                      {dailyLoopOpenTasks[0]?.title || briefingAction?.title || "Decision a transformer en action"}
+                    </h3>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                      {dailyLoopOpenTasks[0]?.description ||
+                        briefingAction?.description ||
+                        "Ouvre le CEO Daily Briefing pour choisir la prochaine action suivie."}
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-3">
+                        <p className="text-xs uppercase tracking-widest text-red-200">Risque lie</p>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-200">
+                          {compactText(trajectoryImpact?.risk_link, "Aucun risque critique priorise.")}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-3">
+                        <p className="text-xs uppercase tracking-widest text-[#ffd21a]">Opportunite liee</p>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-200">
+                          {compactText(
+                            trajectoryImpact?.opportunity_link ||
+                              product?.ceo_daily_briefing?.opportunity?.description ||
+                              product?.strategic_brief?.opportunity,
+                            "Opportunite a confirmer avec des donnees backend plus completes."
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
               {!planAllows(currentPlan, "ELITE") && (
                 <ElitePreviewPanel onUpgrade={handleUpgradePlan} />
@@ -3585,6 +4004,132 @@ export default function Dashboard() {
                   />
                 </>
               )}
+            </div>
+          )}
+
+          {activeSection === "passion_assets" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Passion Assets"
+                title="Collections et actifs alternatifs"
+                description="Art, montres, voitures, vins, bijoux, metaux et objets de valeur declares par l'utilisateur."
+              />
+
+              {!passionAssetsUnlocked && (
+                <LockedSection
+                  title={passionAssetsAccess?.label || "Passion Assets"}
+                  description={passionAssetsAccess?.description || "Art, montres, voitures, vins, metaux et collections a forte valeur."}
+                  plan={(passionAssetsAccess?.required_plan || "liberty").toLowerCase()}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Patrimoine non financier
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black text-white">
+                      Vue Passion Assets
+                    </h2>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${
+                    passionAssetsUnlocked ? "bg-[#16d99a]/15 text-[#16d99a]" : "bg-[#ffd21a]/10 text-[#ffd21a]"
+                  }`}>
+                    {passionAssetsUnlocked ? "Actif" : `Plan ${passionAssetsAccess?.required_plan || "LIBERTY"}`}
+                  </span>
+                </div>
+                {passionAssetsUnlocked && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                      ["Art", "art"],
+                      ["Montre", "watch"],
+                      ["Voiture", "car"],
+                      ["Vins", "wine_spirits"],
+                      ["Bijoux", "jewelry"],
+                      ["Autre", "other"],
+                    ].map(([label, type]) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => handleAddPassionAsset(type as PassionAssetType)}
+                        className="rounded-xl border border-[#ffd21a]/30 bg-[#ffd21a]/10 px-3 py-2 text-xs font-black text-[#ffd21a] transition hover:bg-[#ffd21a]/20"
+                      >
+                        + {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-4">
+                  {[
+                    ["Valeur estimee", formatChartMoney(Number(passionAssets?.totals?.estimated_value || 0)), "text-white"],
+                    ["Plus-value latente", formatChartMoney(Number(passionAssets?.totals?.latent_gain || 0)), Number(passionAssets?.totals?.latent_gain || 0) >= 0 ? "text-[#16d99a]" : "text-[#ff4d4d]"],
+                    ["Performance", `${Number(passionAssets?.totals?.performance || 0).toFixed(2)}%`, "text-[#3fa9f5]"],
+                    ["Valeur assuree", formatChartMoney(Number(passionAssets?.totals?.insured_value || 0)), "text-[#ffd21a]"],
+                  ].map(([label, value, tone]) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-black/30 p-4">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">{label}</p>
+                      <p className={`mt-2 text-xl font-black ${tone}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {passionAssets?.totals?.dominant && (
+                  <p className="mt-4 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3 text-sm font-bold text-[#bfe4ff]">
+                    Exposition dominante : {compactText(passionAssets.totals.dominant.asset_type, "collection")} - {Number(passionAssets.totals.dominant.percent || 0).toFixed(1)}%
+                  </p>
+                )}
+
+                <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                  {(passionAssets?.assets || []).map((asset) => (
+                    <article key={asset.id} className="rounded-xl border border-white/10 bg-black/30 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-widest text-gray-500">
+                            {compactText(asset.asset_type, "collection")}
+                          </p>
+                          <h3 className="mt-1 text-lg font-black text-white">{asset.name}</h3>
+                        </div>
+                        <p className="text-sm font-black text-[#ffd21a]">
+                          {formatChartMoney(Number(asset.estimated_value || 0))}
+                        </p>
+                      </div>
+                      <div className="mt-3 grid gap-2 text-xs text-gray-400 sm:grid-cols-2">
+                        <p>Achat : {formatChartMoney(Number(asset.acquisition_value || 0))}</p>
+                        <p>Plus-value : {formatChartMoney(Number(asset.latent_gain || 0))}</p>
+                        <p>Assurance : {formatChartMoney(Number(asset.insured_value || 0))}</p>
+                        <p>Transmission : {compactText(asset.beneficiary, "A definir")}</p>
+                      </div>
+                      {passionAssetsUnlocked && (
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdatePassionAsset(asset)}
+                            className="rounded-lg border border-[#3fa9f5]/30 bg-[#3fa9f5]/10 px-3 py-1.5 text-xs font-black text-[#3fa9f5]"
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePassionAsset(asset.id)}
+                            className="rounded-lg border border-[#ff4d4d]/30 bg-[#ff4d4d]/10 px-3 py-1.5 text-xs font-black text-[#ff8a8a]"
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+
+                {(passionAssets?.assets || []).length === 0 && (
+                  <p className="mt-5 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-gray-400">
+                    Aucun Passion Asset declare pour le moment. La premiere version sert a suivre la valeur declaree, l'assurance, la provenance et la transmission prevue.
+                  </p>
+                )}
+              </section>
             </div>
           )}
 
@@ -3926,6 +4471,154 @@ export default function Dashboard() {
                 onUpgrade={handleUpgradePlan}
               />
 
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Synthese de progression
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Ou tu en es maintenant</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Resume backend de tes XP, dernieres actions et prochain jalon White Rock.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-[#16d99a]/25 bg-[#16d99a]/10 px-3 py-1 text-xs font-bold text-[#16d99a]">
+                    {progressionTimelineItems.length} evenement(s)
+                  </span>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    ["XP recent", recentProgressXp, "text-[#ffd21a]"],
+                    ["Decisions", recentProgressDecisions, "text-[#3fa9f5]"],
+                    ["Missions", recentProgressMissions, "text-[#16d99a]"],
+                    ["Lecons / taches", recentProgressLessons + recentProgressTasks, "text-[#f87171]"],
+                  ].map(([label, value, tone]) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs text-gray-500">{label}</p>
+                      <p className={`mt-1 text-xl font-black ${tone}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-4">
+                  <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                    Prochain jalon
+                  </p>
+                  <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+                    {progressionTimelineSummary?.next_milestone ||
+                      "Ouvrir le CEO Daily Briefing et choisir une premiere action."}
+                  </p>
+                </div>
+
+                {lastProgressEvent && (
+                  <div className="mt-4 rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Derniere action
+                    </p>
+                    <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-black text-white">
+                          {compactText(lastProgressEvent.title, "Progression enregistree")}
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-300">
+                          {compactText(lastProgressEvent.description, "Dernier evenement suivi par White Rock.")}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-gray-500">
+                        {formatDate(lastProgressEvent.date)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Decisions recentes
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {dailyLoopActions.slice(0, 5).map((action, index) => (
+                        <article
+                          key={`${action.created_at || index}-${action.action_key}`}
+                          className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+                        >
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-xs uppercase tracking-widest text-gray-500">
+                                {dailyLoopActionLabel(action.action_key)} - {dailyLoopStatusLabel(action.status)}
+                              </p>
+                              <h3 className="mt-1 text-sm font-black text-white">
+                                {compactText(action.action_title, "Decision du briefing")}
+                              </h3>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(action.created_at)}
+                            </span>
+                          </div>
+                          {Number(action.xp_awarded || 0) > 0 && (
+                            <span className="mt-3 inline-flex rounded-full border border-[#16d99a]/25 bg-[#16d99a]/10 px-3 py-1 text-xs font-bold text-[#16d99a]">
+                              +{action.xp_awarded} XP
+                            </span>
+                          )}
+                        </article>
+                      ))}
+
+                      {dailyLoopActions.length === 0 && (
+                        <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-gray-400">
+                          Aucune decision quotidienne n'est encore enregistree. Le prochain clic dans le CEO Daily Briefing alimentera ce journal.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#16d99a]">
+                      Taches issues du briefing
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {dailyLoopTasks.slice(0, 5).map((task) => (
+                        <article
+                          key={task.id || task.title}
+                          className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+                        >
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="text-xs uppercase tracking-widest text-gray-500">
+                                {dailyLoopStatusLabel(task.status)}
+                              </p>
+                              <h3 className="mt-1 text-sm font-black text-white">
+                                {compactText(task.title, "Action suivie")}
+                              </h3>
+                            </div>
+                            <span
+                              className={`rounded-full border px-2 py-1 text-[10px] uppercase ${
+                                task.status === "done"
+                                  ? "border-[#16d99a]/25 text-[#16d99a]"
+                                  : task.priority === "high"
+                                    ? "border-[#ffd21a]/25 text-[#ffd21a]"
+                                    : "border-[#3fa9f5]/25 text-[#3fa9f5]"
+                              }`}
+                            >
+                              {task.priority === "high" ? "priorite" : dailyLoopStatusLabel(task.status)}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                            {compactText(task.description, "Tache personnalisee depuis le briefing.")}
+                          </p>
+                        </article>
+                      ))}
+
+                      {dailyLoopTasks.length === 0 && (
+                        <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-gray-400">
+                          Aucune tache suivie pour le moment. Le bouton Automatiser creera une tache basee sur l'action recommandee du backend.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
@@ -3945,13 +4638,13 @@ export default function Dashboard() {
                 <div className="mt-5 space-y-3">
                   {progressionTimelineItems.slice(0, 8).map((item, index) => (
                     <article
-                      key={`${item.type || "event"}-${item.date || index}`}
+                      key={`${item.source || "timeline"}-${item.type || "event"}-${item.mission_key || item.lesson_key || item.action_key || index}-${item.date || index}`}
                       className="rounded-2xl border border-white/10 bg-black/35 p-4"
                     >
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-xs uppercase tracking-widest text-gray-500">
-                            {item.type || "progression"}
+                            {item.status_label || item.type || "progression"}
                           </p>
                           <h3 className="mt-1 text-lg font-bold text-white">
                             {compactText(item.title, "Progression enregistree")}
@@ -3965,6 +4658,16 @@ export default function Dashboard() {
                         {compactText(item.description, "Evenement de progression enregistre.")}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
+                        {item.source && (
+                          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold text-gray-300">
+                            {item.source}
+                          </span>
+                        )}
+                        {(item.mission_key || item.lesson_key || item.action_key) && (
+                          <span className="rounded-full border border-[#ffd21a]/25 bg-[#ffd21a]/10 px-3 py-1 text-xs font-semibold text-[#ffd21a]">
+                            {item.mission_key || item.lesson_key || item.action_key}
+                          </span>
+                        )}
                         {item.xp !== undefined && Number(item.xp) > 0 && (
                           <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-200">
                             +{item.xp} XP acquis
@@ -4023,41 +4726,172 @@ export default function Dashboard() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  {progressionMissions.map((mission) => (
-                    <article
-                      key={mission.key}
-                      className="rounded-2xl border border-white/10 bg-black/45 p-5 shadow-2xl transition hover:-translate-y-0.5 hover:border-[#3fa9f5]/40"
-                    >
-                      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                        {mission.module || "WHITE ROCK"}
-                      </p>
-                      <h3 className="mt-2 text-xl font-black text-white">{mission.title}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-gray-300">
-                        {mission.description}
-                      </p>
-                      {mission.context_reason && (
-                        <p className="mt-3 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3 text-xs leading-relaxed text-[#bfe8ff]">
-                          Pourquoi maintenant: {mission.context_reason}
+                  {progressionMissions.map((mission) => {
+                    const missionProgress = Math.max(
+                      0,
+                      Math.min(100, Number(mission.progress_percent || 0))
+                    );
+                    const isBriefingMission =
+                      briefingAction?.mission_key &&
+                      briefingAction.mission_key === mission.key;
+
+                    return (
+                      <article
+                        key={mission.key}
+                        className={`rounded-2xl border p-5 shadow-2xl transition hover:-translate-y-0.5 ${
+                          mission.is_priority || isBriefingMission
+                            ? "border-[#ffd21a]/35 bg-[#ffd21a]/10 hover:border-[#ffd21a]/50"
+                            : "border-white/10 bg-black/45 hover:border-[#3fa9f5]/40"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                            {mission.module || "WHITE ROCK"}
+                          </p>
+                          {(mission.is_priority || isBriefingMission) && (
+                            <span className="rounded-full border border-[#ffd21a]/30 bg-[#ffd21a]/10 px-2 py-1 text-[10px] uppercase text-[#ffd21a]">
+                              Priorite
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="mt-2 text-xl font-black text-white">{mission.title}</h3>
+                        <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                          {mission.description}
                         </p>
-                      )}
-                      <div className="mt-4 rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
-                        <p className="text-xs uppercase tracking-widest text-emerald-200">
-                          Impact attendu
-                        </p>
-                        <p className="mt-1 text-sm font-bold text-white">
-                          +{mission.xp || 80} XP acquis - pilotage plus precis
-                        </p>
-                      </div>
-                      <p className="mt-4 text-xs leading-relaxed text-gray-500">
-                        Impact: modules mieux priorises, contexte plus fiable et opportunites plus adaptees.
-                      </p>
-                      {mission.status && (
-                        <span className="mt-4 inline-flex rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase text-gray-400">
-                          {mission.status}
-                        </span>
-                      )}
-                    </article>
-                  ))}
+
+                        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs uppercase tracking-widest text-gray-500">
+                              Objectif mesurable
+                            </p>
+                            <p className="text-xs font-bold text-gray-300">
+                              {mission.current_value ?? 0} / {mission.target_value ?? 1}
+                            </p>
+                          </div>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className="h-full rounded-full bg-[#3fa9f5]"
+                              style={{ width: `${missionProgress}%` }}
+                            />
+                          </div>
+                          <p className="mt-2 text-xs font-bold text-[#3fa9f5]">
+                            {missionProgress.toFixed(0)}% complete
+                          </p>
+                        </div>
+
+                        <div className="mt-3 rounded-xl border border-[#16d99a]/20 bg-[#16d99a]/10 p-3">
+                          <p className="text-xs uppercase tracking-widest text-[#16d99a]">
+                            Action liee
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-gray-200">
+                            {mission.linked_daily_action || briefingAction?.description || mission.description}
+                          </p>
+                        </div>
+
+                        {mission.linked_academy_lesson && (
+                          <div className="mt-3 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                                  Lecon utile
+                                </p>
+                                <p className="mt-1 text-sm font-black text-white">
+                                  {mission.linked_academy_lesson.lesson_title}
+                                </p>
+                              </div>
+                              <span className={`rounded-full border px-2 py-1 text-[10px] uppercase ${
+                                mission.linked_academy_lesson.completed
+                                  ? "border-[#16d99a]/30 text-[#16d99a]"
+                                  : "border-[#ffd21a]/30 text-[#ffd21a]"
+                              }`}>
+                                {mission.linked_academy_lesson.completed ? "Lu" : mission.linked_academy_lesson.duration}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs leading-relaxed text-gray-300">
+                              {mission.linked_academy_lesson.reason}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => goToSection("academy")}
+                                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-gray-300 transition hover:border-[#3fa9f5]/40 hover:text-[#3fa9f5]"
+                              >
+                                Voir Academy
+                              </button>
+                              {!mission.linked_academy_lesson.completed && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    academyCompletingKey === mission.linked_academy_lesson.lesson_key
+                                  }
+                                  onClick={() =>
+                                    handleCompleteAcademyLesson(
+                                      mission.linked_academy_lesson?.lesson_key
+                                    )
+                                  }
+                                  className="rounded-lg border border-[#16d99a]/30 px-3 py-2 text-xs font-bold text-[#16d99a] transition hover:bg-[#16d99a]/10 disabled:cursor-not-allowed disabled:text-gray-600"
+                                >
+                                  {academyCompletingKey === mission.linked_academy_lesson.lesson_key
+                                    ? "Validation..."
+                                    : "Marquer comme lu"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                            <p className="text-xs uppercase tracking-widest text-gray-500">Impact</p>
+                            <p className="mt-1 text-sm font-bold text-white">
+                              {mission.impact_dimension || "Pilotage"}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-3">
+                            <p className="text-xs uppercase tracking-widest text-emerald-200">XP</p>
+                            <p className="mt-1 text-sm font-bold text-white">
+                              +{mission.xp || 0}
+                            </p>
+                          </div>
+                        </div>
+
+                        {mission.status && (
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] uppercase ${
+                              mission.status === "completed"
+                                ? "border-[#16d99a]/30 text-[#16d99a]"
+                                : mission.status === "ready"
+                                  ? "border-[#ffd21a]/30 text-[#ffd21a]"
+                                  : "border-white/10 text-gray-400"
+                            }`}>
+                              {mission.status === "completed"
+                                ? "Validee"
+                                : mission.status === "ready"
+                                  ? "Prete"
+                                  : mission.status}
+                            </span>
+                            {mission.status === "ready" && (
+                              <button
+                                type="button"
+                                disabled={missionCompletingKey === mission.key}
+                                onClick={() => handleCompleteMission(mission.key)}
+                                className="rounded-lg border border-[#16d99a]/30 bg-[#16d99a]/10 px-3 py-2 text-xs font-black text-[#16d99a] transition hover:bg-[#16d99a]/20 disabled:cursor-not-allowed disabled:text-gray-600"
+                              >
+                                {missionCompletingKey === mission.key
+                                  ? "Validation..."
+                                  : "Valider mission"}
+                              </button>
+                            )}
+                            {mission.status === "completed" && Number(mission.xp_awarded || 0) > 0 && (
+                              <span className="inline-flex rounded-full border border-[#16d99a]/25 bg-[#16d99a]/10 px-3 py-1 text-[10px] uppercase text-[#16d99a]">
+                                +{mission.xp_awarded} XP
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
                   {progressionMissions.length === 0 && (
                     <p className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm text-gray-400">
                       Toutes les missions disponibles ont ete completees. Continue a enrichir ton patrimoine pour debloquer de nouvelles opportunites.
@@ -4065,6 +4899,329 @@ export default function Dashboard() {
                   )}
                 </div>
               </section>
+            </div>
+          )}
+
+          {activeSection === "academy" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Wealth Academy"
+                title="Apprendre ce qui aide ta prochaine decision"
+                description="Modules courts relies aux donnees backend, aux missions et au CEO Daily Briefing."
+              />
+
+              {!academyUnlocked && (
+                <LockedSection
+                  title={academyAccess?.label || "Wealth Academy"}
+                  description={academyAccess?.description || "Lecons courtes, exercices, XP et missions liees."}
+                  plan={(academyAccess?.required_plan || "gold").toLowerCase()}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
+
+              <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[radial-gradient(circle_at_top_right,_rgba(63,169,245,0.14),_transparent_34%),linear-gradient(135deg,#07111c,#020202)] p-5">
+                <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                        Lecon recommandee
+                      </p>
+                      <span className="rounded-full border border-[#ffd21a]/30 px-2 py-1 text-[10px] uppercase text-[#ffd21a]">
+                        Recommande
+                      </span>
+                    </div>
+                    <h2 className="mt-2 text-3xl font-black text-white">
+                      {compactText(academyRecommended?.lesson_title, "Lire son cashflow")}
+                    </h2>
+                    <p className="mt-3 text-sm leading-relaxed text-gray-300">
+                      {compactText(
+                        academyRecommended?.why_now,
+                        "White Rock recommande cette lecon a partir de ton contexte actuel."
+                      )}
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Module</p>
+                      <p className="mt-1 text-sm font-black text-[#3fa9f5]">
+                        {compactText(academyRecommended?.module_title, "Fondations")}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Duree</p>
+                      <p className="mt-1 text-sm font-black text-[#ffd21a]">
+                        {compactText(academyRecommended?.duration, "6 min")}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Etat</p>
+                      <p className={`mt-1 text-sm font-black ${
+                        academyRecommended?.completed ? "text-[#16d99a]" : "text-gray-300"
+                      }`}>
+                        {academyRecommended?.completed ? "Lecon validee" : "A lire"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">
+                        Progression Academy
+                      </p>
+                      <p className="text-xs font-bold text-[#ffd21a]">
+                        {Number(academyProgress?.completed_lessons || 0)} /{" "}
+                        {Number(academyProgress?.total_lessons || 0)} lecon(s)
+                      </p>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-[#16d99a]"
+                        style={{
+                          width: `${Math.min(100, Number(academyProgress?.progress_percent || 0))}%`,
+                        }}
+                      />
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">
+                      {Number(academyProgress?.xp_awarded || 0)} XP gagnes via les lecons validees.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={
+                      !academyUnlocked ||
+                      !academyRecommended?.lesson_key ||
+                      Boolean(academyRecommended?.completed) ||
+                      academyCompletingKey === academyRecommended?.lesson_key
+                    }
+                    onClick={() => handleCompleteAcademyLesson(academyRecommended?.lesson_key)}
+                    className="rounded-xl border border-[#16d99a]/35 bg-[#16d99a]/15 px-5 py-3 text-sm font-black text-[#16d99a] transition hover:bg-[#16d99a]/25 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-gray-500"
+                  >
+                    {academyRecommended?.completed
+                      ? "Lecon validee"
+                      : academyCompletingKey === academyRecommended?.lesson_key
+                        ? "Validation..."
+                        : "Marquer comme lu"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!academyUnlocked}
+                    onClick={() => openAcademyLesson(academyRecommended?.lesson_key)}
+                    className="rounded-xl border border-[#3fa9f5]/35 bg-[#3fa9f5]/10 px-5 py-3 text-sm font-black text-[#3fa9f5] transition hover:bg-[#3fa9f5]/20 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-gray-500"
+                  >
+                    Continuer la lecon recommandee
+                  </button>
+                </div>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Parcours
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold">Modules disponibles</h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Version courte: comprendre, agir, mesurer. Les contenus restent connectes aux donnees backend.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-gray-300">
+                    {academyModules.length} module(s)
+                  </span>
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  {academyModules.map((module) => (
+                    <article
+                      key={module.key || module.title}
+                      className={`rounded-2xl border p-4 ${
+                        module.key === academyRecommended?.module_key
+                          ? "border-[#3fa9f5]/35 bg-[#3fa9f5]/10"
+                          : "border-white/10 bg-black/35"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-widest text-gray-500">
+                            {module.key === academyRecommended?.module_key ? "Recommande" : "Academy"}
+                          </p>
+                          <h3 className="mt-1 text-xl font-black text-white">
+                          {module.title}
+                          </h3>
+                        </div>
+                        <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase text-gray-400">
+                          {Number(module.completed_count || 0)} / {module.lesson_count || module.lessons?.length || 0}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-400">
+                        {module.description}
+                      </p>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full rounded-full bg-[#3fa9f5]"
+                          style={{ width: `${Math.min(100, Number(module.progress_percent || 0))}%` }}
+                        />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {(module.lessons || []).map((lesson) => {
+                          const selected = selectedAcademyLesson?.key === lesson.key;
+
+                          return (
+                          <button
+                            type="button"
+                            key={lesson.key || lesson.title}
+                            disabled={!academyUnlocked}
+                            onClick={() => openAcademyLesson(lesson.key)}
+                            className={`w-full rounded-xl border p-3 text-left transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                              selected
+                                ? "border-[#3fa9f5]/40 bg-[#3fa9f5]/10"
+                                : lesson.completed
+                                  ? "border-[#16d99a]/25 bg-[#16d99a]/10"
+                                  : lesson.key === academyRecommended?.lesson_key
+                                    ? "border-[#ffd21a]/30 bg-[#ffd21a]/10"
+                                    : "border-white/10 bg-white/[0.03]"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-bold text-white">{lesson.title}</p>
+                                <p className="mt-1 text-xs text-gray-500">{lesson.duration}</p>
+                              </div>
+                              <span className={`rounded-full border px-2 py-1 text-[10px] uppercase ${
+                                lesson.completed
+                                  ? "border-[#16d99a]/30 text-[#16d99a]"
+                                  : "border-white/10 text-gray-500"
+                              }`}>
+                                {lesson.completed ? "Lu" : "A lire"}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                              {lesson.outcome}
+                            </p>
+                            <p className="mt-3 text-xs font-bold text-[#3fa9f5]">
+                              {selected ? "Ouverte" : "Ouvrir la lecon"}
+                            </p>
+                          </button>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <WealthModal
+                open={academyLessonModalOpen}
+                eyebrow={compactText(selectedAcademyLesson?.module_title, "Wealth Academy")}
+                title={compactText(selectedAcademyLesson?.title, "Lecon Academy")}
+                description={compactText(
+                  selectedAcademyLesson?.outcome,
+                  "Lecture courte reliee aux donnees backend et a la prochaine action utile."
+                )}
+                onClose={() => setAcademyLessonModalOpen(false)}
+                footer={
+                  <>
+                    <ActionButton
+                      variant="secondary"
+                      onClick={() => setAcademyLessonModalOpen(false)}
+                    >
+                      Fermer
+                    </ActionButton>
+                    <ActionButton
+                      disabled={
+                        !academyUnlocked ||
+                        !selectedAcademyLesson?.key ||
+                        Boolean(selectedAcademyLesson?.completed) ||
+                        academyCompletingKey === selectedAcademyLesson?.key
+                      }
+                      onClick={() => handleCompleteAcademyLesson(selectedAcademyLesson?.key)}
+                    >
+                      {selectedAcademyLesson?.completed
+                        ? "Lecon validee"
+                        : academyCompletingKey === selectedAcademyLesson?.key
+                          ? "Validation..."
+                          : "Marquer comme lu"}
+                    </ActionButton>
+                  </>
+                }
+              >
+                <div className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Module</p>
+                      <p className="mt-1 text-sm font-black text-[#3fa9f5]">
+                        {compactText(selectedAcademyLesson?.module_title, "Academy")}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Duree</p>
+                      <p className="mt-1 text-sm font-black text-[#ffd21a]">
+                        {compactText(selectedAcademyLesson?.duration, "5 min")}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Etat</p>
+                      <p className={`mt-1 text-sm font-black ${
+                        selectedAcademyLesson?.completed ? "text-[#16d99a]" : "text-gray-300"
+                      }`}>
+                        {selectedAcademyLesson?.completed ? "Lu" : "A lire"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Lecture
+                    </p>
+                    <p className="mt-2 text-sm leading-relaxed text-gray-100">
+                      {compactText(
+                        selectedAcademyLesson?.reading,
+                        "Cette lecon transforme une notion patrimoniale en action simple et suivie."
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">
+                        Points cles
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {(selectedAcademyLesson?.key_points || []).slice(0, 3).map((point, index) => (
+                          <p
+                            key={`${selectedAcademyLesson?.key || "modal"}-point-${index}`}
+                            className="rounded-lg border border-white/10 bg-black/25 p-2 text-xs leading-relaxed text-gray-300"
+                          >
+                            {point}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-4">
+                      <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                        Exercice
+                      </p>
+                      <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+                        {compactText(
+                          selectedAcademyLesson?.exercise,
+                          "Choisis une action concrete a verifier dans ton dashboard."
+                        )}
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {(selectedAcademyLesson?.action_steps || []).slice(0, 3).map((step, index) => (
+                          <div
+                            key={`${selectedAcademyLesson?.key || "modal"}-step-${index}`}
+                            className="flex gap-2 rounded-lg border border-white/10 bg-black/25 p-2 text-xs text-gray-200"
+                          >
+                            <span className="font-black text-[#ffd21a]">{index + 1}</span>
+                            <span>{step}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </WealthModal>
             </div>
           )}
 
@@ -4078,9 +5235,50 @@ export default function Dashboard() {
 
               <LegacyOfficePanel
                 data={legacyOverview}
-                locked={false}
+                locked={!dynastyUnlocked}
                 onUpgrade={handleUpgradePlan}
               />
+
+              {!dynastyUnlocked && (
+                <LockedSection
+                  title={dynastyAccess?.label || "Dynasty enrichi"}
+                  description={dynastyAccess?.description || "Gouvernance familiale, transmission, heritiers et vision generationnelle."}
+                  plan={(dynastyAccess?.required_plan || "legacy").toLowerCase()}
+                  onUpgrade={handleUpgradePlan}
+                />
+              )}
+
+              <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                      Wealth Vault
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black text-white">
+                      {vaultAccess?.label || "Wealth Vault securise"}
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-relaxed text-gray-400">
+                      {vaultAccess?.description || "Documents patrimoniaux, assurances, succession et pieces sensibles."}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${
+                    vaultUnlocked
+                      ? "bg-[#16d99a]/15 text-[#16d99a]"
+                      : "bg-[#ffd21a]/10 text-[#ffd21a]"
+                  }`}>
+                    {vaultUnlocked ? "Actif" : `Plan ${vaultAccess?.required_plan || "LEGACY"}`}
+                  </span>
+                </div>
+                {!vaultUnlocked && (
+                  <button
+                    type="button"
+                    onClick={() => handleUpgradePlan((vaultAccess?.required_plan || "legacy").toLowerCase())}
+                    className="mt-4 rounded-xl border border-[#ffd21a]/35 bg-[#ffd21a]/10 px-4 py-2 text-sm font-black text-[#ffd21a] transition hover:bg-[#ffd21a]/20"
+                  >
+                    Debloquer le Vault
+                  </button>
+                )}
+              </section>
             </div>
           )}
 
@@ -4254,6 +5452,59 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
+
+                {roadmapFeatures.length > 0 && (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                          Acces roadmap
+                        </p>
+                        <h3 className="mt-1 text-xl font-black text-white">
+                          Ce que ton plan debloque vraiment
+                        </h3>
+                      </div>
+                      <p className="text-xs font-bold text-gray-400">
+                        {availableRoadmapFeatures.length} disponibles - {lockedRoadmapFeatures.length} verrouilles
+                      </p>
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                      {roadmapFeatures.map((feature) => (
+                        <div
+                          key={feature.key || feature.label}
+                          className={`rounded-xl border p-3 ${
+                            feature.available
+                              ? "border-[#16d99a]/25 bg-[#16d99a]/10"
+                              : "border-white/10 bg-white/[0.03]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-[11px] uppercase tracking-widest text-gray-500">
+                                {feature.group || "Roadmap"}
+                              </p>
+                              <p className="mt-1 text-sm font-black text-white">
+                                {feature.label}
+                              </p>
+                            </div>
+                            <span
+                              className={`rounded-full px-2 py-1 text-[10px] font-black uppercase ${
+                                feature.available
+                                  ? "bg-[#16d99a]/15 text-[#16d99a]"
+                                  : "bg-[#ffd21a]/10 text-[#ffd21a]"
+                              }`}
+                            >
+                              {feature.available ? "Actif" : feature.required_plan}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                            {feature.description}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
                   <div className="rounded-2xl border border-[#ffd21a]/25 bg-[#ffd21a]/5 p-4">
@@ -4487,6 +5738,17 @@ export default function Dashboard() {
                   onSwitch={handleSwitchWorkspace}
                 />
               </section>
+            </div>
+          )}
+
+          {activeSection === "contact" && (
+            <div className="space-y-6">
+              <SectionHeader
+                eyebrow="Contact"
+                title="Contact et reseau"
+                description="Contacts officiels et reseaux sociaux Vision Business Mastery, synchronises depuis le backend."
+              />
+              <ContactLinks variant="panel" />
             </div>
           )}
         </div>

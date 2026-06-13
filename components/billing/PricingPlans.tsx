@@ -47,7 +47,6 @@ export default function PricingPlans({ mode }: PricingPlansProps) {
         }
       })
       .catch((err) => {
-        console.error(err);
         if (alive) {
           setUseCustomerSession(false);
           setMessage("");

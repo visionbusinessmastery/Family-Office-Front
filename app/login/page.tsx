@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import BrandMark from "@/components/BrandMark";
 import SocialLoginButtons from "@/components/auth/SocialLoginButtons";
+import ContactLinks from "@/components/company/ContactLinks";
 import { apiFetch } from "@/lib/api-client";
 
 const loginMessages = [
@@ -176,6 +177,9 @@ export default function LoginPage() {
           )}
         </form>
       </section>
+      <div className="relative z-10 mx-auto max-w-6xl px-6 pb-6">
+        <ContactLinks variant="footer" />
+      </div>
     </main>
   );
 }

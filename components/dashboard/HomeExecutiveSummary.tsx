@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Bar,
   BarChart,
@@ -15,9 +15,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { apiFetch } from "@/lib/api-client";
 import type {
   FinanceOverviewData,
+  PassionAssetData,
   PortfolioAsset,
+  ProgressionTimelineData,
   ProductContext,
   RealEstateData,
   VentureAssetData,
@@ -38,10 +41,13 @@ type HomeExecutiveSummaryProps = {
   portfolio?: PortfolioAsset[];
   realEstate?: RealEstateData | null;
   ventureAssets?: VentureAssetData | null;
+  passionAssets?: PassionAssetData | null;
   opportunitiesCount?: number;
+  progressionSummary?: ProgressionTimelineData["summary"];
   onOpenOpportunities?: () => void;
   onOpenWealth?: () => void;
   onOpenFinances?: () => void;
+  onDailyActionComplete?: () => void | Promise<void>;
 };
 
 type SummaryCardProps = {
@@ -332,12 +338,20 @@ export default function HomeExecutiveSummary({
   portfolio,
   realEstate,
   ventureAssets,
+  passionAssets,
   opportunitiesCount = 0,
+  progressionSummary,
   onOpenOpportunities,
   onOpenWealth,
   onOpenFinances,
+  onDailyActionComplete,
 }: HomeExecutiveSummaryProps) {
+  const [dailyActionBusy, setDailyActionBusy] = useState<string | null>(null);
+  const [taskBusyId, setTaskBusyId] = useState<number | null>(null);
+  const [dailyActionFeedback, setDailyActionFeedback] = useState("");
   const wealth = product?.wealth_intelligence;
+  const dailyBriefing = product?.ceo_daily_briefing;
+  const briefingMetrics = dailyBriefing?.metrics || {};
   const future = product?.future_intelligence;
   const position = future?.position;
   const decision = product?.decision_intelligence;
@@ -395,6 +409,11 @@ export default function HomeExecutiveSummary({
   const businessCharges = n(ventureTotals.total_charges);
   const businessPerformance = n(ventureTotals.total_result);
   const businessValue = n(ventureTotals.total_final_value);
+  const passionTotals = passionAssets?.totals || {};
+  const passionValue = n(passionTotals.estimated_value);
+  const passionGain = n(passionTotals.latent_gain);
+  const passionPerformance = n(passionTotals.performance);
+  const passionInsured = n(passionTotals.insured_value);
 
   const formatMoney = (value: number) => `${money.format(value)} EUR`;
   const formatSignedMoney = (value: number) =>
@@ -403,24 +422,27 @@ export default function HomeExecutiveSummary({
   const progressOf = (value: number, max: number) =>
     max > 0 ? Math.min(100, Math.abs(value / max) * 100) : 0;
   const trackedTotal =
-    liquidWealth + portfolioValue + realEstateValue + businessValue;
+    liquidWealth + portfolioValue + realEstateValue + businessValue + passionValue;
   const dominantExposurePercent =
     dominantExposure && portfolioValue > 0
       ? (dominantExposure.value / portfolioValue) * 100
       : 0;
 
   const mainInsight =
+    dailyBriefing?.headline ||
     wealth?.memorable_insight ||
     wealth?.headline ||
     wealth?.gravity_reading ||
     "White Rock consolide tes donnees pour faire ressortir la prochaine decision utile.";
   const nextAction =
+    dailyBriefing?.recommended_action?.description ||
     decision?.next_action ||
     decision?.decision?.action ||
     decision?.decision?.description ||
     product?.strategic_brief?.next_action ||
     "Garde tes donnees a jour pour affiner la prochaine action utile.";
   const mainSignal =
+    dailyBriefing?.risk?.description ||
     decision?.risk?.title ||
     decision?.opportunity?.title ||
     product?.strategic_brief?.main_risk ||
@@ -433,6 +455,7 @@ export default function HomeExecutiveSummary({
     decision?.opportunity?.action ||
     "";
   const premiumOpportunity =
+    dailyBriefing?.opportunity?.description ||
     product?.opportunity_radar?.items?.[0]?.title ||
     decision?.opportunity?.title ||
     product?.strategic_brief?.opportunity ||
@@ -462,6 +485,7 @@ export default function HomeExecutiveSummary({
     { label: "Invest.", value: portfolioValue, fill: "#16d99a" },
     { label: "Immobilier", value: realEstateValue, fill: "#f7d154" },
     { label: "Business", value: businessValue, fill: "#f87171" },
+    { label: "Passion", value: passionValue, fill: "#3fa9f5" },
   ].filter((item) => item.value > 0);
   const cashAmountData = [
     {
@@ -598,9 +622,575 @@ export default function HomeExecutiveSummary({
       fill: "#ffd21a",
     },
   ];
+  const passionWeight = trackedTotal > 0 ? (passionValue / trackedTotal) * 100 : 0;
+  const passionCoverage =
+    passionValue > 0 ? (passionInsured / passionValue) * 100 : 0;
+  const passionAmountData = [
+    {
+      label: "Valeur estimee",
+      value: passionValue,
+      display: formatMoney(passionValue),
+      fill: "#3fa9f5",
+    },
+    {
+      label: "Plus-value",
+      value: Math.abs(passionGain),
+      display: formatSignedMoney(passionGain),
+      fill: passionGain >= 0 ? "#16d99a" : "#f87171",
+    },
+    {
+      label: "Valeur assuree",
+      value: passionInsured,
+      display: formatMoney(passionInsured),
+      fill: "#ffd21a",
+    },
+  ];
+  const passionRatioData = [
+    {
+      label: "Performance",
+      value: Math.max(1, progressOf(passionPerformance, 100)),
+      display: formatPercent(passionPerformance),
+      fill: passionPerformance >= 0 ? "#16d99a" : "#f87171",
+    },
+    {
+      label: "Couverture",
+      value: Math.max(1, progressOf(passionCoverage, 100)),
+      display: formatPercent(passionCoverage),
+      fill: "#3fa9f5",
+    },
+    {
+      label: "Poids suivi",
+      value: Math.max(1, progressOf(passionWeight, 100)),
+      display: formatPercent(passionWeight),
+      fill: "#ffd21a",
+    },
+  ];
+  const todayDailyActions = dailyBriefing?.daily_loop?.today_actions || {};
+  const dailyLoopHistory = dailyBriefing?.daily_loop?.history || [];
+  const dailyTasks = dailyBriefing?.daily_loop?.tasks || [];
+  const dailyLoopSummary = dailyBriefing?.daily_loop?.summary;
+  const primaryAction = dailyBriefing?.primary_action;
+  const activeDailyTasks = dailyTasks.filter((task) => task.status !== "done" && task.status !== "cancelled");
+  const todayActionEntries = Object.entries(todayDailyActions);
+  const lastDailyAction = dailyLoopHistory[0];
+  const primaryActionReading =
+    primaryAction?.type === "review"
+      ? "Tu as deja avance aujourd'hui"
+      : primaryAction?.type === "task"
+        ? "Il te reste une action ouverte"
+        : primaryAction?.type === "academy"
+          ? "Une courte lecon peut debloquer la suite"
+          : primaryAction?.type === "mission"
+            ? "Une mission est prete a etre validee"
+            : "Action prioritaire";
+  const todayXp = Number(dailyLoopSummary?.xp_today) || todayActionEntries.reduce(
+    (total, [, action]) => total + n(action.xp_awarded),
+    0
+  );
+  const statusLabel = (status?: string) => {
+    if (status === "decided") return "Decision prise";
+    if (status === "ignored") return "Ignore aujourd'hui";
+    if (status === "automation_requested") return "Automatisation demandee";
+    if (status === "recorded") return "Action enregistree";
+    return "En attente";
+  };
+  const actionKeyLabel = (key?: string) => {
+    if (key === "decide") return "Decider";
+    if (key === "ignore") return "Ignorer";
+    if (key === "automate") return "Automatiser";
+    return "Aucune action";
+  };
+  const formatDailyDate = (value?: string | null) => {
+    if (!value) return "Aujourd'hui";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Aujourd'hui";
+    return date.toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+    });
+  };
+  const recordDailyAction = async (action: {
+    key?: string;
+    label?: string;
+    status?: string;
+  }) => {
+    const actionKey = action.key || "";
+    if (!actionKey || dailyActionBusy || todayDailyActions[actionKey]) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setDailyActionFeedback("Session expiree. Reconnecte-toi pour enregistrer l'action.");
+      return;
+    }
+
+    setDailyActionBusy(actionKey);
+    setDailyActionFeedback("");
+
+    try {
+      const result = await apiFetch<{
+        message?: string;
+        xp_awarded?: number;
+        already_recorded?: boolean;
+      }>("/product/daily-briefing/action", token, {
+        method: "POST",
+        body: JSON.stringify({
+          action_key: actionKey,
+          action_label: action.label,
+          action_title: dailyBriefing?.recommended_action?.title,
+          action_description: dailyBriefing?.recommended_action?.description,
+          mission_key: dailyBriefing?.recommended_action?.mission_key,
+          briefing_version: dailyBriefing?.version,
+        }),
+      });
+      const xpMessage = result.xp_awarded ? ` +${result.xp_awarded} XP.` : "";
+      setDailyActionFeedback(`${result.message || "Action enregistree."}${xpMessage}`);
+      await onDailyActionComplete?.();
+    } catch (error) {
+      setDailyActionFeedback(
+        error instanceof Error ? error.message : "Action impossible pour le moment."
+      );
+    } finally {
+      setDailyActionBusy(null);
+    }
+  };
+  const updateDailyTaskStatus = async (taskId?: number, status = "done") => {
+    if (!taskId || taskBusyId) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setDailyActionFeedback("Session expiree. Reconnecte-toi pour mettre a jour la tache.");
+      return;
+    }
+
+    setTaskBusyId(taskId);
+    setDailyActionFeedback("");
+
+    try {
+      const result = await apiFetch<{
+        message?: string;
+        xp_awarded?: number;
+      }>(`/product/daily-briefing/tasks/${taskId}/status`, token, {
+        method: "POST",
+        body: JSON.stringify({ status }),
+      });
+      const xpMessage = result.xp_awarded ? ` +${result.xp_awarded} XP.` : "";
+      setDailyActionFeedback(`${result.message || "Tache mise a jour."}${xpMessage}`);
+      await onDailyActionComplete?.();
+    } catch (error) {
+      setDailyActionFeedback(
+        error instanceof Error ? error.message : "Mise a jour impossible pour le moment."
+      );
+    } finally {
+      setTaskBusyId(null);
+    }
+  };
+  const executePrimaryAction = async () => {
+    if (!primaryAction?.type || dailyActionBusy === "primary") return;
+
+    if (primaryAction.type === "review" || primaryAction.locked) {
+      setDailyActionFeedback("Suivi deja enregistre aujourd'hui. Reviens au prochain briefing pour une nouvelle priorite.");
+      return;
+    }
+
+    if (primaryAction.type === "decision") {
+      await recordDailyAction({ key: "decide", label: "Decider" });
+      return;
+    }
+
+    if (primaryAction.type === "task") {
+      await updateDailyTaskStatus(primaryAction.task_id || undefined, "done");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setDailyActionFeedback("Session expiree. Reconnecte-toi pour executer l'action.");
+      return;
+    }
+
+    setDailyActionBusy("primary");
+    setDailyActionFeedback("");
+
+    try {
+      const endpoint =
+        primaryAction.type === "mission"
+          ? `/product/missions/${primaryAction.mission_key}/complete`
+          : primaryAction.type === "academy"
+            ? `/product/academy/lessons/${primaryAction.lesson_key}/complete`
+            : "";
+
+      if (!endpoint) {
+        setDailyActionFeedback("Action prioritaire inconnue.");
+        return;
+      }
+
+      const result = await apiFetch<{
+        message?: string;
+        xp_awarded?: number;
+        already_completed?: boolean;
+      }>(endpoint, token, { method: "POST" });
+      const xpMessage = result.xp_awarded ? ` +${result.xp_awarded} XP.` : "";
+      setDailyActionFeedback(`${result.message || "Action prioritaire enregistree."}${xpMessage}`);
+      await onDailyActionComplete?.();
+    } catch (error) {
+      setDailyActionFeedback(
+        error instanceof Error ? error.message : "Action prioritaire impossible pour le moment."
+      );
+    } finally {
+      setDailyActionBusy(null);
+    }
+  };
 
   return (
     <section className="space-y-5">
+      {dailyBriefing && (
+        <div className="rounded-2xl border border-[#3fa9f5]/25 bg-[radial-gradient(circle_at_top_right,_rgba(63,169,245,0.18),_transparent_35%),linear-gradient(135deg,#07111c,#020202)] p-5">
+          <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                CEO Daily Briefing
+              </p>
+              <h2 className="mt-2 text-3xl font-black text-white">
+                {dailyBriefing.greeting || "Bonjour,"}
+              </h2>
+              <p className="mt-3 max-w-3xl text-lg font-bold leading-snug text-white">
+                {dailyBriefing.headline}
+              </p>
+              <p className="mt-2 text-sm text-gray-400">
+                Action estimee: {dailyBriefing.recommended_action?.estimated_time || "2 minutes"}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                ["Patrimoine", formatMoney(n(briefingMetrics.visible_wealth)), "text-[#3fa9f5]"],
+                ["Liberte", `${n(briefingMetrics.financial_freedom_progress).toFixed(1)}%`, "text-[#ffd21a]"],
+                ["Score", `${n(briefingMetrics.wealth_score).toFixed(0)}/100`, "text-[#16d99a]"],
+                ["Cashflow", formatSignedMoney(n(briefingMetrics.monthly_cashflow)), n(briefingMetrics.monthly_cashflow) >= 0 ? "text-[#16d99a]" : "text-red-300"],
+              ].map(([label, value, color]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-black/30 p-3">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{label}</p>
+                  <p className={`mt-1 text-lg font-black ${color}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+            <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-red-200">Risque principal</p>
+              <p className="mt-2 text-sm font-bold text-white">{dailyBriefing.risk?.description}</p>
+            </div>
+            <div className="rounded-xl border border-[#16d99a]/20 bg-[#16d99a]/10 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-[#16d99a]">{primaryActionReading}</p>
+                  <p className="mt-2 text-sm font-black text-white">
+                    {primaryAction?.title || dailyBriefing.recommended_action?.title}
+                  </p>
+                </div>
+                {primaryAction?.type && (
+                  <span className="rounded-full border border-[#16d99a]/30 px-2 py-1 text-[10px] uppercase text-[#16d99a]">
+                    {primaryAction.type}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm font-bold text-white">
+                {primaryAction?.description || dailyBriefing.recommended_action?.description}
+              </p>
+              {primaryAction?.why && (
+                <p className="mt-2 text-xs leading-relaxed text-[#bfffe7]">
+                  {primaryAction.why}
+                </p>
+              )}
+            </div>
+            <div className="rounded-xl border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#ffd21a]">Opportunite</p>
+              <p className="mt-2 text-sm font-bold text-white">{dailyBriefing.opportunity?.description}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 grid gap-3 lg:grid-cols-[0.85fr_1.1fr_1.05fr]">
+            <div className="rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Priorite</p>
+              <p className="mt-2 text-3xl font-black text-white">
+                {n(dailyBriefing.priority_score).toFixed(0)}
+                <span className="text-sm text-gray-400">/100</span>
+              </p>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/35">
+                <div
+                  className="h-full rounded-full bg-[#3fa9f5]"
+                  style={{ width: `${Math.max(1, Math.min(100, n(dailyBriefing.priority_score)))}%` }}
+                />
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">Pourquoi maintenant</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+                {dailyBriefing.why_today}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[#16d99a]/20 bg-[#16d99a]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#16d99a]">Resultat attendu</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+                {dailyBriefing.expected_outcome}
+              </p>
+            </div>
+          </div>
+
+          {dailyBriefing.alternative_action && (
+            <div className="mt-3 rounded-xl border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#ffd21a]">Alternative courte</p>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-white">
+                {dailyBriefing.alternative_action}
+              </p>
+            </div>
+          )}
+
+          {primaryAction && (
+            <div className="mt-3 grid gap-3 rounded-2xl border border-[#16d99a]/25 bg-[#16d99a]/10 p-4 lg:grid-cols-[1fr_0.9fr_auto] lg:items-center">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#16d99a]">
+                  {primaryAction?.type === "review" ? "Suivi du jour" : "A faire maintenant"}
+                </p>
+                <p className="mt-1 text-sm font-bold text-white">
+                  {primaryAction.description}
+                </p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+                <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                  Prochain jalon
+                </p>
+                <p className="mt-1 text-xs font-bold leading-relaxed text-gray-200">
+                  {progressionSummary?.next_milestone ||
+                    "Executer l'action prioritaire et laisser White Rock enregistrer la progression."}
+                </p>
+                <p className="mt-2 text-[11px] text-gray-500">
+                  {Number(progressionSummary?.xp_recent || 0)} XP recents -{" "}
+                  {Number(progressionSummary?.missions_completed || 0)} mission(s)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={executePrimaryAction}
+                disabled={
+                  Boolean(primaryAction.locked) ||
+                  dailyActionBusy === "primary" ||
+                  taskBusyId === primaryAction.task_id ||
+                  primaryAction.type === "review" ||
+                  (primaryAction.type === "decision" && Boolean(todayDailyActions.decide))
+                }
+                className="rounded-xl border border-[#16d99a]/40 bg-[#16d99a]/15 px-4 py-2 text-sm font-black text-[#16d99a] transition hover:bg-[#16d99a]/25 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {dailyActionBusy === "primary" || taskBusyId === primaryAction.task_id
+                  ? "Execution..."
+                  : primaryAction.cta_label || "Executer"}
+              </button>
+            </div>
+          )}
+
+          <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-4 lg:grid-cols-[0.95fr_1.1fr_0.95fr]">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">Boucle du jour</p>
+              <p className="mt-2 text-xl font-black text-white">
+                {todayActionEntries.length > 0
+                  ? "Action captee"
+                  : "Decision a prendre"}
+              </p>
+              <p className="mt-1 text-sm text-gray-400">
+                {todayActionEntries.length > 0
+                  ? "White Rock a enregistre ton choix et ajuste la progression."
+                  : "Choisis une action simple pour transformer le briefing en progression."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {[
+                {
+                  label: "Aujourd'hui",
+                  value:
+                    todayActionEntries.length > 0
+                      ? statusLabel(todayActionEntries[0][1].status)
+                      : "Non decide",
+                  tone: "text-[#16d99a]",
+                },
+                {
+                  label: "XP gagne",
+                  value: todayXp > 0 ? `+${todayXp} XP` : "0 XP",
+                  tone: todayXp > 0 ? "text-[#ffd21a]" : "text-gray-300",
+                },
+                {
+                  label: "Derniere action",
+                  value: actionKeyLabel(lastDailyAction?.action_key),
+                  tone: "text-[#3fa9f5]",
+                },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">{item.label}</p>
+                  <p className={`mt-1 text-sm font-black ${item.tone}`}>{item.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+              <p className="text-xs uppercase tracking-widest text-gray-500">Historique court</p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[11px]">
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <p className="font-black text-white">{dailyLoopSummary?.actions_recent || dailyLoopHistory.length}</p>
+                  <p className="text-gray-500">actions</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <p className="font-black text-[#16d99a]">{dailyLoopSummary?.done_tasks || 0}</p>
+                  <p className="text-gray-500">faites</p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <p className="font-black text-[#ffd21a]">+{dailyLoopSummary?.xp_recent || 0}</p>
+                  <p className="text-gray-500">XP</p>
+                </div>
+              </div>
+              {dailyLoopHistory.length > 0 ? (
+                <div className="mt-3 space-y-2">
+                  {dailyLoopHistory.slice(0, 3).map((item, index) => (
+                    <div key={`${item.created_at || index}-${item.action_key}`} className="rounded-lg border border-white/10 bg-black/20 p-2 text-xs">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-bold text-white">{actionKeyLabel(item.action_key)}</span>
+                        <span className="text-gray-500">{formatDailyDate(item.created_at)}</span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between gap-3">
+                        <span className="text-[11px] text-gray-400">{statusLabel(item.status)}</span>
+                        <span className="text-[11px] font-black text-[#16d99a]">+{item.xp_awarded || 0} XP</span>
+                      </div>
+                      {item.action_title && (
+                        <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">{item.action_title}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-gray-400">
+                  Les decisions quotidiennes apparaitront ici.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-[#16d99a]">Actions suivies</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  Taches creees depuis tes decisions du briefing.
+                </p>
+              </div>
+              <p className="text-xs font-bold text-gray-500">
+                {activeDailyTasks.length} en cours
+              </p>
+            </div>
+
+            {dailyTasks.length > 0 ? (
+              <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                {dailyTasks.slice(0, 4).map((task) => {
+                  const done = task.status === "done";
+                  return (
+                    <div
+                      key={task.id || task.title}
+                      className={`rounded-xl border p-3 ${
+                        done
+                          ? "border-[#16d99a]/20 bg-[#16d99a]/10"
+                          : "border-white/10 bg-white/[0.04]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-white">
+                            {task.title || "Action White Rock"}
+                          </p>
+                          <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                            {task.description}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full border px-2 py-1 text-[10px] uppercase ${
+                            done
+                              ? "border-[#16d99a]/30 text-[#16d99a]"
+                              : task.priority === "high"
+                                ? "border-[#ffd21a]/30 text-[#ffd21a]"
+                                : "border-[#3fa9f5]/30 text-[#3fa9f5]"
+                          }`}
+                        >
+                          {done ? "fait" : task.priority === "high" ? "priorite" : "a faire"}
+                        </span>
+                      </div>
+                      {!done && (
+                        <button
+                          type="button"
+                          onClick={() => updateDailyTaskStatus(task.id, "done")}
+                          disabled={taskBusyId === task.id}
+                          className="mt-3 rounded-lg border border-[#16d99a]/30 bg-[#16d99a]/10 px-3 py-1.5 text-xs font-black text-[#16d99a] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {taskBusyId === task.id ? "Mise a jour..." : "Marquer comme fait"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs text-gray-400">
+                Clique sur Automatiser pour transformer l'action recommandee en tache suivie.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {(dailyBriefing.actions || []).map((action) => {
+              const actionKey = action.key || "";
+              const todayAction = todayDailyActions[actionKey];
+              const completedStatus =
+                todayAction?.status ||
+                (["decided", "ignored", "automation_requested"].includes(action.status || "")
+                  ? action.status
+                  : "");
+              const disabled = Boolean(completedStatus) || dailyActionBusy === actionKey;
+              const label =
+                completedStatus === "decided"
+                  ? "Decide aujourd'hui"
+                  : completedStatus === "ignored"
+                    ? "Ignore aujourd'hui"
+                    : completedStatus === "automation_requested"
+                      ? "Automatisation demandee"
+                      : dailyActionBusy === actionKey
+                        ? "Enregistrement..."
+                        : action.label;
+
+              return (
+                <button
+                  key={action.key || action.label}
+                  type="button"
+                  onClick={() => recordDailyAction(action)}
+                  disabled={disabled}
+                  className={`rounded-xl border px-4 py-2 text-sm font-black disabled:cursor-not-allowed disabled:opacity-60 ${
+                    action.key === "decide"
+                      ? "border-[#16d99a]/40 bg-[#16d99a]/15 text-[#16d99a]"
+                      : action.key === "automate"
+                        ? "border-[#ffd21a]/40 bg-[#ffd21a]/15 text-[#ffd21a]"
+                        : "border-white/10 bg-white/[0.04] text-gray-300"
+                  }`}
+                  title={action.status === "preview" ? "Automatisation en preparation" : undefined}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {dailyActionFeedback && (
+            <p className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3 text-sm font-bold text-gray-200">
+              {dailyActionFeedback}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <button
           type="button"
@@ -659,7 +1249,7 @@ export default function HomeExecutiveSummary({
               Synthèse patrimoniale
             </p>
             <h2 className="mt-2 text-2xl font-black text-white">
-              Bilan, investissements et business
+              Bilan, investissements, business et Passion Assets
             </h2>
           </div>
           <p className="text-sm text-gray-400">
@@ -774,6 +1364,14 @@ export default function HomeExecutiveSummary({
         </div>
 
         <DualMetricBlock title="Business" amountItems={businessAmountData} ratioItems={businessRatioData} />
+
+        {passionValue > 0 && (
+          <DualMetricBlock
+            title="Passion Assets"
+            amountItems={passionAmountData}
+            ratioItems={passionRatioData}
+          />
+        )}
 
         <div className="hidden">
           <SummaryCard

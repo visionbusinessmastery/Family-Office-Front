@@ -137,7 +137,50 @@ export type ProductMission = {
   validation?: string;
   context_reason?: string;
   completed?: boolean;
+  completed_at?: string | null;
+  xp_awarded?: number;
   status?: "pending" | "completed" | "verified" | string;
+  current_value?: number;
+  target_value?: number;
+  progress_percent?: number;
+  impact_dimension?: string;
+  linked_daily_action?: string;
+  linked_academy_lesson?: {
+    module_key?: string;
+    module_title?: string;
+    lesson_key?: string;
+    lesson_title?: string;
+    duration?: string;
+    reason?: string;
+    completed?: boolean;
+    completed_at?: string | null;
+    xp_awarded?: number;
+  };
+  is_priority?: boolean;
+};
+
+export type ProductAcademyLesson = {
+  key?: string;
+  title?: string;
+  duration?: string;
+  outcome?: string;
+  reading?: string;
+  key_points?: string[];
+  exercise?: string;
+  action_steps?: string[];
+  completed?: boolean;
+  completed_at?: string | null;
+  xp_awarded?: number;
+};
+
+export type ProductAcademyModule = {
+  key?: string;
+  title?: string;
+  description?: string;
+  lesson_count?: number;
+  completed_count?: number;
+  progress_percent?: number;
+  lessons?: ProductAcademyLesson[];
 };
 
 export type ProductSignal = {
@@ -191,6 +234,14 @@ export type ProductContext = {
     ai_level?: string;
     modules?: string[];
     features?: string[];
+    feature_access?: Array<{
+      key?: string;
+      label?: string;
+      group?: string;
+      required_plan?: string;
+      description?: string;
+      available?: boolean;
+    }>;
     copy?: {
       name?: string;
       price?: string;
@@ -211,6 +262,7 @@ export type ProductContext = {
     real_estate_count?: number;
     yield_count?: number;
     venture_count?: number;
+    passion_assets_count?: number;
     total_assets_count?: number;
     completed_steps?: number;
     completion_percent?: number;
@@ -229,6 +281,11 @@ export type ProductContext = {
     yield_value?: number;
     venture_value?: number;
     business_value?: number;
+    passion_assets_value?: number;
+    passion_assets_cost?: number;
+    passion_assets_gain?: number;
+    passion_assets_performance?: number;
+    passion_assets_insured?: number;
     current_wealth?: number;
     projection_wealth?: number;
   };
@@ -245,6 +302,36 @@ export type ProductContext = {
     locked?: ProductModule[];
   };
   missions?: ProductMission[];
+  wealth_academy?: {
+    title?: string;
+    plan?: string;
+    score?: number;
+    progress?: {
+      completed_lessons?: number;
+      total_lessons?: number;
+      progress_percent?: number;
+      xp_awarded?: number;
+    };
+    recommended?: {
+      module_key?: string;
+      module_title?: string;
+      lesson_key?: string;
+      lesson_title?: string;
+      duration?: string;
+      outcome?: string;
+      reading?: string;
+      key_points?: string[];
+      exercise?: string;
+      action_steps?: string[];
+      why_now?: string;
+      linked_mission_key?: string | null;
+      linked_mission_title?: string | null;
+      completed?: boolean;
+      completed_at?: string | null;
+      xp_awarded?: number;
+    };
+    modules?: ProductAcademyModule[];
+  };
   strategic_brief?: {
     priority?: string;
     main_lever?: string;
@@ -263,6 +350,125 @@ export type ProductContext = {
     decision?: ProductSignal;
     mission?: ProductSignal;
     future_signal?: ProductSignal;
+  };
+  ceo_daily_briefing?: {
+    version?: string;
+    generated_at?: string;
+    title?: string;
+    greeting?: string;
+    headline?: string;
+    plan?: string;
+    priority_score?: number;
+    why_today?: string;
+    expected_outcome?: string;
+    alternative_action?: string;
+    metrics?: {
+      visible_wealth?: number;
+      projected_wealth?: number;
+      wealth_delta?: number;
+      financial_freedom_progress?: number;
+      wealth_score?: number;
+      monthly_cashflow?: number;
+      monthly_capacity?: number;
+      completion_percent?: number;
+    };
+    risk?: ProductSignal;
+    opportunity?: ProductSignal;
+    recommended_action?: ProductSignal & {
+      estimated_time?: string;
+      source?: string;
+      mission_key?: string | null;
+      mission_xp?: number;
+      action_type?: "mission" | "academy" | "task" | "decision" | "review" | string;
+      lesson_key?: string | null;
+      task_id?: number | null;
+    };
+    primary_action?: {
+      type?: "mission" | "academy" | "task" | "decision" | "review" | string;
+      title?: string;
+      description?: string;
+      cta_label?: string;
+      mission_key?: string | null;
+      lesson_key?: string | null;
+      module_key?: string | null;
+      task_id?: number | null;
+      duration?: string | null;
+      xp?: number;
+      why?: string;
+      locked?: boolean;
+    };
+    trajectory_impact?: {
+      dimension?: string;
+      effect?: string;
+      metric?: string;
+      risk_link?: string;
+      opportunity_link?: string;
+      reading?: string;
+    };
+    actions?: Array<{
+      key?: string;
+      label?: string;
+      status?: string;
+      xp_awarded?: number;
+    }>;
+    daily_loop?: {
+      today_actions?: Record<
+        string,
+        {
+          status?: string;
+          xp_awarded?: number;
+          created_at?: string | null;
+        }
+      >;
+      history?: Array<{
+        action_key?: string;
+        action_label?: string;
+        action_title?: string;
+        status?: string;
+        xp_awarded?: number;
+        created_at?: string | null;
+      }>;
+      tasks?: Array<{
+        id?: number;
+        title?: string;
+        description?: string;
+        mission_key?: string | null;
+        priority?: string;
+        status?: string;
+        created_at?: string | null;
+        updated_at?: string | null;
+        completed_at?: string | null;
+      }>;
+      summary?: {
+        actions_today?: number;
+        actions_recent?: number;
+        open_tasks?: number;
+        done_tasks?: number;
+        xp_today?: number;
+        xp_recent?: number;
+        last_action?: {
+          action_key?: string;
+          action_label?: string;
+          action_title?: string;
+          status?: string;
+          xp_awarded?: number;
+          created_at?: string | null;
+        } | null;
+      };
+    };
+    weekly_bridge?: {
+      monday?: string;
+      friday?: string;
+    };
+    future_bridge?: {
+      label?: string;
+      assumption?: string;
+      scenarios?: Array<{
+        label?: string;
+        years?: number;
+        value?: number;
+      }>;
+    };
   };
   future_view?: {
     title?: string;
@@ -846,6 +1052,65 @@ export type VentureAssetData = {
   };
 };
 
+export type PassionAssetType =
+  | "art"
+  | "watch"
+  | "car"
+  | "wine_spirits"
+  | "jewelry"
+  | "precious_metals"
+  | "collectible"
+  | "other";
+
+export type PassionAsset = {
+  id: number;
+  asset_type: PassionAssetType;
+  name: string;
+  acquisition_value?: number | string;
+  estimated_value?: number | string;
+  latent_gain?: number | string;
+  performance?: number | string;
+  acquisition_year?: number | null;
+  provenance?: string | null;
+  storage_location?: string | null;
+  insured_value?: number | string;
+  beneficiary?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type PassionAssetData = {
+  assets: PassionAsset[];
+  access?: {
+    plan?: string;
+    available?: boolean;
+    required_plan?: string;
+    feature?: string;
+    copy?: {
+      key?: string;
+      label?: string;
+      group?: string;
+      required_plan?: string;
+      description?: string;
+      available?: boolean;
+    } | null;
+  } | null;
+  totals: {
+    count?: number | string;
+    acquisition_value?: number | string;
+    estimated_value?: number | string;
+    latent_gain?: number | string;
+    performance?: number | string;
+    insured_value?: number | string;
+    dominant?: {
+      asset_type?: string;
+      value?: number | string;
+      percent?: number | string;
+    } | null;
+  };
+};
+
 export type BusinessIntelligenceData = {
   version?: string;
   access?: AssetAccess | null;
@@ -1141,11 +1406,25 @@ export type ProgressionTimelineItem = {
   impact?: string;
   xp?: number;
   source?: string;
+  status?: string;
+  status_label?: string;
+  action_key?: string;
+  mission_key?: string;
+  lesson_key?: string;
+  module_key?: string;
 };
 
 export type ProgressionTimelineData = {
   version?: string;
   plan?: string;
+  summary?: {
+    xp_recent?: number;
+    decisions?: number;
+    missions_completed?: number;
+    academy_lessons_completed?: number;
+    tasks_completed?: number;
+    next_milestone?: string;
+  };
   timeline?: ProgressionTimelineItem[];
 };
 
