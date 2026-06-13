@@ -82,7 +82,7 @@ export default function EthanFloatingAdvisor() {
   if (!enabled) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-24 right-4 z-50 flex max-w-[calc(100vw-2rem)] flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       {open && (
         <div className="no-scrollbar max-h-[78vh] w-[min(420px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-white/10 bg-black shadow-2xl shadow-black/50">
           <AdvisorChat compact />

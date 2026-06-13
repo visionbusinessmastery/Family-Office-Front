@@ -21,11 +21,25 @@ export default function Header({
   billingSubscription,
   onUpgrade,
 }: HeaderProps) {
+  const planOrder: Record<string, number> = {
+    FREE: 0,
+    GOLD: 1,
+    ELITE: 2,
+    LIBERTY: 3,
+    LEGACY: 4,
+  };
+  const normalizePlan = (value?: string | null) => {
+    const normalized = String(value || "FREE").trim().toUpperCase();
+    if (normalized === "GROWTH") return "GOLD";
+    if (normalized === "PLATINUM" || normalized === "WEALTH_OS") return "ELITE";
+    if (normalized === "DYNASTY" || normalized === "DYNASTY_OFFICE") return "LEGACY";
+    return planOrder[normalized] === undefined ? "FREE" : normalized;
+  };
 
   const plan = billingSubscription?.plan
-    ? String(billingSubscription.plan).toUpperCase()
+    ? normalizePlan(billingSubscription.plan)
     : dashboard?.plan
-      ? String(dashboard.plan).toUpperCase()
+      ? normalizePlan(dashboard.plan)
       : undefined;
   const level = dashboard?.level || null;
   const isFounder = Boolean(
@@ -33,14 +47,16 @@ export default function Header({
   );
   const founderTier =
     billingSubscription?.founder?.tier || dashboard?.founder_tier || null;
-  const nextPlan = dashboard?.next_plan || null;
+  const nextPlan = dashboard?.next_plan ? normalizePlan(dashboard.next_plan) : null;
+  const showUpgrade =
+    Boolean(nextPlan && onUpgrade && plan && planOrder[nextPlan] > planOrder[plan]);
 
   const ctaLabel =
-    nextPlan === "liberty"
+    nextPlan === "LIBERTY"
       ? "Debloquer Liberty"
-      : nextPlan === "legacy"
+      : nextPlan === "LEGACY"
         ? "Passer Dynasty"
-        : nextPlan === "elite"
+        : nextPlan === "ELITE"
           ? "Passer en Wealth OS"
           : "Debloquer Gold";
 
@@ -82,9 +98,29 @@ export default function Header({
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-2 text-right text-sm text-white/60">
-        <div className="mr-3 hidden sm:block">
+      <div className="flex w-full shrink-0 items-center justify-between gap-2 text-right text-sm text-white/60">
+        <div className="shrink-0">
           <BrandMark compact />
+        </div>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:hidden">
+          {plan ? (
+            <span
+              className={`truncate rounded px-2 py-1 text-[11px] font-semibold ${getPlanStyle(
+                plan
+              )}`}
+            >
+              {plan === "LEGACY" ? "DYNASTY" : plan}
+            </span>
+          ) : null}
+          {level ? (
+            <span
+              className={`truncate rounded px-2 py-1 text-[11px] font-semibold ${getLevelStyle(
+                level
+              )}`}
+            >
+              {level}
+            </span>
+          ) : null}
         </div>
           {plan ? (
             <div className="hidden items-end gap-2 md:flex">
@@ -131,10 +167,10 @@ export default function Header({
             <div className="hidden h-8 w-28 animate-pulse rounded-lg bg-white/10 sm:block" />
           )}
 
-          {nextPlan && onUpgrade && (
+          {showUpgrade && nextPlan && onUpgrade && (
             <button
-              onClick={() => onUpgrade(nextPlan)}
-              className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#2d91d5] sm:px-4 sm:text-xs"
+              onClick={() => onUpgrade(nextPlan.toLowerCase())}
+              className="shrink-0 rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5] px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-[#2d91d5] sm:px-4 sm:py-2 sm:text-xs"
             >
               {ctaLabel}
             </button>

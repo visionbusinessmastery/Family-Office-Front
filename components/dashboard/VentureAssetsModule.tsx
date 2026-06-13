@@ -7,7 +7,7 @@ import type {
   VentureAssetType,
 } from "@/lib/types";
 import OpportunityInsightCard from "./OpportunityInsightCard";
-import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
+import { ActionButton, EmptyState } from "@/components/ui/WealthUI";
 
 type Props = {
   data?: VentureAssetData | null;
@@ -35,7 +35,6 @@ export default function VentureAssetsModule({
   opportunities = [],
 }: Props) {
   const assets = data?.assets || [];
-  const totals = data?.totals || {};
   const access = data?.access;
   const canAddAsset = !access || access.is_unlimited || n(access.remaining) > 0;
   const accessLine = access
@@ -57,27 +56,6 @@ export default function VentureAssetsModule({
             {accessLine}
           </p>
         )}
-      </div>
-
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Chiffre d'affaires"
-          value={`${money.format(n(totals.total_revenue))} EUR`}
-        />
-        <MetricCard
-          label="Charges"
-          value={`${money.format(n(totals.total_charges))} EUR`}
-        />
-        <MetricCard
-          label="Performance"
-          value={`${n(totals.total_result) >= 0 ? "+" : ""}${money.format(n(totals.total_result))} EUR`}
-          tone={n(totals.total_result) >= 0 ? "success" : "danger"}
-        />
-        <MetricCard
-          label="Valeur suivie"
-          value={`${money.format(n(totals.total_final_value))} EUR`}
-          tone="primary"
-        />
       </div>
 
       <div className="mb-5 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">

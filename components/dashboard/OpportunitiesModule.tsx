@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import type { ReactNode } from "react";
 import type {
   CommandCenter,
   Opportunity,
@@ -10,6 +10,7 @@ import type {
 type OpportunitiesModuleProps = {
   commandCenter: CommandCenter | null;
   plan?: string | null;
+  partnersSlot?: ReactNode;
 };
 
 const priorityClasses: Record<string, string> = {
@@ -33,6 +34,54 @@ const opportunitySummary = (opportunity: Opportunity) =>
   opportunity.description ||
   opportunity.impact_potential ||
   "";
+
+const readableValue = (value?: string | number | null) => {
+  if (value === null || value === undefined || value === "") return "";
+  return String(value).replace(/_/g, " ");
+};
+
+const opportunitySourceFacts = (opportunity: Opportunity) =>
+  [
+    opportunity.type && `type ${readableValue(opportunity.type)}`,
+    opportunity.budget && `budget ${readableValue(opportunity.budget)}`,
+    opportunity.potential && `potentiel ${readableValue(opportunity.potential)}`,
+    opportunity.risk && `risque ${readableValue(opportunity.risk)}`,
+    opportunity.difficulty && `difficulte ${readableValue(opportunity.difficulty)}`,
+    opportunity.priority && `priorite ${readableValue(opportunity.priority)}`,
+    typeof opportunity.score === "number" && `score ${opportunity.score}/100`,
+  ].filter(Boolean);
+
+const opportunityMeaning = (opportunity: Opportunity) => {
+  if (opportunity.why_this_opportunity) return opportunity.why_this_opportunity;
+  if (opportunity.impact_potential) return opportunity.impact_potential;
+  if (opportunity.why_now) return opportunity.why_now;
+
+  const type = normalize(opportunity.type || opportunity.title);
+  const budget = readableValue(opportunity.budget);
+  const potential = readableValue(opportunity.potential);
+  const risk = readableValue(opportunity.risk);
+  const difficulty = readableValue(opportunity.difficulty);
+
+  const base =
+    /crypto|bitcoin|btc/.test(type)
+      ? "Ce signal sert surtout a cadrer une exposition crypto: rythme d'entree, taille de position et niveau de risque."
+      : /business|agency|ugc|startup|franchise|entrepreneur/.test(type)
+        ? "Ce signal pointe un levier de revenus ou de creation de valeur business a tester avant de le scaler."
+        : /real_estate|immobilier|location/.test(type)
+          ? "Ce signal indique une piste immobiliere a verifier par rendement, liquidite, financement et contraintes locales."
+          : /diversification|stocks|etf|market|commodities|forex/.test(type)
+            ? "Ce signal sert a ameliorer l'equilibre du portefeuille plutot qu'a ajouter une position au hasard."
+            : "Ce signal indique une piste a qualifier avant decision: coherence avec ton profil, effort requis et risque.";
+
+  const qualifiers = [
+    budget && `budget ${budget}`,
+    potential && `potentiel ${potential}`,
+    risk && `risque ${risk}`,
+    difficulty && `difficulte ${difficulty}`,
+  ].filter(Boolean);
+
+  return qualifiers.length > 0 ? `${base} Source: ${qualifiers.join(", ")}.` : base;
+};
 
 const opportunityText = (opportunity: Opportunity) =>
   normalize(
@@ -108,10 +157,8 @@ const isStrategySignal = (opportunity: Opportunity) =>
 export default function OpportunitiesModule({
   commandCenter,
   plan,
+  partnersSlot,
 }: OpportunitiesModuleProps) {
-  const [selectedOpportunity, setSelectedOpportunity] =
-    useState<Opportunity | null>(null);
-  const [showMore, setShowMore] = useState(false);
   const opportunities = normalizeOpportunities(commandCenter?.opportunities);
   const detectedCount =
     typeof commandCenter?.opportunities_count === "number"
@@ -158,16 +205,16 @@ export default function OpportunitiesModule({
     const badgeClass = priorityClasses[priority] || priorityClasses.medium;
     const summary = opportunitySummary(opportunity);
     const lens = classifyOpportunity(opportunity);
+    const meaning = opportunityMeaning(opportunity);
+    const sourceFacts = opportunitySourceFacts(opportunity);
 
     return (
-      <button
-        type="button"
+      <article
         key={`${opportunity.type || opportunity.title}-${index}-${variant}`}
-        onClick={() => setSelectedOpportunity(opportunity)}
-        className={`rounded-2xl border p-4 text-left transition hover:border-[#3fa9f5]/50 ${
+        className={`rounded-2xl border p-4 ${
           variant === "primary"
             ? "border-[#3fa9f5]/35 bg-[#3fa9f5]/10"
-            : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
+            : "border-white/10 bg-white/5"
         }`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -178,10 +225,20 @@ export default function OpportunitiesModule({
             <h3 className="mt-2 font-bold text-white">
               {opportunity.title || "Opportunite"}
             </h3>
-            {summary && (
+            {summary && summary !== meaning && (
               <p className="mt-2 text-sm leading-relaxed text-gray-400">
                 {summary}
               </p>
+            )}
+            {meaning && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Ce que ca veut dire
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-gray-300">
+                  {meaning}
+                </p>
+              </div>
             )}
           </div>
 
@@ -198,12 +255,33 @@ export default function OpportunitiesModule({
           >
             {lens.label}
           </span>
+          {opportunity.budget && (
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+              Budget {readableValue(opportunity.budget)}
+            </span>
+          )}
+          {opportunity.potential && (
+            <span className="rounded-full border border-[#16d99a]/25 bg-[#16d99a]/10 px-3 py-1 text-xs text-[#16d99a]">
+              Potentiel {readableValue(opportunity.potential)}
+            </span>
+          )}
+          {opportunity.risk && (
+            <span className="rounded-full border border-[#f87171]/25 bg-[#f87171]/10 px-3 py-1 text-xs text-[#fca5a5]">
+              Risque {readableValue(opportunity.risk)}
+            </span>
+          )}
           {opportunity.difficulty && (
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
               {opportunity.difficulty}
             </span>
           )}
         </div>
+
+        {sourceFacts.length > 0 && (
+          <p className="mt-3 text-xs leading-relaxed text-gray-500">
+            Donnees source: {sourceFacts.join(" - ")}.
+          </p>
+        )}
 
         <div className="mt-4 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
           {showAction && opportunity.next_action && (
@@ -225,7 +303,7 @@ export default function OpportunitiesModule({
         {opportunity.premium && (
           <p className="mt-3 text-xs text-yellow-300">Signal premium</p>
         )}
-      </button>
+      </article>
     );
   };
 
@@ -296,31 +374,6 @@ export default function OpportunitiesModule({
             </div>
           )}
 
-          {restOpportunities.length > 0 && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
-                  Autres signaux suivis
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowMore((current) => !current)}
-                  className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 hover:border-[#3fa9f5]/50 hover:text-white"
-                >
-                  {showMore ? "Masquer" : "Voir plus"}
-                </button>
-              </div>
-
-              {showMore && (
-                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {restOpportunities.map((opportunity, index) =>
-                    renderOpportunityCard(opportunity, index + 3)
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {strategySignals.length > 0 && (
             <div className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
               <p className="text-xs font-bold uppercase tracking-widest text-[#3fa9f5]">
@@ -337,73 +390,26 @@ export default function OpportunitiesModule({
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {selectedOpportunity && (
-        <div className="mt-5 rounded-2xl border border-[#3fa9f5]/25 bg-[#3fa9f5]/10 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                Detail opportunite
-              </p>
-              <h3 className="mt-1 text-lg font-bold text-white">
-                {selectedOpportunity.title || "Opportunite"}
-              </h3>
+          {partnersSlot}
+
+          {restOpportunities.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                  Autres signaux suivis
+                </p>
+                <span className="text-xs text-gray-500">
+                  {restOpportunities.length} signal(aux)
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {restOpportunities.map((opportunity, index) =>
+                  renderOpportunityCard(opportunity, index + 3)
+                )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedOpportunity(null)}
-              className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-400 hover:text-white"
-            >
-              Fermer
-            </button>
-          </div>
-          {opportunitySummary(selectedOpportunity) && (
-            <p className="mt-3 text-sm leading-relaxed text-gray-300">
-              {opportunitySummary(selectedOpportunity)}
-            </p>
-          )}
-          <div className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-gray-500">Type</p>
-              <p className="mt-1 font-bold text-white">
-                {selectedOpportunity.type || "signal"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-gray-500">Priorite</p>
-              <p className="mt-1 font-bold text-white">
-                {selectedOpportunity.priority || "medium"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-gray-500">Difficulte</p>
-              <p className="mt-1 font-bold text-[#3fa9f5]">
-                {selectedOpportunity.difficulty || "non renseignee"}
-              </p>
-            </div>
-          </div>
-          {(selectedOpportunity.why_now || selectedOpportunity.impact_potential) && (
-            <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              {selectedOpportunity.why_now && (
-                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <p className="text-xs text-gray-500">Pourquoi maintenant</p>
-                  <p className="mt-1 text-gray-300">{selectedOpportunity.why_now}</p>
-                </div>
-              )}
-              {selectedOpportunity.impact_potential && (
-                <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-                  <p className="text-xs text-gray-500">Impact potentiel</p>
-                  <p className="mt-1 text-gray-300">{selectedOpportunity.impact_potential}</p>
-                </div>
-              )}
-            </div>
-          )}
-          {selectedOpportunity.next_action && (
-            <p className="mt-4 rounded-xl border border-white/10 bg-black/30 p-3 text-sm leading-relaxed text-gray-300">
-              {selectedOpportunity.next_action}
-            </p>
           )}
         </div>
       )}

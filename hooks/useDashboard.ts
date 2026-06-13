@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch, clearAuthSession, isJwtExpired } from "@/lib/api-client";
 import type {
   AdvisorContextSummary,
+  AffiliatePartnerData,
   BusinessIntelligenceData,
   CategoryOpportunityData,
   CommandCenter,
@@ -94,6 +95,7 @@ type DashboardSessionSnapshot = {
   onboarding: OnboardingData | null;
   intelligence: UserIntelligence | null;
   categoryOpportunities: CategoryOpportunityData | null;
+  affiliatePartners: AffiliatePartnerData | null;
   workspaces: WorkspaceData | null;
   legacyOverview: LegacyOverview | null;
   product: ProductContext | null;
@@ -236,6 +238,8 @@ export function useDashboard() {
   const [intelligence, setIntelligence] = useState<UserIntelligence | null>(null);
   const [categoryOpportunities, setCategoryOpportunities] =
     useState<CategoryOpportunityData | null>(null);
+  const [affiliatePartners, setAffiliatePartners] =
+    useState<AffiliatePartnerData | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceData | null>(null);
   const [legacyOverview, setLegacyOverview] = useState<LegacyOverview | null>(null);
   const [product, setProduct] = useState<ProductContext | null>(null);
@@ -306,6 +310,7 @@ export function useDashboard() {
     setOnboarding(snapshot.onboarding);
     setIntelligence(snapshot.intelligence);
     setCategoryOpportunities(snapshot.categoryOpportunities);
+    setAffiliatePartners(snapshot.affiliatePartners || null);
     setWorkspaces(snapshot.workspaces);
     setLegacyOverview(snapshot.legacyOverview);
     setProduct(snapshot.product);
@@ -472,6 +477,11 @@ export function useDashboard() {
     setCategoryOpportunities(data || { categories: [] });
   }, [safeFetch]);
 
+  const loadAffiliatePartners = useCallback(async () => {
+    const data = await safeFetch<AffiliatePartnerData>("/intelligence/affiliates");
+    setAffiliatePartners(data || { partners: [] });
+  }, [safeFetch]);
+
   const loadOnboarding = useCallback(async (fallbackUser: UserProfile | null = null) => {
     const intel = await loadIntelligence();
 
@@ -532,6 +542,7 @@ export function useDashboard() {
       loadFinance(),
       loadFinanceOverview(),
       loadCategoryOpportunities(),
+      loadAffiliatePartners(),
       loadOnboarding(userData),
       loadCommandCenter(),
       loadAdvisorContext(),
@@ -543,6 +554,7 @@ export function useDashboard() {
     loadAdvisorContext,
     loadFinance,
     loadFinanceOverview,
+    loadAffiliatePartners,
     loadCategoryOpportunities,
     loadGamification,
     loadProgressionTimeline,
@@ -567,6 +579,7 @@ export function useDashboard() {
       loadCommandCenter(),
       loadAdvisorContext(),
       loadCategoryOpportunities(),
+      loadAffiliatePartners(),
       loadBusinessIntelligence(),
       loadFinanceOverview(),
       loadGamification(),
@@ -574,6 +587,7 @@ export function useDashboard() {
     ]);
   }, [
     loadBillingSubscription,
+    loadAffiliatePartners,
     loadCategoryOpportunities,
     loadCommandCenter,
     loadAdvisorContext,
@@ -654,6 +668,7 @@ export function useDashboard() {
       onboarding,
       intelligence,
       categoryOpportunities,
+      affiliatePartners,
       workspaces,
       legacyOverview,
       product,
@@ -665,6 +680,7 @@ export function useDashboard() {
     });
   }, [
     advisorContext,
+    affiliatePartners,
     billingSubscription,
     businessIntelligence,
     categoryOpportunities,
@@ -708,6 +724,7 @@ export function useDashboard() {
     onboarding,
     intelligence,
     categoryOpportunities,
+    affiliatePartners,
     workspaces,
     legacyOverview,
     product,
@@ -732,6 +749,7 @@ export function useDashboard() {
     loadOnboarding,
     loadIntelligence,
     loadCategoryOpportunities,
+    loadAffiliatePartners,
     loadGamification,
     loadProgressionTimeline,
     recalcScore,

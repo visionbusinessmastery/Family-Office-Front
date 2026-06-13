@@ -3,7 +3,7 @@
 import type { CategoryOpportunity, PortfolioAsset } from "@/lib/types";
 import { moduleCategories } from "./FamilyOfficeOverview";
 import OpportunityInsightCard from "./OpportunityInsightCard";
-import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
+import { ActionButton, EmptyState } from "@/components/ui/WealthUI";
 
 type PortfolioProps = {
   portfolio: PortfolioAsset[];
@@ -21,12 +21,6 @@ const getAssetValue = (asset: PortfolioAsset) =>
   Number(asset.value ?? asset.current_value ?? 0);
 
 const getAssetGain = (asset: PortfolioAsset) => Number(asset.gain ?? asset.pnl ?? 0);
-
-const getAssetCost = (asset: PortfolioAsset) =>
-  Number(
-    asset.cost ??
-      Number(asset.quantity || 0) * Number(asset.purchase_price || 0)
-  );
 
 const normalizeType = (asset: PortfolioAsset) =>
   String(asset.asset_type || asset.type || "Autre")
@@ -120,25 +114,6 @@ export default function PortfolioModule({
   }
 
   const total = portfolio.reduce((acc, asset) => acc + getAssetValue(asset), 0);
-  const totalCost = portfolio.reduce((acc, asset) => acc + getAssetCost(asset), 0);
-  const totalGain = total - totalCost;
-  const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
-
-  const allocation = portfolio
-    .reduce<Array<{ label: string; value: number }>>((acc, asset) => {
-      const label = normalizeType(asset);
-      const value = getAssetValue(asset);
-      const existing = acc.find((item) => item.label === label);
-      if (existing) existing.value += value;
-      else acc.push({ label, value });
-      return acc;
-    }, [])
-    .filter((item) => item.value > 0)
-    .sort((a, b) => b.value - a.value);
-
-  const dominantExposure = allocation[0];
-  const dominantWeight =
-    dominantExposure && total > 0 ? (dominantExposure.value / total) * 100 : 0;
   const displayedHoldings = portfolio
     .filter((asset) => getAssetValue(asset) > 0)
     .sort((a, b) => getAssetValue(b) - getAssetValue(a));
@@ -167,70 +142,6 @@ export default function PortfolioModule({
           </ActionButton>
         )}
       </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          label="Valeur totale"
-          value={`${money.format(total)} EUR`}
-          tone="primary"
-        />
-        <MetricCard
-          label="Plus / moins-value"
-          value={`${totalGain >= 0 ? "+" : ""}${money.format(totalGain)} EUR`}
-          tone={totalGain >= 0 ? "success" : "danger"}
-        />
-        <MetricCard
-          label="Performance"
-          value={`${totalGainPercent >= 0 ? "+" : ""}${totalGainPercent.toFixed(2)}%`}
-          tone={totalGainPercent >= 0 ? "success" : "danger"}
-        />
-        <MetricCard
-          label="Exposition dominante"
-          value={
-            dominantExposure
-              ? `${dominantExposure.label} ${dominantWeight.toFixed(0)}%`
-              : "A qualifier"
-          }
-        />
-      </div>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-gray-500">
-              Allocation globale
-            </p>
-            <h3 className="mt-1 text-lg font-bold text-white">
-              Structure par classe d'actifs
-            </h3>
-          </div>
-          <p className="text-sm text-gray-400">
-            {allocation.length} classe(s) suivie(s)
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          {allocation.map((item) => {
-            const weight = total > 0 ? (item.value / total) * 100 : 0;
-            return (
-              <div key={item.label}>
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="font-semibold text-white">{item.label}</span>
-                  <span className="text-gray-300">
-                    {weight.toFixed(1)}% - {money.format(item.value)} EUR
-                  </span>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    className="h-full rounded-full bg-[#3fa9f5]"
-                    style={{ width: `${Math.min(weight, 100)}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
       <section className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

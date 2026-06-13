@@ -23,6 +23,7 @@ import {
 import BrandMark from "@/components/BrandMark";
 import {
   ActionButton,
+  MetricCard,
   SelectField,
   TextField,
   WealthModal,
@@ -51,6 +52,7 @@ import type {
 
 import Header from "@/components/dashboard/Header";
 import AdvisorChat from "@/components/dashboard/AdvisorChat";
+import AffiliatePartnersPanel from "@/components/dashboard/AffiliatePartnersPanel";
 import BalanceSheetModule from "@/components/dashboard/BalanceSheetModule";
 import FinanceModule from "@/components/dashboard/FinanceModule";
 import HomeExecutiveSummary from "@/components/dashboard/HomeExecutiveSummary";
@@ -676,15 +678,84 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
   const domains = narrative?.domains || [];
   const wealthBlocks = product?.wealth_blocks?.blocks || [];
   const gravity = product?.gravity_center;
+  const hiddenWealth = product?.hidden_wealth;
+  const intelligence = product?.family_office_intelligence;
+  const dataProfile = product?.data_profile;
+  const scorecardPreview = (intelligence?.scorecard || []).slice(0, 4);
+  const lifePreview = (intelligence?.life_dimensions || []).slice(0, 4);
+  const radarPreview = (intelligence?.radar || []).slice(0, 4);
+  const stressPreview = (intelligence?.stress_tests || []).slice(0, 3);
+  const weakSignalPreview = (intelligence?.weak_signals || []).slice(0, 3);
+  const wealthBlockTotal = wealthBlocks.reduce(
+    (sum, block) => sum + Number(block.value || 0),
+    0
+  );
+  const wealthBlockComposition = wealthBlocks.slice(0, 4).map((block, index) => {
+    const value = Number(block.value || 0);
+    return {
+      key: block.key || block.label || String(index),
+      label: String(block.label || "").replace(/^Bloc\s+/i, ""),
+      value,
+      percent: wealthBlockTotal > 0 ? (value / wealthBlockTotal) * 100 : 0,
+      fill: ["#ffd21a", "#3fa9f5", "#16d99a", "#f87171"][index],
+      description: block.description,
+    };
+  });
+  const dominantWealthBlock = wealthBlockComposition
+    .slice()
+    .sort((a, b) => b.percent - a.percent)[0];
+  const scoreRadarWatch = [
+    ...(intelligence?.scorecard || []),
+    ...(intelligence?.radar || []),
+  ]
+    .map((item) => ({
+      label: item.label || "Point sensible",
+      score: Number(item.score || 0),
+      status: "status" in item ? item.status : undefined,
+    }))
+    .filter((item) => item.score > 0 && item.score < 50)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
+  const concentrationWatch =
+    dominantWealthBlock && dominantWealthBlock.percent >= 55
+      ? dominantWealthBlock
+      : null;
+  const wealthSnapshot = narrative
+    ? [
+        { label: "Visible", value: Number(narrative.visible_wealth || 0), fill: "#ffd21a" },
+        { label: "Activable", value: Number(narrative.activable_wealth || 0), fill: "#3fa9f5" },
+        { label: "Potentiel", value: Number(narrative.total_potential || 0), fill: "#16d99a" },
+      ].filter((item) => item.value > 0)
+    : [];
+  const liquidAssets = Number(dataProfile?.liquid_assets || dataProfile?.monthly_savings || 0);
+  const securityReserve = Number(dataProfile?.security_reserve || 0);
+  const mobilizableLiquidity = Number(dataProfile?.mobilizable_liquidity || 0);
+  const deployableLiquidity = Number(dataProfile?.deployable_liquidity || 0);
+  const monthlyIncome = Number(dataProfile?.monthly_income || 0);
+  const monthlyExpenses = Number(dataProfile?.monthly_expenses || 0);
+  const calculatedCashflow = Math.max(monthlyIncome - monthlyExpenses, 0);
+  const cashflowCapacity =
+    calculatedCashflow ||
+    Number(dataProfile?.cashflow_capacity || 0) ||
+    Number(dataProfile?.monthly_capacity || 0);
+  const reserveMonths =
+    monthlyExpenses > 0 ? liquidAssets / monthlyExpenses : liquidAssets > 0 ? null : 0;
+  const confidenceLabels: Record<string, string> = {
+    contextual: "A valider",
+    light: "Indicatif",
+    asset_based: "Base existante",
+    early_signal: "A structurer",
+    simulation: "Simulation",
+  };
 
   if (!narrative) return null;
 
   return (
-    <section className="rounded-2xl border border-[#ffd21a]/30 bg-[radial-gradient(circle_at_top_left,_rgba(255,210,26,0.24),_transparent_35%),linear-gradient(135deg,#080808,#1b1503_58%,#020202)] p-6">
+    <div className="rounded-2xl border border-white/10 bg-zinc-950 p-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div>
           <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
-            {narrative.title || "Wealth Intelligence"}
+            Intelligence Patrimoniale
           </p>
           <h2 className="mt-2 text-3xl font-black text-white md:text-4xl">
             {narrative.headline || narrative.question || "Ou j'en suis ?"}
@@ -693,8 +764,8 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
             {narrative.narrative}
           </p>
           {narrative.memorable_insight ? (
-            <div className="mt-5 rounded-2xl border border-[#ffd21a]/30 bg-[#ffd21a]/10 p-4">
-              <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+            <div className="mt-5 rounded-2xl border border-[#16d99a]/30 bg-[#16d99a]/10 p-4">
+              <p className="text-xs uppercase tracking-widest text-[#16d99a]">
                 Insight memorable
               </p>
               <p className="mt-2 text-lg font-black leading-snug text-white">
@@ -711,19 +782,43 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
             {narrative.gravity_reading}
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1">
-          {[
-            ["Patrimoine visible", narrative.visible_wealth],
-            ["Patrimoine activable", narrative.activable_wealth],
-            ["Potentiel total", narrative.total_potential],
-          ].map(([label, value]) => (
-            <div key={String(label)} className="rounded-xl border border-white/10 bg-black/35 p-4">
-              <p className="text-xs text-gray-500">{label}</p>
-              <p className="mt-2 text-2xl font-black text-white">
-                {money.format(Number(value || 0))} EUR
-              </p>
+        <div className="grid grid-cols-1 gap-3">
+          {scorecardPreview.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">Scorecard</p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={scorecardPreview.map((item) => ({
+                    label: String(item.label || ""),
+                    score: Number(item.score || 0),
+                  }))}>
+                    <PolarGrid stroke="rgba(255,255,255,0.12)" />
+                    <PolarAngleAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <Tooltip formatter={(value) => `${Number(value || 0)}/100`} />
+                    <Radar dataKey="score" stroke="#ffd21a" fill="#ffd21a" fillOpacity={0.24} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          ))}
+          )}
+          {radarPreview.length > 0 && (
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500">Radar Family Office</p>
+              <div className="mt-3 h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarPreview.map((item) => ({
+                    label: String(item.label || ""),
+                    score: Number(item.score || 0),
+                  }))}>
+                    <PolarGrid stroke="rgba(255,255,255,0.12)" />
+                    <PolarAngleAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                    <Tooltip formatter={(value) => `${Number(value || 0)}/100`} />
+                    <Radar dataKey="score" stroke="#3fa9f5" fill="#3fa9f5" fillOpacity={0.24} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       {domains.length > 0 && (
@@ -744,58 +839,193 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
         </div>
       )}
       {hiddenItems.length > 0 && (
-        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          {hiddenItems.slice(0, 4).map((item) => (
-            <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <p className="text-sm font-bold text-white">{item.label}</p>
-              <p className="mt-2 text-xl font-black text-[#ffd21a]">
-                {money.format(Number(item.potential_value || 0))} EUR
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+          <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+            Patrimoine activable
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+            <div className="min-h-72 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Lecture patrimoniale
               </p>
-              <p className="mt-2 text-xs leading-relaxed text-gray-400">
-                {item.description}
-              </p>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={wealthSnapshot} margin={{ left: 4, right: 4, top: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                    <XAxis dataKey="label" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
+                    <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} width={52} />
+                    <Tooltip
+                      cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                      formatter={(value) => `${money.format(Number(value || 0))} EUR`}
+                    />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                      {wealthSnapshot.map((item) => (
+                        <Cell key={item.label} fill={item.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">Patrimoine visible</p>
+                  <p className="mt-1 text-lg font-black text-white">
+                    {money.format(Number(hiddenWealth?.visible_wealth || narrative.visible_wealth || 0))} EUR
+                  </p>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">Patrimoine potentiel</p>
+                  <p className="mt-1 text-lg font-black text-white">
+                    {money.format(Number(hiddenWealth?.total_potential || narrative.total_potential || 0))} EUR
+                  </p>
+                </div>
+              </div>
             </div>
-          ))}
+            <div className="grid grid-cols-1 gap-3">
+              {hiddenItems.slice(0, 4).map((item) => (
+                <div key={item.key || item.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">{item.label}</p>
+                      {item.confidence ? (
+                        <span className="mt-1 inline-flex rounded-full bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          {confidenceLabels[item.confidence] || item.confidence}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 text-sm font-black text-[#ffd21a]">
+                      {money.format(Number(item.potential_value || 0))} EUR
+                    </p>
+                  </div>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                    {item.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       {(wealthBlocks.length > 0 || gravity) && (
-        <div className="mt-5 grid grid-cols-1 gap-3 lg:grid-cols-[1fr_0.8fr]">
+        <div className="mt-5 grid grid-cols-1 gap-3">
           {wealthBlocks.length > 0 && (
             <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
               <p className="text-xs uppercase tracking-widest text-gray-500">
-                Blocs de richesse
+                Etat de Richesse
               </p>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {wealthBlocks.slice(0, 4).map((block) => (
-                  <div key={block.key || block.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-bold text-white">{block.label}</p>
-                      <span className="text-xs uppercase text-gray-500">{block.status}</span>
-                    </div>
-                    <p className="mt-2 text-xl font-black text-[#f7d154]">
-                      {money.format(Number(block.value || 0))} EUR
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-400">
-                      {block.description}
-                    </p>
+              <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-[1.25fr_0.75fr]">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-xs uppercase tracking-widest text-gray-500">Composition du patrimoine</p>
+                  <div className="mt-3 flex h-8 overflow-hidden rounded-full bg-white/10">
+                    {wealthBlockComposition.map((block) => (
+                      <div
+                        key={block.key}
+                        title={`${block.label} ${block.percent.toFixed(0)}%`}
+                        style={{ width: `${Math.max(4, block.percent)}%`, backgroundColor: block.fill }}
+                      />
+                    ))}
                   </div>
-                ))}
+                  <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {wealthBlockComposition.map((block) => (
+                      <div key={block.key} className="rounded-lg border border-white/10 bg-black/25 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: block.fill }} />
+                            <p className="text-sm font-bold text-white">{block.label}</p>
+                          </div>
+                          <p className="text-sm font-black text-white">{block.percent.toFixed(0)}%</p>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400">{money.format(block.value)} EUR</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs lg:grid-cols-4">
+                    <div className="rounded-lg border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-2">
+                      <p className="text-[#ffd21a]">Liquidites</p>
+                      <p className="mt-1 font-bold text-white">{money.format(liquidAssets)} EUR</p>
+                    </div>
+                    <div className="rounded-lg border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-2">
+                      <p className="text-[#3fa9f5]">Reserve cible</p>
+                      <p className="mt-1 font-bold text-white">{money.format(securityReserve)} EUR</p>
+                    </div>
+                    <div className="rounded-lg border border-[#16d99a]/20 bg-[#16d99a]/10 p-2">
+                      <p className="text-[#16d99a]">Mobilisable</p>
+                      <p className="mt-1 font-bold text-white">{money.format(mobilizableLiquidity)} EUR</p>
+                    </div>
+                    <div className="rounded-lg border border-[#f87171]/20 bg-[#f87171]/10 p-2">
+                      <p className="text-[#f87171]">Cashflow/mois</p>
+                      <p className="mt-1 font-bold text-white">{money.format(cashflowCapacity)} EUR</p>
+                    </div>
+                  </div>
+                  {dominantWealthBlock ? (
+                    <div className="mt-3 rounded-lg border border-white/10 bg-black/25 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">Lecture</p>
+                      <p className="mt-1 text-sm font-bold text-white">
+                        {dominantWealthBlock.label} pese {dominantWealthBlock.percent.toFixed(0)}% de l'etat de richesse suivi.
+                      </p>
+                      {reserveMonths !== 0 ? (
+                        <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                          La securite lit maintenant la liquidite disponible:{" "}
+                          {reserveMonths === null
+                            ? "charges mensuelles non renseignees."
+                            : `${reserveMonths.toFixed(1)} mois de charges couverts.`}{" "}
+                          La projection prudente n'active que {money.format(deployableLiquidity)} EUR.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                {lifePreview.length > 0 && (
+                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                    <p className="text-xs font-black uppercase tracking-widest text-gray-400">Patrimoine de vie</p>
+                    <div className="mt-3 space-y-3">
+                      {lifePreview.map((item, index) => (
+                        <div key={item.key || item.label}>
+                          <div className="flex items-center justify-between gap-3 text-xs">
+                            <span className="font-bold text-gray-300">{item.label}</span>
+                            <span className="text-gray-500">{item.score}/100</span>
+                          </div>
+                          <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${Math.min(100, Number(item.score || 0))}%`,
+                                backgroundColor: ["#3fa9f5", "#16d99a", "#ffd21a", "#f87171"][index % 4],
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 rounded-lg border border-white/10 bg-black/25 p-3">
+                      <p className="text-xs uppercase tracking-widest text-gray-500">
+                        Base resilience
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                        La securite combine reserve de charges, marge mensuelle et liquidite mobilisable. Elle ne depend plus d'un cash assimile a une epargne mensuelle.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {gravity && (
-            <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="rounded-2xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-4">
               <p className="text-xs uppercase tracking-widest text-gray-500">
-                Centre de gravite
+                Points de vigilance
               </p>
-              <h3 className="mt-2 text-xl font-black text-white">
-                {gravity.dominant_visible || "Lecture actuelle"}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
-                {gravity.reading}
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+                <div>
+                  <h3 className="text-2xl font-black text-white">
+                    {gravity.dominant_visible || "Lecture actuelle"}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-300">
+                    {gravity.reading}
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
                   <p className="text-xs text-gray-500">Aujourd'hui</p>
                   <p className="mt-1 font-bold text-white">
@@ -808,12 +1038,89 @@ function WealthIntelligencePanel({ product }: { product?: ProductContext | null 
                     {gravity.dominant_future || "A confirmer"}
                   </p>
                 </div>
+                </div>
               </div>
+              {stressPreview.length > 0 && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                    Stress watch
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                    {stressPreview.map((test) => (
+                      <div key={test.key || test.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold text-white">{test.label}</p>
+                          <p className={`text-sm font-black ${Number(test.delta || 0) >= 0 ? "text-[#16d99a]" : "text-[#f87171]"}`}>
+                            {money.format(Number(test.delta || 0))} EUR
+                          </p>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                          {test.reading || "Point sensible a surveiller."}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {weakSignalPreview.length > 0 && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                    Signaux faibles
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                    {weakSignalPreview.map((signal) => (
+                      <div key={`${signal.type}-${signal.title}`} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold text-white">{signal.title}</p>
+                          <span className="text-xs uppercase text-gray-500">{signal.severity}</span>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-400">{signal.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {scoreRadarWatch.length > 0 && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                    Alertes Scorecard / Radar
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-3">
+                    {scoreRadarWatch.map((item) => (
+                      <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold text-white">{item.label}</p>
+                          <span className="text-xs font-black text-[#f87171]">{item.score}/100</span>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                          Point sensible detecte par les scores: a surveiller avant arbitrage important.
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {concentrationWatch && (
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-3">
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-400">
+                    Concentration patrimoniale
+                  </p>
+                  <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-bold text-white">{concentrationWatch.label}</p>
+                      <span className="text-xs font-black text-[#f87171]">{concentrationWatch.percent.toFixed(0)}%</span>
+                    </div>
+                    <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                      Une part dominante peut fragiliser la trajectoire si ce bloc ralentit ou perd de la valeur.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -830,10 +1137,10 @@ function FamilyOfficeCeoPanel({ product }: { product?: ProductContext | null }) 
         : "A confirmer";
 
   return (
-    <section className="rounded-2xl border border-[#ffd21a]/35 bg-[radial-gradient(circle_at_top_right,_rgba(255,210,26,0.18),_transparent_34%),linear-gradient(135deg,#070707,#111827_58%,#1b1503)] p-5">
+    <section className="rounded-2xl border border-[#3fa9f5]/35 bg-[radial-gradient(circle_at_top_right,_rgba(63,169,245,0.22),_transparent_34%),linear-gradient(135deg,#05070b,#071827_58%,#02060d)] p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+          <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
             {ceo.title || "Family Office CEO"}
           </p>
           <h2 className="mt-1 text-2xl font-black text-white">
@@ -875,7 +1182,7 @@ function FamilyOfficeCeoPanel({ product }: { product?: ProductContext | null }) 
       <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">Runway</p>
-          <p className="mt-2 text-xl font-black text-[#ffd21a]">{runway}</p>
+          <p className="mt-2 text-xl font-black text-[#3fa9f5]">{runway}</p>
           <p className="mt-1 text-xs text-gray-500">Lecture operationnelle White Rock</p>
         </div>
         <div className="rounded-xl border border-white/10 bg-black/30 p-4">
@@ -904,6 +1211,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
   const simulations = future?.simulations || [];
   const film = future?.film || [];
   const routes = future?.routes || [];
+  const dataProfile = product?.data_profile;
 
   if (!future) return null;
 
@@ -913,6 +1221,27 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
       wealth: Number(chapter.wealth || 0),
     }))
     .filter((item) => item.year && item.wealth > 0);
+  const scenarioCards = simulations.slice(0, 3).map((scenario, index) => ({
+    scenario,
+    route: routes[index],
+  }));
+  const nextStages = timeline
+    .filter((stage) => Number(stage.distance_remaining || 0) > 0)
+    .slice(0, 4);
+  const estimatedLabel =
+    position?.estimated_label ||
+    position?.destination?.estimated_label ||
+    future.time_to_next;
+  const visibleWealth = Number(dataProfile?.current_wealth || 0);
+  const projectionWealth = Number(position?.current || dataProfile?.projection_wealth || visibleWealth);
+  const deployableLiquidity = Number(
+    product?.future_view?.deployable_liquidity ||
+    dataProfile?.deployable_liquidity ||
+    0
+  );
+  const mobilizableLiquidity = Number(dataProfile?.mobilizable_liquidity || 0);
+  const securityReserve = Number(dataProfile?.security_reserve || 0);
+  const cashflowCapacity = Number(dataProfile?.cashflow_capacity ?? dataProfile?.monthly_capacity ?? 0);
 
   return (
     <section className="rounded-2xl border border-[#3fa9f5]/20 bg-zinc-950 p-5">
@@ -941,14 +1270,14 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[0.85fr_1.15fr]">
+      <div className="mt-5 grid grid-cols-1 gap-4">
         <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">Wealth Map</p>
           <p className="mt-2 text-3xl font-black text-white">
-            {money.format(Number(position?.current || 0))} EUR
+            {money.format(projectionWealth)} EUR
           </p>
           <p className="mt-1 text-sm text-gray-400">
-            vers {money.format(Number(position?.destination?.target || 0))} EUR
+            base projetee prudente vers {money.format(Number(position?.destination?.target || 0))} EUR
           </p>
           <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/10">
             <div
@@ -960,39 +1289,104 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
             Reste {money.format(Number(position?.distance_remaining || 0))} EUR · vitesse{" "}
             {money.format(Number(position?.monthly_velocity || 0))} EUR/mois
           </p>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg border border-white/10 bg-black/25 p-2">
+              <p className="text-gray-500">Patrimoine suivi</p>
+              <p className="mt-1 font-bold text-white">{money.format(visibleWealth)} EUR</p>
+            </div>
+            <div className="rounded-lg border border-[#16d99a]/20 bg-[#16d99a]/10 p-2">
+              <p className="text-[#16d99a]">Liquidite activee</p>
+              <p className="mt-1 font-bold text-white">{money.format(deployableLiquidity)} EUR</p>
+            </div>
+            <div className="rounded-lg border border-[#ffd21a]/20 bg-[#ffd21a]/10 p-2">
+              <p className="text-[#ffd21a]">Reserve gardee</p>
+              <p className="mt-1 font-bold text-white">{money.format(securityReserve)} EUR</p>
+            </div>
+            <div className="rounded-lg border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-2">
+              <p className="text-[#3fa9f5]">Cashflow/mois</p>
+              <p className="mt-1 font-bold text-white">{money.format(cashflowCapacity)} EUR</p>
+            </div>
+          </div>
+          {mobilizableLiquidity > deployableLiquidity ? (
+            <p className="mt-3 text-xs leading-relaxed text-gray-500">
+              Liquidite mobilisable totale: {money.format(mobilizableLiquidity)} EUR. La projection n'en active qu'une partie pour rester prudente.
+            </p>
+          ) : null}
+          {estimatedLabel ? (
+            <div className="mt-4 rounded-xl border border-[#3fa9f5]/20 bg-[#3fa9f5]/10 p-3">
+              <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                Temps estime
+              </p>
+              <p className="mt-1 text-lg font-black text-white">{estimatedLabel}</p>
+            </div>
+          ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {simulations.slice(0, 3).map((scenario) => (
+        {nextStages.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            {nextStages.map((stage) => (
+              <div key={`next-${stage.label}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-xs uppercase tracking-widest text-gray-500">Palier a debloquer</p>
+                <p className="mt-2 text-sm font-bold text-white">{stage.label}</p>
+                <p className="mt-2 text-xl font-black text-[#ffd21a]">
+                  {money.format(Number(stage.distance_remaining || 0))} EUR
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {stage.months_to_target !== null && stage.months_to_target !== undefined
+                    ? `${stage.months_to_target} mois estimes`
+                    : stage.estimated_label || "delai a confirmer"}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          {scenarioCards.map(({ scenario, route }) => (
             <div key={scenario.key || scenario.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm font-bold text-white">{scenario.label}</p>
+              <p className="text-xs uppercase tracking-widest text-gray-500">
+                Scenario
+              </p>
+              <p className="mt-2 text-sm font-bold text-white">{scenario.label}</p>
               <p className="mt-2 text-2xl font-black text-white">
                 {money.format(Number(scenario.value_10y || 0))} EUR
               </p>
-              <p className="mt-1 text-xs text-gray-500">projection 10 ans</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg bg-black/25 p-2">
+                  <p className="text-gray-500">5 ans</p>
+                  <p className="font-bold text-white">
+                    {money.format(Number(scenario.value_5y || 0))} EUR
+                  </p>
+                </div>
+                <div className="rounded-lg bg-black/25 p-2">
+                  <p className="text-gray-500">Effort ajoute</p>
+                  <p className="font-bold text-[#16d99a]">
+                    {money.format(Number(scenario.monthly_delta || 0))} EUR
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-gray-400">
+                {scenario.description || route?.description}
+              </p>
+              {route ? (
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-white">
+                  <span className="rounded-full bg-[#ffd21a]/15 px-2 py-1 text-[#ffd21a]">
+                    {Number(route.annual_return || scenario.annual_return || 0).toFixed(1)}%/an
+                  </span>
+                  <span className="rounded-full bg-[#3fa9f5]/15 px-2 py-1 text-[#3fa9f5]">
+                    x{Number(route.monthly_multiplier || 0).toFixed(1)} mensuel
+                  </span>
+                  {route.years_to_next_milestone !== null && route.years_to_next_milestone !== undefined ? (
+                    <span className="rounded-full bg-[#f87171]/15 px-2 py-1 text-[#f87171]">
+                      {route.years_to_next_milestone} ans palier
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
       </div>
-
-      {routes.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          {routes.slice(0, 3).map((route) => (
-            <div key={route.key || route.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs uppercase tracking-widest text-gray-500">
-                Itineraire
-              </p>
-              <h3 className="mt-2 text-sm font-bold text-white">{route.label}</h3>
-              <p className="mt-2 text-2xl font-black text-[#3fa9f5]">
-                {money.format(Number(route.value_10y || 0))} EUR
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-gray-400">
-                {route.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="mt-5 grid grid-cols-1 gap-3 xl:grid-cols-[1.15fr_0.85fr]">
         {trajectoryData.length > 0 && (
@@ -1022,7 +1416,7 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
         )}
         <div className="space-y-2">
           {timeline.slice(0, 5).map((stage) => (
-            <div key={stage.label} className="grid grid-cols-[90px_1fr_120px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <div key={stage.label} className="grid grid-cols-[90px_1fr_130px] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
               <p className="text-sm font-bold text-white">{stage.label}</p>
               <div className="h-2 overflow-hidden rounded-full bg-white/10">
                 <div
@@ -1030,21 +1424,12 @@ function FutureIntelligencePanel({ product }: { product?: ProductContext | null 
                   style={{ width: `${Math.min(100, Number(stage.progress_percent || 0))}%` }}
                 />
               </div>
-              <p className="text-right text-xs text-gray-400">{stage.estimated_label}</p>
-            </div>
-          ))}
-        </div>
-        <div className="space-y-2 xl:col-span-2">
-          {film.slice(0, 4).map((chapter) => (
-            <div key={`${chapter.year}-${chapter.title}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-black text-[#3fa9f5]">{chapter.year}</p>
-                <p className="text-sm font-black text-white">
-                  {money.format(Number(chapter.wealth || 0))} EUR
-                </p>
+              <div className="text-right text-xs text-gray-400">
+                <p>{stage.estimated_label || `${Number(stage.progress_percent || 0).toFixed(0)}%`}</p>
+                {stage.months_to_target !== null && stage.months_to_target !== undefined ? (
+                  <p className="text-[#3fa9f5]">{stage.months_to_target} mois</p>
+                ) : null}
               </div>
-              <p className="mt-1 text-sm font-bold text-white">{chapter.title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-gray-400">{chapter.narrative}</p>
             </div>
           ))}
         </div>
@@ -1103,13 +1488,43 @@ function DecisionIntelligencePanel({ product }: { product?: ProductContext | nul
 
 function BoardBriefingPanel({ product }: { product?: ProductContext | null }) {
   const briefing = product?.board_briefing;
+  const wealthBlocks = product?.wealth_blocks?.blocks || [];
+  const wealthBlockTotal = wealthBlocks.reduce(
+    (sum, block) => sum + Number(block.value || 0),
+    0
+  );
+  const wealthBlockOptimizations = wealthBlocks
+    .map((block) => {
+      const value = Number(block.value || 0);
+      return {
+        label: String(block.label || "Axe patrimonial").replace(/^Bloc\s+/i, ""),
+        value,
+        percent: wealthBlockTotal > 0 ? (value / wealthBlockTotal) * 100 : 0,
+        description: block.description,
+      };
+    })
+    .filter((item) => item.value > 0 && item.percent < 15)
+    .sort((a, b) => a.percent - b.percent)
+    .slice(0, 2);
+  const improvementSignals = [
+    ...(product?.family_office_intelligence?.scorecard || []),
+    ...(product?.family_office_intelligence?.radar || []),
+  ]
+    .map((item) => ({
+      label: item.label || "Axe a renforcer",
+      score: Number(item.score || 0),
+      status: "status" in item ? item.status : undefined,
+    }))
+    .filter((item) => item.score >= 50 && item.score < 80)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
 
   if (!briefing) return null;
 
   return (
     <section className="rounded-2xl border border-[#f7d154]/25 bg-zinc-950 p-5">
       <p className="text-xs uppercase tracking-widest text-[#f7d154]">
-        Briefing patrimonial
+        Optimisations possibles
       </p>
       <h2 className="mt-2 text-2xl font-black text-white">
         {briefing.headline || briefing.title || "Ce qui merite attention"}
@@ -1138,19 +1553,46 @@ function BoardBriefingPanel({ product }: { product?: ProductContext | null }) {
           </div>
         ))}
       </div>
-      {briefing.stress_watch ? (
+      {improvementSignals.length > 0 && (
         <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-widest text-gray-500">
-            Stress watch
+            Axes issus de la Scorecard et du Radar
           </p>
-          <p className="mt-2 text-sm font-bold text-white">
-            {briefing.stress_watch.label}
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-gray-400">
-            {briefing.stress_watch.reading}
-          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            {improvementSignals.map((item) => (
+              <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-bold text-white">{item.label}</p>
+                  <span className="text-xs font-black text-[#ffd21a]">{item.score}/100</span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                  Axe perfectible: assez solide pour etre travaille, pas encore assez haut pour etre considere acquis.
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
-      ) : null}
+      )}
+      {wealthBlockOptimizations.length > 0 && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4">
+          <p className="text-xs uppercase tracking-widest text-gray-500">
+            Axes issus de l'Etat de Richesse
+          </p>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {wealthBlockOptimizations.map((item) => (
+              <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-bold text-white">{item.label}</p>
+                  <span className="text-xs font-black text-[#3fa9f5]">{item.percent.toFixed(0)}%</span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-gray-400">
+                  {item.description || "Bloc encore peu represente: opportunite d'equilibrage patrimonial."}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -1417,6 +1859,7 @@ export default function Dashboard() {
     ventureAssets,
     businessIntelligence,
     categoryOpportunities,
+    affiliatePartners,
     legacyOverview,
     onboarding,
     finance,
@@ -1555,11 +1998,51 @@ export default function Dashboard() {
   const globalScore =
     Number(commandCenter?.global_score ?? 0) || 0;
   const realEstateAssets = realEstate?.assets || [];
-  const investmentRubrics = portfolioAllocation;
+  const portfolioTotalValue = portfolio.reduce(
+    (acc, asset) => acc + Number(asset.value ?? asset.current_value ?? 0),
+    0
+  );
+  const portfolioTotalCost = portfolio.reduce(
+    (acc, asset) =>
+      acc +
+      Number(
+        asset.cost ??
+          Number(asset.quantity || 0) * Number(asset.purchase_price || 0)
+      ),
+    0
+  );
+  const portfolioTotalGain = portfolioTotalValue - portfolioTotalCost;
+  const portfolioPerformance =
+    portfolioTotalCost > 0 ? (portfolioTotalGain / portfolioTotalCost) * 100 : 0;
+  const localInvestmentRubrics = portfolio
+    .reduce<Array<{ label: string; value: number }>>((acc, asset) => {
+      const label = String(asset.asset_type || asset.type || "Autre")
+        .replace(/_/g, " ")
+        .toUpperCase();
+      const value = Number(asset.value ?? asset.current_value ?? 0);
+      const existing = acc.find((item) => item.label === label);
+      if (existing) existing.value += value;
+      else acc.push({ label, value });
+      return acc;
+    }, [])
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const investmentRubrics =
+    portfolioAllocation.length > 0 ? portfolioAllocation : localInvestmentRubrics;
+  const dominantInvestmentExposure = investmentRubrics[0];
+  const dominantInvestmentWeight =
+    dominantInvestmentExposure && portfolioTotalValue > 0
+      ? (Number(dominantInvestmentExposure.value || 0) / portfolioTotalValue) * 100
+      : 0;
   const realEstateRubrics = realEstateAssets.map((asset) => ({
     label: String(asset.property_type || "Immobilier").replace(/_/g, " ").toUpperCase(),
     value: Number(asset.estimated_value || asset.resale_price || asset.purchase_price || 0),
   }));
+  const realEstateTotals = realEstate?.totals || {};
+  const realEstateTotalValue = Number(realEstateTotals.total_estimated_value || 0);
+  const realEstatePotentialGain = Number(realEstateTotals.total_potential_gain || 0);
+  const realEstateGlobalPerformance = Number(realEstateTotals.total_potential_gain_percent || 0);
+  const realEstateRentalYield = Number(realEstateTotals.average_rental_yield || 0);
   const businessRubrics = [
     ...(yieldAssets?.assets || []).map((asset) => ({
       label:
@@ -1573,9 +2056,13 @@ export default function Dashboard() {
       value: Number(asset.final_value || asset.computed_value || asset.valuation || 0),
     })),
   ];
-  const businessMetrics = businessIntelligence?.metrics || {};
   const businessDecision = businessIntelligence?.decision;
   const businessNarrative = businessIntelligence?.narrative;
+  const ventureTotals = ventureAssets?.totals || {};
+  const businessRevenue = Number(ventureTotals.total_revenue || 0);
+  const businessCharges = Number(ventureTotals.total_charges || 0);
+  const businessPerformance = Number(ventureTotals.total_result || 0);
+  const businessValue = Number(ventureTotals.total_final_value || 0);
   const categoryOpportunityItems = categoryOpportunities?.categories || [];
   const findOpportunity = (key: string) =>
     categoryOpportunityItems.find((item) => item.key === key);
@@ -1738,7 +2225,7 @@ export default function Dashboard() {
     },
     {
       key: "opportunities",
-      label: "Rechercher une opportunite",
+      label: "Opportunites",
       description: "Signaux",
     },
     ...(legacyNavigationEnabled
@@ -2727,23 +3214,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl p-4">
-        <DashboardUpgradeBanner
-          currentPlanKey={currentPlanKey}
-          score={globalScore}
-          onUpgrade={handleUpgradePlan}
-        />
-      </div>
-
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-5 p-4 lg:grid-cols-[260px_1fr]">
         <aside className="hidden lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-7rem)]">
           <div className="rounded-2xl border border-white/10 bg-zinc-950/90 p-3">
             <div className="mb-3 px-2">
               <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
-                Navigation
-              </p>
-              <p className="mt-1 text-sm text-gray-400">
-                Summary first. Drill-down second.
+                Menu
               </p>
             </div>
 
@@ -2785,7 +3261,7 @@ export default function Dashboard() {
               <SectionHeader
                 eyebrow="White Rock Center"
                 title="Vue Globale"
-                description="La premiere lecture de ton Family Office: patrimoine, cashflow, trajectoire et prochaine action utile."
+                description={`Votre patrimoine est structure a ${Math.round(globalScore)}%. La premiere lecture de ton Family Office: patrimoine, cashflow, trajectoire et prochaine action utile.`}
               />
 
               <HomeExecutiveSummary
@@ -2794,18 +3270,15 @@ export default function Dashboard() {
                 portfolio={portfolio}
                 realEstate={realEstate}
                 ventureAssets={ventureAssets}
-                plan={currentPlan}
-                level={product?.progression?.level || commandCenter?.level || dashboard?.level}
+                opportunitiesCount={
+                  typeof commandCenter?.opportunities_count === "number"
+                    ? commandCenter.opportunities_count
+                    : normalizeCommandCenterOpportunities(commandCenter?.opportunities).length
+                }
+                onOpenOpportunities={() => setActiveSection("opportunities")}
+                onOpenWealth={() => setActiveSection("wealth")}
+                onOpenFinances={() => setActiveSection("finances")}
               />
-
-              <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-                <PremiumOpportunityCounter
-                  commandCenter={commandCenter}
-                  currentPlan={currentPlan}
-                  onUpgrade={handleUpgradePlan}
-                />
-                <PlanComparisonWidget currentPlanKey={currentPlanKey} />
-              </div>
             </div>
           )}
 
@@ -2813,7 +3286,7 @@ export default function Dashboard() {
             <div className="space-y-6">
               <SectionHeader
                 eyebrow="Patrimoine"
-                title="Wealth Intelligence"
+                title="Intelligence Patrimoniale"
                 description="Patrimoine visible, potentiel activable, scorecard et signaux de solidite. Cette page donne la lecture patrimoniale complete."
               />
 
@@ -2828,7 +3301,6 @@ export default function Dashboard() {
 
               <BoardBriefingPanel product={product} />
 
-              <FamilyOfficeIntelligencePanel product={product} />
             </div>
           )}
 
@@ -2840,12 +3312,6 @@ export default function Dashboard() {
                 description="Wealth Map, film du futur, scenarios et vitesse vers les prochains paliers."
               />
 
-              <FutureIntelligencePanel product={product} />
-
-              {!planAllows(currentPlan, "ELITE") && (
-                <ElitePreviewPanel onUpgrade={handleUpgradePlan} />
-              )}
-
               {planAllows(currentPlan, "ELITE") ? (
                 <FamilyOfficeCeoPanel product={product} />
               ) : (
@@ -2855,6 +3321,12 @@ export default function Dashboard() {
                   onUpgrade={handleUpgradePlan}
                   plan="elite"
                 />
+              )}
+
+              <FutureIntelligencePanel product={product} />
+
+              {!planAllows(currentPlan, "ELITE") && (
+                <ElitePreviewPanel onUpgrade={handleUpgradePlan} />
               )}
 
               {!planAllows(currentPlan, "LIBERTY") && (
@@ -2998,6 +3470,32 @@ export default function Dashboard() {
                           plan="elite"
                         />
                       )}
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <MetricCard
+                          label="Valeur totale"
+                          value={formatChartMoney(portfolioTotalValue)}
+                          tone="primary"
+                        />
+                        <MetricCard
+                          label="Plus / moins-value"
+                          value={`${portfolioTotalGain >= 0 ? "+" : ""}${formatChartMoney(portfolioTotalGain)}`}
+                          tone={portfolioTotalGain >= 0 ? "success" : "danger"}
+                        />
+                        <MetricCard
+                          label="Performance"
+                          value={`${portfolioPerformance >= 0 ? "+" : ""}${portfolioPerformance.toFixed(2)}%`}
+                          tone={portfolioPerformance >= 0 ? "success" : "danger"}
+                        />
+                        <MetricCard
+                          label="Exposition dominante"
+                          value={
+                            dominantInvestmentExposure
+                              ? `${dominantInvestmentExposure.label} ${dominantInvestmentWeight.toFixed(0)}%`
+                              : "A qualifier"
+                          }
+                        />
+                      </div>
                     </section>
                   ) : (
                     <LockedSection
@@ -3056,6 +3554,28 @@ export default function Dashboard() {
                     />
                   )}
 
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <MetricCard
+                      label="Valeur totale"
+                      value={formatChartMoney(realEstateTotalValue)}
+                      tone="primary"
+                    />
+                    <MetricCard
+                      label="Plus-value latente"
+                      value={`${realEstatePotentialGain >= 0 ? "+" : ""}${formatChartMoney(realEstatePotentialGain)}`}
+                      tone={realEstatePotentialGain >= 0 ? "success" : "danger"}
+                    />
+                    <MetricCard
+                      label="Performance globale"
+                      value={`${realEstateGlobalPerformance.toFixed(2)}%`}
+                      tone={realEstateGlobalPerformance >= 0 ? "success" : "danger"}
+                    />
+                    <MetricCard
+                      label="Rendement locatif"
+                      value={`${realEstateRentalYield.toFixed(2)}%`}
+                    />
+                  </div>
+
                   <RealEstateModule
                     data={realEstate}
                     onAdd={handleAddRealEstate}
@@ -3087,8 +3607,8 @@ export default function Dashboard() {
               ) : (
                 <>
               <section className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="max-w-3xl">
+                <div className="space-y-4">
+                  <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">
                       Business Intelligence
                     </p>
@@ -3108,7 +3628,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 lg:w-80">
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-amber-200">
                       Decision du moment
                     </p>
@@ -3137,28 +3657,6 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                  {[
-                    ["CA", businessMetrics.revenue],
-                    ["Resultat", businessMetrics.result],
-                    ["Dette", businessMetrics.debts],
-                    ["Actifs prives", businessMetrics.private_capital],
-                    ["Valeur business", businessMetrics.total_business_value],
-                  ].map(([label, value]) => (
-                    <div
-                      key={String(label)}
-                      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
-                    >
-                      <p className="text-xs uppercase tracking-widest text-gray-500">
-                        {label}
-                      </p>
-                      <p className="mt-2 text-xl font-black text-white">
-                        {money.format(Number(value || 0))} EUR
-                      </p>
-                    </div>
-                  ))}
-                </div>
               </section>
 
               {eliteChartsEnabled ? (
@@ -3175,6 +3673,27 @@ export default function Dashboard() {
                   plan="elite"
                 />
               )}
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <MetricCard
+                  label="Chiffre d'affaires"
+                  value={formatChartMoney(businessRevenue)}
+                />
+                <MetricCard
+                  label="Charges"
+                  value={formatChartMoney(businessCharges)}
+                />
+                <MetricCard
+                  label="Performance"
+                  value={`${businessPerformance >= 0 ? "+" : ""}${formatChartMoney(businessPerformance)}`}
+                  tone={businessPerformance >= 0 ? "success" : "danger"}
+                />
+                <MetricCard
+                  label="Valeur suivie"
+                  value={formatChartMoney(businessValue)}
+                  tone="primary"
+                />
+              </div>
 
               <VentureAssetsModule
                 data={ventureAssets}
@@ -3206,8 +3725,8 @@ export default function Dashboard() {
           {activeSection === "opportunities" && (
             <div className="space-y-6">
               <SectionHeader
-                eyebrow="Rechercher une opportunite"
-                title="Rechercher une opportunite"
+                eyebrow="Opportunites"
+                title="Opportunites"
                 description="Recherche, exploration et signaux centralises. Les pages metier restent dediees au pilotage."
               />
 
@@ -3257,6 +3776,7 @@ export default function Dashboard() {
               <OpportunitiesModule
                 commandCenter={commandCenter}
                 plan={currentPlan}
+                partnersSlot={<AffiliatePartnersPanel data={affiliatePartners} />}
               />
             </div>
           )}
@@ -3589,6 +4109,12 @@ export default function Dashboard() {
                     <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-xs font-bold text-emerald-100">
                       Profil complete a {profileCompletionPercent}%
                     </span>
+                    <ActionButton
+                      variant="secondary"
+                      onClick={() => router.push("/dashboard/profile/report")}
+                    >
+                      Synthese PDF
+                    </ActionButton>
                     <ActionButton onClick={handleUpdateOnboarding}>
                       Modifier mon profil
                     </ActionButton>
@@ -3653,6 +4179,20 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                  <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
+                    Parrainage
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold">Recommandations et invitations</h2>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Invite des proches depuis l'espace profil, sans melanger parrainage et gouvernance familiale.
+                  </p>
+                </div>
+
+                <ProfileReferralPanel mode="referral" />
               </section>
             </div>
           )}
@@ -3758,28 +4298,54 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
-                    Voir les plans
-                  </button>
-                  <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100">
-                    Plans fondateurs
-                  </button>
-                  <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-sm font-semibold text-[#3fa9f5]">
-                    Gold - Growth
-                  </button>
-                  <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-400/20">
-                    Elite - Wealth OS
-                  </button>
-                  <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-sm font-semibold text-black">
-                    Liberty - Sovereign Wealth
-                  </button>
-                  <button onClick={() => handleUpgradePlan("legacy")} className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-sm font-semibold text-amber-200">
-                    Dynasty Office
-                  </button>
-                  <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white">
-                    Gerer mon abonnement
-                  </button>
+              </section>
+
+              <section className="rounded-2xl border border-white/10 bg-[#050505] p-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#3fa9f5]">
+                      Plans
+                    </p>
+                    <h2 className="mt-1 text-2xl font-bold text-white">
+                      Plans et acces premium
+                    </h2>
+                    <p className="mt-2 text-sm text-gray-400">
+                      Compare les niveaux, consulte les plans disponibles et gere ton abonnement.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+                  <PlanComparisonWidget currentPlanKey={currentPlanKey} />
+
+                  <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
+                    <p className="text-xs uppercase tracking-widest text-gray-500">
+                      Acces aux plans
+                    </p>
+                    <div className="mt-4 grid gap-3">
+                      <button onClick={() => router.push("/plans/standard")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-left text-sm font-semibold text-emerald-100">
+                        Voir les plans
+                      </button>
+                      <button onClick={() => router.push("/plans/founder")} className="rounded-xl border border-emerald-300/35 bg-emerald-300/10 px-4 py-2 text-left text-sm font-semibold text-emerald-100">
+                        Plans fondateurs
+                      </button>
+                      <button onClick={() => handleUpgradePlan("gold")} className="rounded-xl border border-[#3fa9f5]/40 bg-[#3fa9f5]/10 px-4 py-2 text-left text-sm font-semibold text-[#3fa9f5]">
+                        Gold - Growth
+                      </button>
+                      <button onClick={() => handleUpgradePlan("elite")} className="rounded-xl bg-gradient-to-r from-[#3fa9f5] to-emerald-400 px-4 py-2 text-left text-sm font-semibold text-white shadow-lg shadow-emerald-400/20">
+                        Elite - Wealth OS
+                      </button>
+                      <button onClick={() => handleUpgradePlan("liberty")} className="rounded-xl bg-amber-300 px-4 py-2 text-left text-sm font-semibold text-black">
+                        Liberty - Sovereign Wealth
+                      </button>
+                      <button onClick={() => handleUpgradePlan("legacy")} className="rounded-xl border border-amber-300/40 bg-black px-4 py-2 text-left text-sm font-semibold text-amber-200">
+                        Dynasty Office
+                      </button>
+                      <button onClick={handleOpenBillingPortal} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-left text-sm font-semibold text-white">
+                        Gerer mon abonnement
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -3800,19 +4366,6 @@ export default function Dashboard() {
                 </div>
               </section>
 
-              <section className="space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-zinc-950 p-5">
-                  <p className="text-xs uppercase tracking-widest text-[#ffd21a]">
-                    Parrainage
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold">Recommandations et invitations</h2>
-                  <p className="mt-2 text-sm text-gray-400">
-                    Invite des proches depuis l'espace abonnement, sans melanger parrainage et gouvernance familiale.
-                  </p>
-                </div>
-
-                <ProfileReferralPanel mode="referral" />
-              </section>
             </div>
           )}
 

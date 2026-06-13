@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, isJwtExpired } from "@/lib/api-client";
 import type { ChildAccountsData } from "@/lib/types";
 import { ActionButton, EmptyState, TextField, WealthModal } from "@/components/ui/WealthUI";
 
@@ -30,7 +30,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
   useEffect(() => {
     if (!enabled) return;
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token || isJwtExpired(token)) return;
 
     let cancelled = false;
     apiFetch<ChildAccountsData>("/finance/child-accounts", token)
@@ -76,7 +76,7 @@ export default function ChildAccountsPanel({ enabled, onUpgrade }: ChildAccounts
 
   const createAccount = async () => {
     const token = localStorage.getItem("token");
-    if (!token || !values.child_name.trim()) return;
+    if (!token || isJwtExpired(token) || !values.child_name.trim()) return;
 
     setLoading(true);
     try {

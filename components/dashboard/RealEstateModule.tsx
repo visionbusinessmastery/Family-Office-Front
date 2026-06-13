@@ -7,7 +7,7 @@ import type {
   RealEstateType,
 } from "@/lib/types";
 import OpportunityInsightCard from "./OpportunityInsightCard";
-import { ActionButton, EmptyState, MetricCard } from "@/components/ui/WealthUI";
+import { ActionButton, EmptyState } from "@/components/ui/WealthUI";
 
 type RealEstateModuleProps = {
   data?: RealEstateData | null;
@@ -65,8 +65,6 @@ export default function RealEstateModule({
   const totalPurchase = numberValue(totals.total_purchase);
   const totalValue = numberValue(totals.total_estimated_value);
   const potentialGain = numberValue(totals.total_potential_gain);
-  const globalPerformance = numberValue(totals.total_potential_gain_percent);
-  const rentalYield = numberValue(totals.average_rental_yield);
   const canAddAsset = !access || access.is_unlimited || numberValue(access.remaining) > 0;
   const accessLine = access
     ? access.is_unlimited
@@ -109,20 +107,6 @@ export default function RealEstateModule({
             <OpportunityInsightCard opportunity={opportunity} variant="compact" />
           </div>
         </div>
-      </div>
-
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard label="Valeur totale" value={formatMoney(totalValue)} tone="primary" />
-        <MetricCard
-          label="Plus-value latente"
-          value={`${potentialGain >= 0 ? "+" : ""}${formatMoney(potentialGain)}`}
-          tone={potentialGain >= 0 ? "success" : "danger"}
-        />
-        <MetricCard
-          label="Performance globale"
-          value={formatPercent(globalPerformance)}
-        />
-        <MetricCard label="Rendement locatif" value={formatPercent(rentalYield)} />
       </div>
 
       <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">

@@ -217,7 +217,12 @@ export type ProductContext = {
     monthly_income?: number;
     monthly_expenses?: number;
     monthly_savings?: number;
+    cashflow_capacity?: number;
     monthly_capacity?: number;
+    liquid_assets?: number;
+    security_reserve?: number;
+    mobilizable_liquidity?: number;
+    deployable_liquidity?: number;
     debt_total?: number;
     portfolio_value?: number;
     real_estate_value?: number;
@@ -225,6 +230,7 @@ export type ProductContext = {
     venture_value?: number;
     business_value?: number;
     current_wealth?: number;
+    projection_wealth?: number;
   };
   life_profile?: {
     goals?: string[];
@@ -262,6 +268,7 @@ export type ProductContext = {
     title?: string;
     current_wealth?: number;
     monthly_capacity?: number;
+    deployable_liquidity?: number;
     annual_return?: number;
     confidence?: string;
     assumption?: string;
@@ -460,6 +467,7 @@ export type ProductContext = {
       potential_value?: number;
       confidence?: string;
       description?: string;
+      action?: string;
     }>;
   };
   gravity_center?: {
@@ -872,6 +880,9 @@ export type Opportunity = {
   priority?: "high" | "medium" | "low" | string;
   score?: number;
   premium?: boolean;
+  budget?: string;
+  potential?: string;
+  risk?: string;
   why_this_opportunity?: string;
   why_now?: string;
   impact_potential?: string;
@@ -922,6 +933,25 @@ export type CategoryOpportunity = {
 
 export type CategoryOpportunityData = {
   categories?: CategoryOpportunity[];
+};
+
+export type AffiliatePartner = {
+  id?: string;
+  name?: string;
+  category?: string;
+  category_label?: string;
+  description?: string;
+  benefit?: string;
+  url?: string;
+  source?: string;
+  rank?: number;
+};
+
+export type AffiliatePartnerData = {
+  count?: number;
+  partners?: AffiliatePartner[];
+  source?: string;
+  sync?: string;
 };
 
 export type OpportunityUniverse = "real_estate" | "investments" | "business";
